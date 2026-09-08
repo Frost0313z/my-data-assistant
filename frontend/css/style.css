@@ -98,8 +98,7 @@ h2 { font-size: 0.95rem; margin: 0 0 10px; }
   font-weight: 600;
 }
 
-.topic-detail { flex: 1; margin-bottom: 0; display: flex; flex-direction: column; }
-.topic-detail .topic-frame-wrap { flex: 1; min-height: 420px; }
+.topic-detail { margin-bottom: 0; }
 .topic-empty { color: #6b7280; font-size: 0.9rem; margin: 6px 0; line-height: 1.6; }
 .topic-headline { font-size: 1.05rem; margin: 0 0 6px; line-height: 1.45; }
 .topic-desc { font-size: 0.88rem; color: #3b4252; margin: 0 0 14px; line-height: 1.6; }
@@ -114,9 +113,10 @@ h2 { font-size: 0.95rem; margin: 0 0 10px; }
 }
 
 /* 실제 대시보드 패널 임베드 (섹션만 보기 모드) */
+/* 패널이 잘리지 않게 넉넉히. 중앙 칸(.topics-pane)이 대신 스크롤한다. */
 .topic-frame-wrap {
   position: relative;
-  height: 560px;
+  height: 620px;
   border: 1px solid #e2e4e8;
   border-radius: 10px;
   overflow: hidden;
