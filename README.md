@@ -57,16 +57,19 @@ sequenceDiagram
 
     U->>F: 질문 입력 + "보내기"
     F->>B: POST /api/chat { message, conversation_id? }
-    B->>DB: data 컬렉션 조회 → 요약 계산 (기간/평균/추세)
-    B->>B: 요약을 시스템 프롬프트에 삽입
-    B->>AI: chat.completions (system=요약, user=질문)
+    B->>DB: data 컬렉션 조회 → 실시간 요약 계산 (기간/평균/추세)
+    B->>B: [실시간 요약] + [사전 분석 리포트(고정)] 를 시스템 프롬프트에 삽입
+    B->>AI: chat.completions (system=요약+리포트, user=질문)
     AI-->>B: 답변 텍스트
     B->>DB: conversations 에 (질문, 답변) 자동 저장
     B-->>F: { reply, conversation_id }
     F-->>U: 답변 표시 + 대화 기록 갱신
 ```
 
-핵심은 **"요약을 매 호출마다 다시 계산해서 주입"** 한다는 점입니다. 데이터가 바뀌면 다음 대화부터 즉시 반영됩니다.
+시스템 프롬프트는 두 블록으로 구성됩니다.
+
+1. **실시간 데이터 요약** — 매 호출마다 `data` 컬렉션에서 다시 계산. 데이터를 편집하면 다음 대화부터 즉시 반영.
+2. **사전 분석 리포트** (`backend/app/seed/insights.md`) — 이전 프로젝트 [daejeon-commercial-analysis](https://github.com/Frost0313z/daejeon-commercial-analysis)의 분석 결과(자치구·업종별 성장률, 행정동 공급밀도·LQ·잔존율, 점포 교체율 등)를 압축한 **고정 스냅샷**. 지역·업종 단위의 구체적 질문에 답할 수 있게 해줍니다. 프롬프트 규칙으로 "수치는 실시간 요약 우선, 배경·세부는 리포트 활용, 리포트에 없는 값은 지어내지 말 것"을 명시합니다.
 
 ---
 
@@ -107,7 +110,36 @@ sequenceDiagram
 
 ---
 
-## 7. 화면 구성 (프론트엔드)
+## 7. 입력 검증 / 출력 처리 규칙
+
+신뢰 경계(브라우저 → API)에서 들어오는 값은 **화이트리스트 방식**으로 좁히고, 화면에 다시 그릴 때는 **DOM 텍스트 노드로만** 출력한다.
+
+### 입력 검증 (백엔드 · `backend/app/models.py`)
+
+| 필드 | 규칙 |
+|---|---|
+| `date` | 정규식 `^\d{4}-\d{2}-\d{2}$` + 실제 달력상 유효한 날짜(`date.fromisoformat`)만 허용 |
+| `value` | 유한 실수만. `NaN`/`Inf` 거부(`allow_inf_nan=False`), 범위 `-1e12 ~ 1e12` |
+| `memo` | 최대 500자. ASCII 제어문자(0x00–0x1F, 0x7F) 제거 후 저장 |
+| `chat.message` | 1자 이상 2000자 이하. 제어문자 제거, 공백만 있으면 거부 |
+| `conversation.title` | 최대 100자, 제어문자 제거 |
+| `chat message.content` | 최대 8000자, 제어문자 제거 |
+
+위반 시 FastAPI가 `422 Unprocessable Entity`와 위반 필드를 반환한다. 규칙은 `backend/test_models.py`(`python test_models.py`)로 검증한다.
+
+### 출력 이스케이프 (프론트엔드)
+
+사용자·AI가 만든 문자열(대화 제목, memo, date로 조립된 요약 문구)은 **`innerHTML` 템플릿으로 조립하지 않는다.** `document.createElement` + `element.textContent`로만 DOM에 넣어 브라우저가 자동 이스케이프하도록 한다(`js/data.js`, `js/history.js`, `js/summary.js`). 채팅 말풍선은 원래부터 `textContent` 사용. 따라서 `<img src=x onerror=...>` 같은 memo·제목을 넣어도 텍스트로 표시되고 실행되지 않는다.
+
+### 다중 방어
+
+- 백엔드 제어문자 제거 = 저장 데이터 오염 방지 + 프롬프트 주입 표면 축소.
+- 프론트 `textContent` = 저장된 값이 오염됐더라도 실행 차단.
+- CORS 허용 오리진 화이트리스트(`ALLOWED_ORIGINS`)로 타 사이트에서의 호출 차단.
+
+---
+
+## 8. 화면 구성 (프론트엔드)
 
 한 페이지에 4개 영역:
 
@@ -118,11 +150,11 @@ sequenceDiagram
 
 ---
 
-## 8. 제출 스크린샷
+## 9. 제출 스크린샷
 
 > 코디세이 AI 사전평가는 이미지를 읽지 못하므로, 각 스크린샷 아래에 **입력 → 실제 출력**을 텍스트로 함께 적는다.
 
-### 8-1. 데이터 요약이 반영된 채팅 화면 (질문 + 답변)
+### 9-1. 데이터 요약이 반영된 채팅 화면 (질문 + 답변)
 
 ![채팅 + 요약](assets/screenshot-1-chat-summary.png)
 
@@ -131,7 +163,7 @@ sequenceDiagram
 - **AI 실제 답변(발췌)**: "대전 상권 데이터의 평균 점포 수는 **958.3개**로 나타났습니다. 최근 추세는 **유지**되고 있다는 점에서, 현재 상권의 안정성을 엿볼 수 있습니다. … 안정적인 상권 트렌드를 활용해 특화된 제품이나 서비스를 제공하는 것이 경쟁력을 높일 수 있을 것입니다."
 - **확인 포인트**: 답변의 `958.3`, `유지`는 프런트가 만든 값이 아니라 **백엔드가 `/api/data/summary`를 계산해 시스템 프롬프트로 주입한 값**이 그대로 반영된 것.
 
-### 8-2. 데이터 관리 화면 (CRUD 동작)
+### 9-2. 데이터 관리 화면 (CRUD 동작)
 
 ![데이터 관리](assets/screenshot-2-data-crud.png)
 
@@ -140,7 +172,7 @@ sequenceDiagram
 - **삭제(Delete)**: 각 행의 "삭제" 버튼. (스크린샷 촬영 후 데모용 레코드는 삭제해 시드 492개 상태로 되돌림.)
 - Pydantic 검증: `value`에 문자열을 넣으면 `422 Unprocessable Entity`.
 
-### 8-3. 대화 기록 불러오기 화면
+### 9-3. 대화 기록 불러오기 화면
 
 ![대화 기록 불러오기](assets/screenshot-3-history-load.png)
 
@@ -148,7 +180,7 @@ sequenceDiagram
 - **동작**: 사이드바 "대화 기록"에서 ②를 클릭 → 채팅창에 ②의 질문·답변 전체가 복원됨(`GET /api/conversations/{id}`).
 - **확인 포인트**: 목록 항목의 제목이 정상 표시되고, 클릭 한 번으로 과거 대화가 그대로 재현됨.
 
-### 8-4. 모바일 화면 — 채팅 (뷰포트 390×844, iPhone 12 상당)
+### 9-4. 모바일 화면 — 채팅 (뷰포트 390×844, iPhone 12 상당)
 
 ![모바일 채팅](assets/screenshot-4-mobile-chat.png)
 
@@ -156,14 +188,14 @@ sequenceDiagram
 - **채팅 입력**: `.chat-input-row`가 세로로 전환돼 입력창과 "보내기" 버튼이 각각 가로 전체를 차지(터치 타깃 확보).
 - **동작 확인**: 모바일 뷰에서 "모바일에서 잘 되나 확인 중…" 질문 전송 → AI가 `기간 2025년 3월 1일 ~ 2026년 6월 1일, 평균 958.3` 응답. 말풍선 `max-width: 85%`로 화면 밖으로 넘치지 않음.
 
-### 8-5. 모바일 화면 — 데이터 관리 (반응형 폼)
+### 9-5. 모바일 화면 — 데이터 관리 (반응형 폼)
 
 ![모바일 데이터 관리](assets/screenshot-5-mobile-data.png)
 
 - **추가 폼**: `.data-form`이 `flex-direction: column`으로 전환돼 날짜/값/메모 입력이 한 줄에 하나씩, "추가" 버튼은 가로 전체.
 - **넓은 표**: `.data-table`이 `display: block; overflow-x: auto`로 바뀌어 표만 가로 스크롤되고, **페이지 자체는 가로 스크롤이 생기지 않음**(`document.documentElement.scrollWidth === window.innerWidth === 390` 확인).
 
-### 8-6. 반응형 CSS 미디어쿼리 (`frontend/css/style.css`)
+### 9-6. 반응형 CSS 미디어쿼리 (`frontend/css/style.css`)
 
 2단계 브레이크포인트로 대응한다.
 
@@ -188,7 +220,7 @@ Chrome DevTools 모바일 에뮬레이션(390×844, `isMobile: true`, `hasTouch:
 
 ---
 
-## 9. 로컬 실행 방법
+## 10. 로컬 실행 방법
 
 ### 백엔드
 
@@ -197,7 +229,7 @@ cd backend
 python -m venv venv
 venv\Scripts\activate          # Windows (macOS/Linux: source venv/bin/activate)
 pip install -r requirements.txt
-cp .env.example .env           # 값 채우기 (아래 10번 참고)
+cp .env.example .env           # 값 채우기 (아래 11번 참고)
 python scripts/seed_firestore.py   # 최초 1회: 시드 492개 적재
 uvicorn main:app --reload
 ```
@@ -212,7 +244,7 @@ uvicorn main:app --reload
 
 ---
 
-## 10. 환경 변수 (최소 세트)
+## 11. 환경 변수 (최소 세트)
 
 | 변수 | 위치 | 필수 | 설명 |
 |---|---|:---:|---|
@@ -227,7 +259,7 @@ uvicorn main:app --reload
 
 ---
 
-## 11. 프로젝트 구조
+## 12. 프로젝트 구조
 
 ```
 my-data-assistant/
@@ -239,7 +271,9 @@ my-data-assistant/
 │   │   ├── models.py            # Pydantic 요청/응답 스키마
 │   │   ├── routers/             # data / conversations / chat — HTTP 계약만
 │   │   ├── services/            # Firestore·OpenAI 호출 등 실제 로직
-│   │   └── seed/seed_data.json  # 시드 데이터 492개
+│   │   └── seed/
+│   │       ├── seed_data.json   # 시드 데이터 492개
+│   │       └── insights.md      # 사전 분석 리포트(고정) — chat 프롬프트에 주입
 │   ├── scripts/
 │   │   ├── prepare_seed_data.py # 원본 CSV → 시드 JSON
 │   │   └── seed_firestore.py    # 시드 JSON → Firestore 적재
@@ -254,21 +288,22 @@ my-data-assistant/
 
 ---
 
-## 12. 설계 노트
+## 13. 설계 노트
 
 - **데이터 구조를 이렇게 선택한 이유**: 미션이 요구하는 `(date, value, memo)` 단순 시계열 스키마에 맞추면서도, 이미 검증된 실제 분석 데이터(대전 상권)를 재사용해 "억지로 만든 숫자"가 아닌 의미 있는 데이터를 쓰고 싶었습니다. 행정동×분기를 개별 레코드로 풀어 492개를 확보했습니다.
 - **컨텍스트 주입 흐름**: `/api/chat`은 매 호출마다 `/api/data/summary`를 다시 계산해 시스템 프롬프트에 넣습니다. 데이터가 바뀌면 다음 대화부터 즉시 반영됩니다. 프롬프트 크기를 일정하게 유지하려고 원본 492행이 아니라 **요약 통계만** 주입합니다.
+- **실시간 요약 + 고정 리포트 분리**: 실시간 요약만으로는 "평균·추세" 수준의 답만 가능해, 이전 분석 프로젝트의 결과를 `insights.md`(약 3KB)로 압축해 함께 주입합니다. 리포트는 특정 기간의 **고정 스냅샷**이라 CRUD로 데이터를 바꿔도 갱신되지 않으므로, 프롬프트에서 두 블록을 명확히 라벨링하고 "수치는 실시간 요약 우선"이라는 규칙을 답변 지침에 넣었습니다. 라이브 데이터 + 정적 지식베이스를 결합하는 실무 패턴과 같습니다.
 - **라우터/서비스 분리 기준**: 라우터는 HTTP 계약(경로·요청/응답 스키마)만 담당하고, Firestore·OpenAI 호출 등 실제 로직은 `services/`에 몰아 테스트와 재사용이 쉽게 했습니다.
 - **대화 저장 정책**: `/api/chat`은 매 턴마다 자동 저장(`conversation_id`가 없으면 새 대화 생성, 있으면 이어붙임). `/api/conversations`(POST)는 프론트에서 대화를 통째로 저장하고 싶을 때를 위한 보조 경로.
 - **동명 항목·값 충돌 처리**: 데이터 레코드는 Firestore 자동 생성 ID로 구분하므로 같은 날짜·값이 중복돼도 별개 레코드로 취급합니다.
 - **CORS가 왜 필요한가**: 프론트(`*.vercel.app`)와 백엔드(`*.onrender.com`)는 **다른 오리진**입니다. 브라우저 동일 출처 정책상, 백엔드가 `Access-Control-Allow-Origin` 헤더로 프론트 오리진을 명시적으로 허용하지 않으면 `fetch`가 차단됩니다. 그래서 `ALLOWED_ORIGINS` 환경변수로 허용 목록을 주입합니다.
 - **키 관리가 왜 필요한가**: OpenAI 키와 Firebase 서비스 계정 키는 유출 시 과금·데이터 침해로 직결됩니다. 코드에 하드코딩하지 않고 (1) 로컬은 `.env`(+ `.gitignore`), (2) 배포는 Render/Vercel의 암호화된 환경변수로만 다룹니다. 저장소는 public이라 키가 커밋되면 즉시 노출됩니다.
 - **지속성(persistence) 제안**: 현재는 Firestore가 유일한 저장소입니다. 오프라인 백업이 필요하면 `seed_firestore.py`의 역방향 스크립트(`dump_firestore.py`)로 `data`/`conversations`를 JSON으로 내보내 버전 관리하는 방식을 우선 검토합니다.
-- **반응형 전략**: 데스크톱을 기본으로 만들고 `max-width` 미디어쿼리로 좁은 화면을 덮는 방식(모바일 퍼스트의 반대). 브레이크포인트는 800px(사이드바 접기)·560px(폼/입력 세로 전환, 표 가로 스크롤) 2개로 최소화했습니다. 자세한 규칙과 검증은 8-6 참고.
+- **반응형 전략**: 데스크톱을 기본으로 만들고 `max-width` 미디어쿼리로 좁은 화면을 덮는 방식(모바일 퍼스트의 반대). 브레이크포인트는 800px(사이드바 접기)·560px(폼/입력 세로 전환, 표 가로 스크롤) 2개로 최소화했습니다. 자세한 규칙과 검증은 9-6 참고.
 
 ---
 
-## 13. 알려진 제약 / 개선 여지
+## 14. 알려진 제약 / 개선 여지
 
 - `GET /api/data?limit=N`의 `limit` 파라미터가 현재 무시되고 전체(492건)를 반환합니다. 목록이 커지면 서버측 페이지네이션이 필요합니다.
 - Render 무료 티어 콜드 스타트(위 3번 참고).
@@ -277,6 +312,6 @@ my-data-assistant/
 
 ---
 
-## 14. 라이선스
+## 15. 라이선스
 
 MIT
