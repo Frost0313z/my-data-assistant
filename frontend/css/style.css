@@ -3,6 +3,11 @@
 /* hidden 속성은 항상 요소를 숨긴다 (작성자 display 규칙이 UA 스타일을 덮는 것을 방지) */
 [hidden] { display: none !important; }
 
+:root {
+  --caution: #8a5a00;
+  --caution-bg: #fdf6e7;
+}
+
 body {
   margin: 0;
   font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
@@ -79,6 +84,22 @@ h2 { font-size: 0.95rem; margin: 0 0 10px; }
 }
 .pane-header h2 { margin: 0; }
 .pane-header a { font-size: 0.8rem; color: #2563eb; text-decoration: none; }
+
+.topic-basis {
+  color: var(--caution);
+  background: var(--caution-bg);
+  border-left: 3px solid var(--caution);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.topic-basis p { margin: 0; }
+.topic-basis p + p { margin-top: 4px; font-weight: 600; }
 
 .summary-box { font-size: 0.85rem; }
 .summary-row { display: flex; justify-content: space-between; padding: 4px 0; }
@@ -160,8 +181,6 @@ h2 { font-size: 0.95rem; margin: 0 0 10px; }
 .topic-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: center; }
 .ghost-link { font-size: 0.85rem; color: #2563eb; text-decoration: none; padding: 8px 4px; }
 .ghost-link:hover { text-decoration: underline; }
-
-.topics-foot { font-size: 0.78rem; color: #6b7280; margin: 0; line-height: 1.5; }
 
 /* ── 채팅 ── */
 .screen-context {
