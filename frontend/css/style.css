@@ -10,6 +10,15 @@ body {
   color: #1f2328;
 }
 
+button, input, select, textarea { font-family: inherit; font-weight: 400; }
+h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: 600; }
+button { font-weight: 500; }
+
+.topic-headline, .summary-box, .data-table {
+  font-variant-numeric: tabular-nums;
+}
+.summary-row > :last-child { text-align: right; }
+
 /* ── 3분할 레이아웃: 좌 사이드바 · 중앙 분석 · 우 채팅 ──
    중앙 칸 높이가 페이지 높이를 만들고 페이지가 통째로 스크롤된다.
    (칸마다 따로 스크롤하면 커서가 iframe 위에 있을 때 휠이 먹혀 스크롤이 안 되는 것처럼 보임)
@@ -249,6 +258,7 @@ button.ghost { background: none; color: #2563eb; border: 1px solid #cdd6e4; }
 .data-table-wrap { overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .data-table th, .data-table td { text-align: left; padding: 6px; border-bottom: 1px solid #eee; }
+.data-table th:nth-child(2), .data-table td:nth-child(2) { text-align: right; }
 .data-table button { background: #eef0f3; color: #1f2328; padding: 4px 8px; margin-right: 4px; }
 
 /* ── 모바일 하단 탭 ── */
@@ -268,7 +278,7 @@ button.ghost { background: none; color: #2563eb; border: 1px solid #cdd6e4; }
   padding: 12px;
   font-size: 0.9rem;
 }
-.tabbar button.active { color: #2563eb; font-weight: 700; box-shadow: inset 0 -2px 0 #2563eb; }
+.tabbar button.active { color: #2563eb; font-weight: 600; box-shadow: inset 0 -2px 0 #2563eb; }
 
 /* 태블릿: 사이드바를 좁히고 채팅 폭 축소 */
 @media (max-width: 1180px) {
