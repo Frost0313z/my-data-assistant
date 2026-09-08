@@ -148,6 +148,44 @@ sequenceDiagram
 - **동작**: 사이드바 "대화 기록"에서 ②를 클릭 → 채팅창에 ②의 질문·답변 전체가 복원됨(`GET /api/conversations/{id}`).
 - **확인 포인트**: 목록 항목의 제목이 정상 표시되고, 클릭 한 번으로 과거 대화가 그대로 재현됨.
 
+### 8-4. 모바일 화면 — 채팅 (뷰포트 390×844, iPhone 12 상당)
+
+![모바일 채팅](assets/screenshot-4-mobile-chat.png)
+
+- **레이아웃**: 데스크톱의 좌측 사이드바(요약·대화 기록)가 상단으로 접히고, 채팅·데이터 관리가 세로 1열로 쌓임.
+- **채팅 입력**: `.chat-input-row`가 세로로 전환돼 입력창과 "보내기" 버튼이 각각 가로 전체를 차지(터치 타깃 확보).
+- **동작 확인**: 모바일 뷰에서 "모바일에서 잘 되나 확인 중…" 질문 전송 → AI가 `기간 2025년 3월 1일 ~ 2026년 6월 1일, 평균 958.3` 응답. 말풍선 `max-width: 85%`로 화면 밖으로 넘치지 않음.
+
+### 8-5. 모바일 화면 — 데이터 관리 (반응형 폼)
+
+![모바일 데이터 관리](assets/screenshot-5-mobile-data.png)
+
+- **추가 폼**: `.data-form`이 `flex-direction: column`으로 전환돼 날짜/값/메모 입력이 한 줄에 하나씩, "추가" 버튼은 가로 전체.
+- **넓은 표**: `.data-table`이 `display: block; overflow-x: auto`로 바뀌어 표만 가로 스크롤되고, **페이지 자체는 가로 스크롤이 생기지 않음**(`document.documentElement.scrollWidth === window.innerWidth === 390` 확인).
+
+### 8-6. 반응형 CSS 미디어쿼리 (`frontend/css/style.css`)
+
+2단계 브레이크포인트로 대응한다.
+
+| 브레이크포인트 | 목적 | 주요 변경 |
+|---|---|---|
+| `@media (max-width: 800px)` | 태블릿 이하 | `.layout`을 `flex-direction: column`으로 → 사이드바가 상단으로 |
+| `@media (max-width: 560px)` | 모바일 | 폼(`.data-form`)·채팅 입력(`.chat-input-row`)을 세로 1열로, 버튼 가로 전체(패딩 확대로 터치 타깃 ≥44px), 데이터 표는 `overflow-x: auto`로 가로 스크롤, 말풍선 `max-width: 85%`, 컨테이너 패딩 축소 |
+
+```css
+@media (max-width: 560px) {
+  .data-form { flex-direction: column; align-items: stretch; }
+  .data-form input, .data-form button { width: 100%; }
+  .data-table { display: block; overflow-x: auto; white-space: nowrap; }
+  .chat-input-row { flex-direction: column; }
+  .chat-input-row button { width: 100%; padding: 12px; }
+  .bubble { max-width: 85%; }
+  button { padding: 10px 14px; }
+}
+```
+
+Chrome DevTools 모바일 에뮬레이션(390×844, `isMobile: true`, `hasTouch: true`)에서 요약 로드·채팅 전송·데이터 폼이 모두 정상 동작하고 가로 오버플로가 없음을 확인했다.
+
 ---
 
 ## 9. 로컬 실행 방법
@@ -226,6 +264,7 @@ my-data-assistant/
 - **CORS가 왜 필요한가**: 프론트(`*.vercel.app`)와 백엔드(`*.onrender.com`)는 **다른 오리진**입니다. 브라우저 동일 출처 정책상, 백엔드가 `Access-Control-Allow-Origin` 헤더로 프론트 오리진을 명시적으로 허용하지 않으면 `fetch`가 차단됩니다. 그래서 `ALLOWED_ORIGINS` 환경변수로 허용 목록을 주입합니다.
 - **키 관리가 왜 필요한가**: OpenAI 키와 Firebase 서비스 계정 키는 유출 시 과금·데이터 침해로 직결됩니다. 코드에 하드코딩하지 않고 (1) 로컬은 `.env`(+ `.gitignore`), (2) 배포는 Render/Vercel의 암호화된 환경변수로만 다룹니다. 저장소는 public이라 키가 커밋되면 즉시 노출됩니다.
 - **지속성(persistence) 제안**: 현재는 Firestore가 유일한 저장소입니다. 오프라인 백업이 필요하면 `seed_firestore.py`의 역방향 스크립트(`dump_firestore.py`)로 `data`/`conversations`를 JSON으로 내보내 버전 관리하는 방식을 우선 검토합니다.
+- **반응형 전략**: 데스크톱을 기본으로 만들고 `max-width` 미디어쿼리로 좁은 화면을 덮는 방식(모바일 퍼스트의 반대). 브레이크포인트는 800px(사이드바 접기)·560px(폼/입력 세로 전환, 표 가로 스크롤) 2개로 최소화했습니다. 자세한 규칙과 검증은 8-6 참고.
 
 ---
 

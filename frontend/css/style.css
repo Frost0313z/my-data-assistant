@@ -95,7 +95,29 @@ button {
 .data-table th, .data-table td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
 .data-table button { background: #eef0f3; color: #1f2328; padding: 4px 8px; margin-right: 4px; }
 
+/* 태블릿 이하: 사이드바를 상단으로 접는다 */
 @media (max-width: 800px) {
   .layout { flex-direction: column; }
   .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e2e4e8; }
+}
+
+/* 모바일: 폼·입력·테이블을 세로로 펴고, 터치 타깃을 키운다 */
+@media (max-width: 560px) {
+  .sidebar, .main { padding: 14px; }
+  .main { gap: 14px; }
+
+  /* 데이터 추가 폼: 입력을 한 줄에 하나씩, 버튼은 가로 전체 */
+  .data-form { flex-direction: column; align-items: stretch; }
+  .data-form input, .data-form button { width: 100%; }
+
+  /* 넓은 표는 가로 스크롤로 처리 (레이아웃이 터지지 않도록) */
+  .data-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+  /* 채팅 입력을 세로로, 버튼을 가로 전체 + 터치하기 쉽게 */
+  .chat-input-row { flex-direction: column; }
+  .chat-input-row button { width: 100%; padding: 12px; }
+  .chat-messages { min-height: 220px; }
+  .bubble { max-width: 85%; }
+
+  button { padding: 10px 14px; }  /* 최소 44px 터치 타깃 확보 */
 }
