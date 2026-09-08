@@ -50,7 +50,7 @@ h2 { font-size: 1rem; margin: 0 0 10px; }
 
 .history-list { list-style: none; padding: 0; margin: 0; }
 .history-list li { display: flex; justify-content: space-between; gap: 6px; padding: 6px 0; }
-.history-list button { flex: 1; text-align: left; background: none; border: none; cursor: pointer; }
+.history-list button { flex: 1; text-align: left; background: none; border: none; cursor: pointer; color: #1f2328; font-size: 0.9rem; padding: 0; }
 .history-list .danger { flex: none; color: #c62828; }
 .history-list .empty { color: #999; font-size: 0.85rem; }
 
