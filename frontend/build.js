@@ -11,6 +11,7 @@ if (!apiBaseUrl) {
   process.exit(0);
 }
 
+// config.js 안에는 플레이스홀더가 주석과 코드 두 곳에 나오므로 전부 치환한다.
 const content = fs.readFileSync(target, "utf-8");
-fs.writeFileSync(target, content.replace("__API_BASE_URL__", apiBaseUrl));
+fs.writeFileSync(target, content.split("__API_BASE_URL__").join(apiBaseUrl));
 console.log(`config.js에 API_BASE_URL=${apiBaseUrl} 적용 완료`);

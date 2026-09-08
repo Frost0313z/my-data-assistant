@@ -15,9 +15,11 @@
 
 ## 배포 URL
 
-- 프론트엔드: _(배포 후 채움)_
-- 백엔드 API: _(배포 후 채움)_
-- Swagger UI: _(배포 후 채움)_ `/docs`
+- 프론트엔드: https://frontend-lovat-rho-rea8xhh8wq.vercel.app
+- 백엔드 API: https://my-data-assistant.onrender.com
+- Swagger UI: https://my-data-assistant.onrender.com/docs
+
+> ⚠️ 백엔드는 Render 무료 플랜이라 15분간 요청이 없으면 잠들며, 이후 첫 요청은 응답까지 30~50초 걸립니다(콜드 스타트). 잠시 기다리면 정상 동작합니다.
 
 ## 프로젝트 구조
 
