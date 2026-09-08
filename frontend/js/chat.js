@@ -67,6 +67,37 @@ function appendMessage(role, content) {
   return bubble;
 }
 
+// A11: 첫 방문 온보딩. 모달로 막지 않고 AI의 첫 인사말로 전한다.
+// 서비스 이름은 아직 미확정(decisions.md ⑥)이라 쓰지 않는다 — 이름 반영은 A20이다.
+const ONBOARDING_KEY = "onboarded_v1";
+const ONBOARDING_TEXT =
+  "대전 82개 동 상권 흐름을 AI가 근거와 함께 설명합니다.\n\n" +
+  "가운데에서 분석 주제를 고르면 그 주제의 실제 대시보드 패널이 열리고, 저는 그 주제를 기준으로 답합니다. " +
+  "아래 제안 질문을 눌러 바로 시작하셔도 됩니다.\n\n" +
+  "다만 이 데이터에는 매출과 유동인구가 없습니다. 점포 수로 볼 수 있는 것까지만 말씀드리고, " +
+  "알 수 없는 건 알 수 없다고 하겠습니다.";
+
+function showOnboardingIfFirstVisit() {
+  // 사생활 보호 모드나 쿠키 차단 환경에서는 localStorage 접근 자체가 예외를 던진다.
+  // 온보딩 때문에 채팅 초기화가 통째로 깨지면 안 되므로 실패는 삼킨다.
+  let seen = null;
+  try {
+    seen = window.localStorage.getItem(ONBOARDING_KEY);
+  } catch (e) {
+    return; // 저장할 수 없으면 매 방문 반복 노출되므로 아예 띄우지 않는다
+  }
+  if (seen) return;
+
+  const bubble = appendMessage("assistant", ONBOARDING_TEXT);
+  // 주제 구분선 판정에서 제외하기 위한 표시 (topics.js 참조)
+  bubble.classList.add("onboarding");
+  try {
+    window.localStorage.setItem(ONBOARDING_KEY, "1");
+  } catch (e) {
+    /* 위에서 읽기가 됐다면 쓰기도 되지만, 용량 초과 등은 무시한다 */
+  }
+}
+
 // 주제를 바꾸면 대화 흐름에 그 지점을 남긴다 (topics.js가 호출).
 function notifyTopicChange(label) {
   if (label === lastNotifiedTopic) return;
@@ -196,4 +227,5 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("chat-new").addEventListener("click", startNewConversation);
   renderSuggestions();
+  showOnboardingIfFirstVisit();
 });

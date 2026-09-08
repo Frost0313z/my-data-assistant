@@ -111,7 +111,9 @@ window.screenContext = null;
     renderDetail(topic);
     renderChip(topic);
     // 대화가 이미 시작됐다면 주제가 바뀐 지점을 채팅에 남긴다
-    if (window.notifyTopicChange && document.querySelector("#chat-messages .bubble")) {
+    // A11 인사말은 '대화가 시작됐다'는 신호가 아니다. 제외하지 않으면 첫 방문자가
+    // 주제를 처음 고르는 순간부터 구분선이 뜬다.
+    if (window.notifyTopicChange && document.querySelector("#chat-messages .bubble:not(.onboarding)")) {
       window.notifyTopicChange(topic ? topic.label : null);
     }
   }
