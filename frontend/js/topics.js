@@ -125,5 +125,44 @@ window.screenContext = null;
     b.addEventListener("click", () => select(t.id));
     list.appendChild(b);
   });
+
+  // A9: 목적 기반 진입. 주제 버튼은 '데이터 축'이라 처음 온 사람은 무엇을 눌러야
+  // 할지 모른다. 목적으로 묻고 주제 선택과 질문 전송을 한 번에 처리한다.
+  //
+  // 벤치마크(서울시 골목상권)는 같은 문제를 3단계 마법사로 푼다. 우리는 AI가
+  // 있으니 1클릭으로 압축한다 — 단계를 늘리면 후퇴다.
+  const PURPOSE_CHIPS = [
+    {
+      label: "어디가 뜨고 있나요?",
+      topicId: "growth",
+      question: "어디가 성장하고 있고 어디가 정체돼 있어? 근거 수치와 함께 알려줘",
+    },
+    {
+      label: "내 업종은 어떤가요?",
+      topicId: "industry",
+      question: "업종별로 늘어난 곳과 줄어든 곳을 근거 수치와 함께 알려줘",
+    },
+    {
+      // 스펙상 공급밀도·교체율·잔존율 세 주제에 걸치는데 주제는 단일 선택이다.
+      // 화면은 공급 밀도를 열고, 나머지 둘은 질문에 담아 답변에서 함께 다루게 한다.
+      label: "여기 창업해도 될까요?",
+      topicId: "density",
+      question:
+        "공급 밀도와 점포 교체율, 잔존율을 함께 보면 이 지역 상권은 어떤 상태야? 이 데이터로 알 수 없는 것도 같이 알려줘",
+    },
+  ];
+
+  const chipList = document.getElementById("purpose-chip-list");
+  PURPOSE_CHIPS.forEach((chip) => {
+    const b = el("button", "purpose-chip", chip.label);
+    b.addEventListener("click", () => {
+      // select()는 같은 id를 다시 누르면 해제하는 라디오식이다. 목적 칩은
+      // 항상 켜는 동작이라 이미 선택돼 있으면 다시 부르지 않는다.
+      if (activeId !== chip.topicId) select(chip.topicId);
+      if (window.sendMessage) window.sendMessage({ text: chip.question });
+    });
+    chipList.appendChild(b);
+  });
+
   renderDetail(null);
 })();
