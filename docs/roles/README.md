@@ -10,13 +10,13 @@
 
 | 역할 | 브리핑 | 담당 스펙 | 소유 파일 | 배정 |
 |---|---|---|---|---|
-| **R0** 조율자 | [`R0-coordinator.md`](R0-coordinator.md) | 없음 (코드 미수정) | 없음 — 읽기 전용 | — |
+| **R0** 조율자 | [`R0-coordinator.md`](R0-coordinator.md) | 없음 (코드 미수정) | [`../roadmap.md`](../roadmap.md)의 **진행 현황 표만** — 그 외 읽기 전용 | — |
 | **R1** UX 구현 | [`R1-ux.md`](R1-ux.md) | A9 · A10 · A11 · A13 · A14(UI) · A19(마크업) · A21(타이머) | `frontend/js/**` · `index.html`의 `<body>` | — |
 | **R2** 디자인 시스템 | [`R2-design.md`](R2-design.md) | A12 · A15 · A16 · A17 · A18 · A19(색) · A20 | `frontend/css/style.css` · `index.html`의 `<head>` | **코덱스** |
 | **R3** 백엔드 | [`R3-backend.md`](R3-backend.md) | A4 · A14(프롬프트) · B3 · C3 · C4 · C5 · D3 | `backend/app/**` | — |
 | **R4** 데이터 | [`R4-data.md`](R4-data.md) | B1 · B2 · B4 · B5 | `backend/app/seed/` · `scripts/` | — |
 | **R5** 품질·인프라 | [`R5-quality.md`](R5-quality.md) | C1 · C2 · C6 · C7 · F1 · F2 · F3 | `backend/tests/` · `.github/workflows/` | — |
-| **R6** 문서·서사 | [`R6-docs.md`](R6-docs.md) | E1 ~ E5 · `docs/` 유지 | `README.md` · `docs/**` | — |
+| **R6** 문서·서사 | [`R6-docs.md`](R6-docs.md) | E1 ~ E5 · `docs/` 유지 | `README.md` · `docs/**` (단, `roadmap.md` 진행 현황 표는 R0) | — |
 
 ---
 
@@ -56,6 +56,25 @@ R2를 코덱스가 맡는다. **다른 도구의 에이전트는 이 대화 맥�
 | `<body>` 구조 · 새 요소 | **R1** (단, A12 배지는 R2) |
 
 **R2의 A16을 가장 먼저 끝내면 이 충돌은 사실상 사라진다.**
+
+#### 삽입 순서 — A12 배지와 A9 목적 칩은 같은 지점을 노린다
+
+A12는 "주제 버튼 **바로 위** 배지", A9는 "주제 버튼 **위에** 목적 칩"이라 **둘 다 `#topic-list` 직전**이 목표다. 순서를 미리 못 박는다.
+
+```html
+<div class="pane-header">   <!-- 기존 -->
+<div class="topic-basis">   <!-- A12 배지 · R2 -->
+<div class="purpose-chips"> <!-- A9 목적 칩 · R1 -->
+<div id="topic-list">       <!-- 기존 -->
+```
+
+**A12가 위, A9가 아래다.** A12는 화면 전체에 걸리는 전제(무슨 데이터이고 무엇이 없는지)이고, A9는 행동 유도라 주제 버튼에 붙어 있어야 한다. 배지를 칩 아래 두면 "칩 → 주제 버튼" 시선 흐름을 가로막는다.
+
+#### A12는 R1 영역을 하나 지운다 — 허가된 예외
+
+A12는 **승격**이므로, R2가 배지를 만들면서 `frontend/index.html`의 `<p class="topics-foot">` 줄을 **함께 제거한다.** 이 줄은 `<body>`라 원칙상 R1 소유지만, 배지만 추가하고 각주를 남기면 같은 내용이 화면에 두 번 나온다.
+
+**R2에 허가된 `<body>` 편집은 이 둘뿐이다** — A12 배지 신설 · `.topics-foot` 제거. R1은 이 줄을 건드리지 않는다.
 
 ### ② A14(주제 리포트) — R3와 R1
 

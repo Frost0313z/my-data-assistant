@@ -32,6 +32,7 @@
 - `frontend/css/style.css` — 전권
 - `frontend/index.html` 의 `<head>` 안 — 전권
 - `frontend/index.html` 의 A12 배지 마크업 — 이 요소만
+- `frontend/index.html` 의 `<p class="topics-foot">` 줄 **삭제** — A12가 승격하는 원본이라 허가된 예외 (아래 A12 참조)
 
 **건드리지 않을 것**
 - `frontend/js/**` — R1 소유 (A19 클래스 계약은 예외, 아래 참조)
@@ -79,6 +80,19 @@
 2025-03 → 2026-06 · 대전 82개 행정동 · 등록 업소 수
 매출·유동인구 미포함 · 참고용
 ```
+
+**승격이므로 원본을 지운다.** `frontend/index.html`의 `<p class="topics-foot">…</p>` 줄과 `style.css`의 `.topics-foot` 규칙을 함께 제거한다. 배지만 추가하고 각주를 남기면 같은 내용이 화면에 두 번 나온다. 이 `<p>`는 `<body>`라 원칙상 R1 소유지만 **이 건은 허가된 예외다.**
+
+**삽입 위치 — R1의 A9 목적 칩과 같은 지점을 노린다.** 순서는 이미 확정돼 있으니 그대로 따른다.
+
+```html
+<div class="pane-header">   <!-- 기존 -->
+<div class="topic-basis">   <!-- ← A12 배지. 여기 -->
+<div class="purpose-chips"> <!-- 나중에 R1이 A9 칩을 넣는다. 비워둘 것 -->
+<div id="topic-list">       <!-- 기존 -->
+```
+
+**배지가 위, 목적 칩이 아래다.** 배지는 화면 전체에 걸리는 전제라 위, 칩은 행동 유도라 주제 버튼에 인접해야 한다. **`.purpose-chips`는 R1이 만든다 — 미리 만들지 않는다.**
 
 **색은 회색이 아니라 앰버(`--caution`)다.** 이유:
 
