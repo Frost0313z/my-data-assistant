@@ -20,6 +20,8 @@
 | [`research/user-journey.md`](research/user-journey.md) | Entry→Retention 6단계 여정 진단 · 성숙도 표 | 레퍼런스 |
 | [`design/emotional-design.md`](design/emotional-design.md) | 목표 감정("정직한 신뢰") · 감성 키워드 · 현재 화면 진단 6건 | 판단 근거 |
 | [`design/design-system.md`](design/design-system.md) | **구현용** 팔레트·타입 스케일·간격·라운드·그림자 | **구현 스펙** |
+| [`design/components.md`](design/components.md) | 도메인 핵심 컴포넌트 6종 (구성·상태·반응형) | **구현 스펙** |
+| [`design/motion.md`](design/motion.md) | 모션 스케일 3단 · 인터랙션 8종 · 대기 상태 | **구현 스펙** |
 | [`specs/`](specs/README.md) | A~F 스펙 항목 전체 (ID·우선순위·공수·수용 기준) | **작업 단위** |
 | [`roadmap.md`](roadmap.md) | Phase 1 / 1-b / 2 / 3 계획 · 리스크 · 진행 현황 | 계획 |
 | [`decisions.md`](decisions.md) | 확정된 결정 5건 + 미결 1건 | **재논의 금지 목록** |
@@ -38,7 +40,10 @@
 |---|---|
 | **아무거나 시작 전 (공통)** | 이 파일 → [`context.md`](context.md) → [`decisions.md`](decisions.md) |
 | A9~A14 (여정 보강) | [`research/user-journey.md`](research/user-journey.md) + [`specs/A-product-ux.md`](specs/A-product-ux.md) |
-| A15~A20 (디자인) | [`design/design-system.md`](design/design-system.md) + [`design/emotional-design.md`](design/emotional-design.md) (근거가 필요할 때만) |
+| A15·A16·A19 (토큰·타이포·색) | [`design/design-system.md`](design/design-system.md) |
+| A17·A12·A14 (컴포넌트) | [`design/components.md`](design/components.md) |
+| A18·A21 (모션·대기 상태) | [`design/motion.md`](design/motion.md) |
+| 디자인 판단 근거가 필요할 때 | [`design/emotional-design.md`](design/emotional-design.md) |
 | B (데이터·분석) | [`specs/B-data.md`](specs/B-data.md) + `decisions.md` ③ |
 | C (테스트·CI·운영) | [`specs/C-reliability-ops.md`](specs/C-reliability-ops.md) |
 | E (문서·발표) | [`specs/E-docs.md`](specs/E-docs.md) + [`identity.md`](identity.md) |

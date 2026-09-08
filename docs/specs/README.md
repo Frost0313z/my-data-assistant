@@ -21,7 +21,7 @@
 
 | 그룹 | 파일 | 항목 수 | 주 참조 문서 |
 |---|---|---|---|
-| **A. 제품 · UX** | [`A-product-ux.md`](A-product-ux.md) | 20 (+폐기 2) | [여정](../research/user-journey.md) · [디자인 시스템](../design/design-system.md) |
+| **A. 제품 · UX** | [`A-product-ux.md`](A-product-ux.md) | 21 (+폐기 2) | [여정](../research/user-journey.md) · [디자인 시스템](../design/design-system.md) · [컴포넌트](../design/components.md) · [모션](../design/motion.md) |
 | **B. 데이터 · 분석** | [`B-data.md`](B-data.md) | 5 | [결정 ③](../decisions.md) |
 | **C. 신뢰성 · 운영** | [`C-reliability-ops.md`](C-reliability-ops.md) | 7 (+D3) | — |
 | **E. 문서 · 발표** | [`E-docs.md`](E-docs.md) | 5 | [정체성](../identity.md) |
@@ -57,6 +57,7 @@
 | A18 | 모션 최소 원칙 | P2 | S |
 | A19 | 증감 표현 중립 색 | P1 | S |
 | A20 | 서비스 아이덴티티 적용 | P2 | S |
+| A21 | 대기 상태 설계 | P1 | S |
 | B1 | `insights.md` 자동 생성 스크립트 | P1 | M |
 | B2 | 실데이터 Firestore 적재 (전량) | P1 | **L+** |
 | B3 | 요약 API 필터 파라미터 | P1 | M |
