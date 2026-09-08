@@ -57,13 +57,34 @@ window.screenContext = null;
     return wrap;
   }
 
+  // A19: 헤드라인의 증감 값만 중립 색 클래스로 감싼다. 증가=초록 관습을 쓰지 않는 건
+  // 브랜드 약속이다 — 매출이 없어 늘어난 게 좋은 일인지 판단할 수 없다.
+  // 부호는 + (U+002B) 와 − (U+2212) 만 본다. ASCII 하이픈을 넣으면 날짜(2025-03)가 걸린다.
+  // 숫자로 끝나게 한다 — [\d,]+ 로 두면 "+2,800, +3.59%" 에서 구분 쉼표까지 삼킨다.
+  // 부호 뒤에 공백이 오면 매치되지 않으므로 "LQ 3.48 + 631개" 의 접속 + 는 걸리지 않는다.
+  const TREND_RE = /[+−][\d,]*\d(?:\.\d+)?%?p?/g;
+
+  function renderHeadline(text) {
+    const h = el("h3", "topic-headline");
+    let last = 0;
+    let m;
+    TREND_RE.lastIndex = 0;
+    while ((m = TREND_RE.exec(text)) !== null) {
+      if (m.index > last) h.appendChild(document.createTextNode(text.slice(last, m.index)));
+      h.appendChild(el("span", m[0][0] === "+" ? "trend-up" : "trend-down", m[0]));
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) h.appendChild(document.createTextNode(text.slice(last)));
+    return h;
+  }
+
   function renderDetail(topic) {
     detail.textContent = "";
     if (!topic) {
       detail.appendChild(el("p", "topic-empty", "위에서 분석 주제를 고르면 대시보드의 해당 패널이 여기 나오고, 우측 AI가 그 주제를 기준으로 답합니다."));
       return;
     }
-    detail.appendChild(el("h3", "topic-headline", topic.headline));
+    detail.appendChild(renderHeadline(topic.headline));
     detail.appendChild(el("p", "topic-desc", topic.desc));
     detail.appendChild(renderEmbed(topic));
     if (topic.note) detail.appendChild(el("p", "topic-note", topic.note));
