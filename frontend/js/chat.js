@@ -110,6 +110,34 @@ function notifyTopicChange(label) {
   list.scrollTop = list.scrollHeight;
 }
 
+// A21: 대기 상태. 콜드스타트면 43초 동안 "생각하는 중..."이 멈춰 있어 사용자가
+// 죽은 줄 안다. 경과 초를 1초 간격으로 갱신하고, 15초를 넘기면 무슨 일이
+// 벌어지는지 밝힌다.
+//
+// 스피너나 애니메이션을 쓰지 않는다. 바쁜 척이 아니라 진행 상황을 사실로
+// 알리는 것이 이 브랜드의 대기 처리다. 숫자만 바뀐다.
+//
+// 15초 문구가 "요청은 계속 진행 중입니다"인 게 핵심이다. Render 무료 티어는
+// 첫 요청을 붙잡은 채 완료시키므로(실측 43초) 재시도를 권하면 오안내다.
+const WAIT_BASE = "생각하는 중...";
+const WAIT_COLD =
+  "백엔드가 절전에서 깨어나는 중입니다. 최대 50초까지 걸릴 수 있어요. 요청은 계속 진행 중입니다.";
+
+function startWaitTimer(bubble) {
+  const startedAt = Date.now();
+
+  function tick() {
+    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+    if (elapsed < 5) bubble.textContent = WAIT_BASE;
+    else if (elapsed < 15) bubble.textContent = `${WAIT_BASE} (${elapsed}초)`;
+    else bubble.textContent = `${WAIT_COLD} (${elapsed}초)`;
+  }
+
+  tick();
+  const timerId = setInterval(tick, 1000);
+  return () => clearInterval(timerId);
+}
+
 // 답변 아래 토큰 사용량 문구
 function appendUsage(usage) {
   if (!usage || !usage.total_tokens) return;
@@ -203,7 +231,8 @@ async function sendMessage() {
   document.getElementById("chat-suggestions").textContent = "";
   appendMessage("user", message);
   if (window.switchToChatPane) window.switchToChatPane();
-  const loadingBubble = appendMessage("assistant", "생각하는 중...");
+  const loadingBubble = appendMessage("assistant", WAIT_BASE);
+  const stopWaitTimer = startWaitTimer(loadingBubble);
 
   try {
     const result = await api.sendChat(message, currentConversationId, window.screenContext);
@@ -217,6 +246,10 @@ async function sendMessage() {
       input.value = message;
       sendMessage();
     });
+  } finally {
+    // 성공·실패 어느 쪽이든 반드시 멈춘다. 안 그러면 답변이 도착한 뒤에도
+    // 타이머가 버블 내용을 경과 초로 덮어쓴다.
+    stopWaitTimer();
   }
 }
 
