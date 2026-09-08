@@ -222,12 +222,42 @@ async function loadConversationIntoChat(conversationId) {
   lastNotifiedTopic = null;
 }
 
-async function sendMessage() {
+// A14: 답변 뒤에 붙는 리포트 CTA. 여정의 종착점(산출물)을 만드는 버튼이라
+// 이 서비스의 Primary Goal이다. 주제가 선택돼 있을 때만 의미가 있다.
+function appendReportCta() {
+  const topic = window.screenContext && window.screenContext.topic;
+  if (!topic) return;
+
+  const list = document.getElementById("chat-messages");
+  const wrap = document.createElement("div");
+  wrap.className = "report-cta";
+  const button = document.createElement("button");
+  button.textContent = "이 주제 전체 리포트 보기";
+  button.addEventListener("click", () => {
+    wrap.remove(); // 같은 리포트를 두 번 뽑지 않는다
+    sendMessage({
+      text: `${topic} 주제 전체 리포트를 작성해줘`,
+      context: { topic: topic, mode: "report" },
+      isReport: true,
+    });
+  });
+  wrap.appendChild(button);
+  list.appendChild(wrap);
+  list.scrollTop = list.scrollHeight;
+}
+
+// options 없이 부르면 입력창의 내용을 보낸다. 리포트·재시도는 options로 넘긴다.
+// 주의: 클릭 핸들러로 직접 넘기면 안 된다. Event 객체가 options 자리에 들어온다.
+async function sendMessage(options) {
+  const opts = options || {};
+  const fromInput = opts.text === undefined;
   const input = document.getElementById("chat-input");
-  const message = input.value.trim();
+  const message = fromInput ? input.value.trim() : opts.text;
   if (!message) return;
 
-  input.value = "";
+  if (fromInput) input.value = "";
+  const context = opts.context || window.screenContext;
+
   document.getElementById("chat-suggestions").textContent = "";
   appendMessage("user", message);
   if (window.switchToChatPane) window.switchToChatPane();
@@ -235,17 +265,18 @@ async function sendMessage() {
   const stopWaitTimer = startWaitTimer(loadingBubble);
 
   try {
-    const result = await api.sendChat(message, currentConversationId, window.screenContext);
+    const result = await api.sendChat(message, currentConversationId, context);
     currentConversationId = result.conversation_id;
     loadingBubble.textContent = result.reply;
     appendUsage(result.usage);
     refreshHistory();
+    // 리포트 답변 뒤에 또 리포트를 권하지 않는다
+    if (!opts.isReport) appendReportCta();
   } catch (err) {
     loadingBubble.remove();
-    showErrorBubble(classifyError(err), () => {
-      input.value = message;
-      sendMessage();
-    });
+    showErrorBubble(classifyError(err), () =>
+      sendMessage({ text: message, context: context, isReport: opts.isReport })
+    );
   } finally {
     // 성공·실패 어느 쪽이든 반드시 멈춘다. 안 그러면 답변이 도착한 뒤에도
     // 타이머가 버블 내용을 경과 초로 덮어쓴다.
@@ -254,7 +285,8 @@ async function sendMessage() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("chat-send").addEventListener("click", sendMessage);
+  // 화살표로 감싼다. sendMessage를 그대로 넘기면 MouseEvent가 options 자리에 들어온다.
+  document.getElementById("chat-send").addEventListener("click", () => sendMessage());
   document.getElementById("chat-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendMessage();
   });
