@@ -1,0 +1,101 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+  background: #f5f6f8;
+  color: #1f2328;
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 300px;
+  padding: 20px;
+  background: #fff;
+  border-right: 1px solid #e2e4e8;
+  flex-shrink: 0;
+}
+
+.main {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+h1 { font-size: 1.2rem; margin-bottom: 20px; }
+h2 { font-size: 1rem; margin: 0 0 10px; }
+
+.panel {
+  background: #fff;
+  border: 1px solid #e2e4e8;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-box { font-size: 0.85rem; }
+.summary-row { display: flex; justify-content: space-between; padding: 4px 0; }
+
+.history-list { list-style: none; padding: 0; margin: 0; }
+.history-list li { display: flex; justify-content: space-between; gap: 6px; padding: 6px 0; }
+.history-list button { flex: 1; text-align: left; background: none; border: none; cursor: pointer; }
+.history-list .danger { flex: none; color: #c62828; }
+.history-list .empty { color: #999; font-size: 0.85rem; }
+
+.chat-panel { flex: 1; display: flex; flex-direction: column; }
+
+.chat-messages {
+  flex: 1;
+  min-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+}
+
+.bubble.user { align-self: flex-end; background: #2563eb; color: #fff; }
+.bubble.assistant { align-self: flex-start; background: #eef0f3; }
+
+.chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.chat-input-row input { flex: 1; padding: 10px; border: 1px solid #d0d3d9; border-radius: 8px; }
+
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+}
+
+.data-form { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.data-form input { padding: 8px; border: 1px solid #d0d3d9; border-radius: 8px; }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.data-table th, .data-table td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+.data-table button { background: #eef0f3; color: #1f2328; padding: 4px 8px; margin-right: 4px; }
+
+@media (max-width: 800px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e2e4e8; }
+}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>나만의 AI 비서</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>나만의 AI 비서</h1>
+
+    <section class="panel">
+      <h2>데이터 요약</h2>
+      <div id="summary-content" class="summary-box">불러오는 중...</div>
+    </section>
+
+    <section class="panel">
+      <h2>대화 기록</h2>
+      <ul id="history-list" class="history-list"></ul>
+    </section>
+  </aside>
+
+  <main class="main">
+    <section class="panel chat-panel">
+      <div class="panel-header">
+        <h2>채팅</h2>
+        <button id="chat-new">새 대화</button>
+      </div>
+      <div id="chat-messages" class="chat-messages"></div>
+      <div class="chat-input-row">
+        <input id="chat-input" type="text" placeholder="데이터에 대해 물어보세요 (예: 이번 분기 실적이 어때?)" />
+        <button id="chat-send">보내기</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>데이터 관리</h2>
+      <form id="data-form" class="data-form">
+        <input name="date" type="date" required />
+        <input name="value" type="number" step="any" placeholder="값" required />
+        <input name="memo" type="text" placeholder="메모" />
+        <button type="submit">추가</button>
+      </form>
+      <table class="data-table">
+        <thead>
+          <tr><th>날짜</th><th>값</th><th>메모</th><th>동작</th></tr>
+        </thead>
+        <tbody id="data-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/summary.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/data.js"></script>
+<script src="js/history.js"></script>
+</body>
+</html>
