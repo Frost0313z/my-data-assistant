@@ -228,6 +228,8 @@ h3 { font-size: var(--fs-h3); }
 .topic-detail > :not(.topic-frame-wrap) { animation: content-fade var(--motion-fade); }
 .topic-empty { color: var(--ink-500); font-size: var(--fs-body); margin: var(--sp-2) 0; line-height: 1.6; }
 .topic-headline { font-size: var(--fs-display); margin: 0 0 var(--sp-2); line-height: 1.35; }
+.trend-up { color: var(--trend-up); }
+.trend-down { color: var(--trend-down); }
 .topic-desc { font-size: var(--fs-body); color: var(--ink-700); margin: 0 0 var(--sp-4); line-height: 1.6; }
 .topic-note {
   font-size: var(--fs-caption);
