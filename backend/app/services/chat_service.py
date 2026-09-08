@@ -133,5 +133,8 @@ def ask(
         else None
     )
 
-    saved_id = conversation_service.append_turn(conversation_id, message, reply)
+    # A13: 선택 주제를 제목에 반영한다. 기록 목록에서 대화를 구분하는 유일한 단서다.
+    saved_id = conversation_service.append_turn(
+        conversation_id, message, reply, (context or {}).get("topic")
+    )
     return saved_id, reply, usage
