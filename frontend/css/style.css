@@ -65,6 +65,11 @@
 
   /* 그림자 */
   --shadow-float: 0 4px 16px rgba(22, 25, 29, .10);
+
+  /* 모션 */
+  --motion-feedback: 120ms ease-out;
+  --motion-fade: 150ms ease-out;
+  --motion-pane: 200ms ease-in-out;
 }
 
 body {
@@ -191,6 +196,7 @@ h3 { font-size: var(--fs-h3); }
   border-radius: var(--r-pill);
   padding: var(--sp-2) var(--sp-3);
   font-size: var(--fs-caption);
+  transition: color var(--motion-feedback), border-color var(--motion-feedback), background-color var(--motion-feedback);
 }
 .purpose-chip:hover { border-color: var(--primary); }
 
@@ -208,6 +214,7 @@ h3 { font-size: var(--fs-h3); }
   padding: var(--sp-3);
   font-size: var(--fs-body);
   text-align: left;
+  transition: color var(--motion-feedback), border-color var(--motion-feedback), background-color var(--motion-feedback);
 }
 .topic-btn:hover { border-color: var(--primary); }
 .topic-btn.active {
@@ -218,6 +225,7 @@ h3 { font-size: var(--fs-h3); }
 }
 
 .topic-detail { margin-bottom: 0; }
+.topic-detail > :not(.topic-frame-wrap) { animation: content-fade var(--motion-fade); }
 .topic-empty { color: var(--ink-500); font-size: var(--fs-body); margin: var(--sp-2) 0; line-height: 1.6; }
 .topic-headline { font-size: var(--fs-display); margin: 0 0 var(--sp-2); line-height: 1.35; }
 .topic-desc { font-size: var(--fs-body); color: var(--ink-700); margin: 0 0 var(--sp-4); line-height: 1.6; }
@@ -255,6 +263,7 @@ h3 { font-size: var(--fs-h3); }
   color: var(--viewport-muted);
   background: var(--viewport-bg);
   font-size: var(--fs-body);
+  transition: opacity var(--motion-fade);
 }
 .frame-status.error { color: var(--viewport-error); }
 .frame-status button { background: var(--viewport-bg); border: 1px solid var(--viewport-muted); color: var(--viewport-link); }
@@ -349,6 +358,7 @@ button {
   background: var(--surface);
   color: var(--ink-900);
   cursor: pointer;
+  transition: color var(--motion-feedback), border-color var(--motion-feedback), background-color var(--motion-feedback);
 }
 button:hover { border-color: var(--primary); }
 button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
@@ -398,6 +408,13 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
 }
 .tabbar button.active { color: var(--primary); font-weight: 600; box-shadow: inset 0 -2px 0 var(--primary); }
 
+.topic-divider { animation: content-fade var(--motion-fade); }
+
+@keyframes content-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* 태블릿: 사이드바를 좁히고 채팅 폭 축소 */
 @media (max-width: 1180px) {
   .layout { grid-template-columns: 248px minmax(0, 1fr) 340px; }
@@ -424,11 +441,26 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .layout > [id^="pane-"] { display: none; }
   .layout > [id^="pane-"].pane-active { display: flex; }
   .sidebar.pane-active { display: block; }
+  .layout > [id^="pane-"].pane-active { animation: pane-fade var(--motion-pane); }
 
   .topics-pane, .chat-pane {
     height: calc(100vh - 52px); /* 하단 탭 높이 */
   }
   .sidebar { min-height: calc(100vh - 52px); padding-bottom: calc(var(--sp-8) * 2); }
+}
+
+@keyframes pane-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* 아주 좁은 화면: 터치 타깃·버블 폭 조정 */
