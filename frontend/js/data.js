@@ -1,24 +1,50 @@
+// 출력 이스케이프 원칙: 사용자·AI가 만든 문자열(memo 등)은 innerHTML로 조립하지 않고
+// createElement + textContent로만 DOM에 넣는다. 아래 렌더 함수 전체가 그 규칙을 따른다.
+
+function makeCell(text) {
+  const td = document.createElement("td");
+  td.textContent = text;
+  return td;
+}
+
+function makeActionCell(id) {
+  const td = document.createElement("td");
+  for (const [action, label] of [["edit", "수정"], ["delete", "삭제"]]) {
+    const b = document.createElement("button");
+    b.dataset.action = action;
+    b.dataset.id = id;
+    b.textContent = label;
+    td.appendChild(b);
+  }
+  return td;
+}
+
+function setTableMessage(tbody, text) {
+  tbody.innerHTML = "";
+  const tr = document.createElement("tr");
+  const td = document.createElement("td");
+  td.colSpan = 4;
+  td.textContent = text;
+  tr.appendChild(td);
+  tbody.appendChild(tr);
+}
+
 async function refreshDataTable() {
   const tbody = document.getElementById("data-tbody");
-  tbody.innerHTML = `<tr><td colspan="4">불러오는 중...</td></tr>`;
+  setTableMessage(tbody, "불러오는 중...");
   try {
     const records = await api.listData();
     tbody.innerHTML = "";
     records.forEach((r) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.date}</td>
-        <td>${r.value}</td>
-        <td>${r.memo || ""}</td>
-        <td>
-          <button data-action="edit" data-id="${r.id}">수정</button>
-          <button data-action="delete" data-id="${r.id}">삭제</button>
-        </td>
-      `;
+      tr.appendChild(makeCell(r.date));
+      tr.appendChild(makeCell(r.value));
+      tr.appendChild(makeCell(r.memo || ""));
+      tr.appendChild(makeActionCell(r.id));
       tbody.appendChild(tr);
     });
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="4">불러오기 실패: ${err.message}</td></tr>`;
+    setTableMessage(tbody, `불러오기 실패: ${err.message}`);
   }
 }
 

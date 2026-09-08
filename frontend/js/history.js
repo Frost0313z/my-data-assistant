@@ -1,22 +1,42 @@
+// 출력 이스케이프: 대화 제목(c.title)은 첫 사용자 메시지에서 파생되므로 신뢰 불가.
+// innerHTML 조립 대신 createElement + textContent로만 넣는다.
+
+function setHistoryMessage(list, text) {
+  list.innerHTML = "";
+  const li = document.createElement("li");
+  li.className = "empty";
+  li.textContent = text;
+  list.appendChild(li);
+}
+
 async function refreshHistory() {
   const list = document.getElementById("history-list");
   try {
     const conversations = await api.listConversations();
-    list.innerHTML = "";
     if (conversations.length === 0) {
-      list.innerHTML = `<li class="empty">아직 대화 기록이 없습니다.</li>`;
+      setHistoryMessage(list, "아직 대화 기록이 없습니다.");
       return;
     }
+    list.innerHTML = "";
     conversations.forEach((c) => {
       const li = document.createElement("li");
-      li.innerHTML = `
-        <button data-action="load" data-id="${c.id}">${c.title}</button>
-        <button data-action="delete" data-id="${c.id}" class="danger">삭제</button>
-      `;
+
+      const load = document.createElement("button");
+      load.dataset.action = "load";
+      load.dataset.id = c.id;
+      load.textContent = c.title;
+
+      const del = document.createElement("button");
+      del.dataset.action = "delete";
+      del.dataset.id = c.id;
+      del.className = "danger";
+      del.textContent = "삭제";
+
+      li.append(load, del);
       list.appendChild(li);
     });
   } catch (err) {
-    list.innerHTML = `<li class="empty">대화 기록을 불러오지 못했습니다: ${err.message}</li>`;
+    setHistoryMessage(list, `대화 기록을 불러오지 못했습니다: ${err.message}`);
   }
 }
 
