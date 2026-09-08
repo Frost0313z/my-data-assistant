@@ -61,6 +61,13 @@ def main():
     assert r.context is None, r.context
     print("OK  통과: 빈 context는 None으로 정규화")
 
+    # mode는 키뿐 아니라 값도 화이트리스트다 (A14 리포트 경로 분기)
+    r = models.ChatRequest(message="안녕", context={"topic": "공급 밀도", "mode": "report"})
+    assert r.context == {"topic": "공급 밀도", "mode": "report"}, r.context
+    r = models.ChatRequest(message="안녕", context={"topic": "공급 밀도", "mode": "evil"})
+    assert r.context == {"topic": "공급 밀도"}, r.context
+    print("OK  통과: context.mode는 허용 값(report)만 남긴다")
+
     # --- chat_service._build_screen_block ---
     from app.services.chat_service import _build_screen_block
 
