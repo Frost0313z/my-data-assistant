@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>나만의 AI 비서</title>
+<title>대전 상권 분석 AI 비서</title>
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 <div class="layout">
-  <aside class="sidebar">
-    <h1>나만의 AI 비서</h1>
+  <!-- 좌: 요약 · 대화 기록 · 데이터 관리 -->
+  <aside class="sidebar" id="pane-side">
+    <h1>대전 상권 분석 AI 비서</h1>
 
     <section class="panel">
       <h2>데이터 요약</h2>
@@ -20,41 +21,65 @@
       <h2>대화 기록</h2>
       <ul id="history-list" class="history-list"></ul>
     </section>
-  </aside>
 
-  <main class="main">
-    <section class="panel chat-panel">
-      <div class="panel-header">
-        <h2>채팅</h2>
-        <button id="chat-new">새 대화</button>
-      </div>
-      <div id="chat-messages" class="chat-messages"></div>
-      <div class="chat-input-row">
-        <input id="chat-input" type="text" placeholder="데이터에 대해 물어보세요 (예: 이번 분기 실적이 어때?)" />
-        <button id="chat-send">보내기</button>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>데이터 관리</h2>
+    <details class="panel data-manage">
+      <summary>데이터 관리</summary>
       <form id="data-form" class="data-form">
         <input name="date" type="date" required />
         <input name="value" type="number" step="any" placeholder="값" required />
         <input name="memo" type="text" placeholder="메모" />
         <button type="submit">추가</button>
       </form>
-      <table class="data-table">
-        <thead>
-          <tr><th>날짜</th><th>값</th><th>메모</th><th>동작</th></tr>
-        </thead>
-        <tbody id="data-tbody"></tbody>
-      </table>
-    </section>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>날짜</th><th>값</th><th>메모</th><th>동작</th></tr>
+          </thead>
+          <tbody id="data-tbody"></tbody>
+        </table>
+      </div>
+    </details>
+  </aside>
+
+  <!-- 중앙: 분석 주제 버튼 + 상세 (사전 분석 리포트 스냅샷) -->
+  <main class="topics-pane" id="pane-dashboard">
+    <div class="pane-header">
+      <h2>분석 주제</h2>
+      <a id="dashboard-open" href="#" target="_blank" rel="noopener">전체 대시보드 ↗</a>
+    </div>
+    <div id="topic-list" class="topic-list" role="group" aria-label="분석 주제 선택"></div>
+    <section id="topic-detail" class="panel topic-detail" aria-live="polite"></section>
+    <p class="topics-foot">2025-03 → 2026-06 대전 5개 자치구 · 82개 행정동 · 등록 업소 수 기준 고정 스냅샷. 매출·유동인구는 포함되지 않음.</p>
   </main>
+
+  <!-- 우: 채팅 -->
+  <section class="chat-pane" id="pane-chat">
+    <div class="pane-header">
+      <h2>AI 상권 분석</h2>
+      <button id="chat-new" class="ghost">새 대화</button>
+    </div>
+    <div id="screen-context" class="screen-context" hidden></div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div id="chat-suggestions" class="chat-suggestions"></div>
+    <div class="chat-input-row">
+      <input id="chat-input" type="text" placeholder="주제를 고르고 물어보세요 (예: 이 주제 핵심이 뭐야?)" />
+      <button id="chat-send">보내기</button>
+    </div>
+  </section>
 </div>
+
+<!-- 모바일 하단 탭 -->
+<nav class="tabbar" id="tabbar" hidden>
+  <button data-pane="pane-dashboard" class="active">분석</button>
+  <button data-pane="pane-chat">채팅</button>
+  <button data-pane="pane-side">데이터</button>
+</nav>
 
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
+<script src="js/topics-data.js"></script>
+<script src="js/topics.js"></script>
+<script src="js/tabs.js"></script>
 <script src="js/summary.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/data.js"></script>

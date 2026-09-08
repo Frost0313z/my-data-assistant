@@ -1,6 +1,6 @@
 import re
 from datetime import date as _date
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -12,6 +12,11 @@ MEMO_MAX = 500
 MESSAGE_MAX = 2000
 TITLE_MAX = 100
 CONTENT_MAX = 8000
+
+# 화면 상태(context): 사용자가 고른 분석 주제. 허용 키 화이트리스트 + 값 길이 상한.
+# 프론트가 이미 정제하지만, 프롬프트에 직접 들어가므로 서버에서도 좁게 통과시킨다.
+CONTEXT_KEYS = {"topic"}
+CONTEXT_VALUE_MAX = 80
 
 
 def _clean_text(value: str) -> str:
@@ -84,6 +89,8 @@ class ChatRequest(BaseModel):
     # 채팅 입력: 빈 문자열 거부, 상한 2000자, 제어문자 제거
     message: str = Field(..., min_length=1, max_length=MESSAGE_MAX)
     conversation_id: Optional[str] = None
+    # 화면에서 고른 분석 주제 등. 허용 키만, 값은 정제된 짧은 문자열.
+    context: Optional[Dict[str, str]] = None
 
     @field_validator("message")
     @classmethod
@@ -93,7 +100,23 @@ class ChatRequest(BaseModel):
             raise ValueError("빈 메시지는 보낼 수 없습니다")
         return cleaned
 
+    @field_validator("context")
+    @classmethod
+    def _clean_context(cls, v: Optional[Dict[str, str]]) -> Optional[Dict[str, str]]:
+        if not v:
+            return None
+        cleaned = {}
+        for key, value in v.items():
+            if key not in CONTEXT_KEYS or not isinstance(value, str):
+                continue
+            text = _clean_text(value)[:CONTEXT_VALUE_MAX]
+            if text:
+                cleaned[key] = text
+        return cleaned or None
+
 
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
+    # OpenAI 토큰 사용량 (prompt/completion/total). 응답 실패 시 None.
+    usage: Optional[Dict[str, int]] = None

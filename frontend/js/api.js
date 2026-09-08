@@ -38,10 +38,19 @@ const api = {
     return this.request(`/api/conversations/${id}`, { method: "DELETE" });
   },
 
-  sendChat(message, conversationId) {
+  sendChat(message, conversationId, context) {
     return this.request("/api/chat", {
       method: "POST",
-      body: JSON.stringify({ message, conversation_id: conversationId || null }),
+      body: JSON.stringify({
+        message,
+        conversation_id: conversationId || null,
+        context: context || null,
+      }),
     });
+  },
+
+  // F3: 콜드 스타트 판별용 가벼운 핑
+  ping() {
+    return this.request("/");
   },
 };
