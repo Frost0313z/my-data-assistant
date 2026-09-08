@@ -48,8 +48,11 @@ function showErrorBubble(kind, retryFn) {
   const bubble = document.createElement("div");
   bubble.className = "bubble error";
 
+  // 이 버블은 요청이 '실제로 실패했을 때'만 뜬다. 대기 중 안내는 A21 타이머가 맡는다.
+  // 예전 cold 문구는 "깨우는 중… 잠시 후 다시 시도"였는데, 콜드스타트 요청은 붙잡힌 채
+  // 자동 완료되므로(실측 43초) 재시도를 권하는 것이 오안내였다.
   const messages = {
-    cold: "백엔드가 잠들어 있어 깨우는 중입니다. 무료 플랜이라 최대 50초 걸릴 수 있어요. 잠시 후 다시 시도해 주세요.",
+    connection: "서버에 연결하지 못했습니다. 백엔드가 절전 상태였다면 다시 시도할 때 깨어납니다 (최대 50초). 로컬에서 개발 중이라면 백엔드 실행 여부와 CORS 설정도 확인해 주세요.",
     ai: "AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
     generic: "요청을 처리하지 못했습니다. 네트워크 상태를 확인하고 다시 시도해 주세요.",
   };
@@ -68,9 +71,12 @@ function showErrorBubble(kind, retryFn) {
   list.scrollTop = list.scrollHeight;
 }
 
+// 'cold'가 아니라 'connection'으로 분류한다. fetch 실패는 콜드스타트뿐 아니라
+// 백엔드 미실행·CORS 차단으로도 나는데, 실제로 로컬 CORS 실패를 콜드스타트로
+// 오진한 적이 있다. 원인을 단정할 수 없으므로 이름과 문구를 중립적으로 둔다.
 function classifyError(err) {
   const msg = (err && err.message) || "";
-  if (/Failed to fetch|NetworkError|timeout|시간 초과/i.test(msg)) return "cold";
+  if (/Failed to fetch|NetworkError|timeout|시간 초과/i.test(msg)) return "connection";
   if (/OpenAI|AI|502|503|LLM/i.test(msg)) return "ai";
   return "generic";
 }
