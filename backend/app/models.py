@@ -13,10 +13,14 @@ MESSAGE_MAX = 2000
 TITLE_MAX = 100
 CONTENT_MAX = 8000
 
-# 화면 상태(context): 사용자가 고른 분석 주제. 허용 키 화이트리스트 + 값 길이 상한.
+# 화면 상태(context): 사용자가 고른 분석 주제와 요청 모드. 허용 키 화이트리스트 + 값 길이 상한.
 # 프론트가 이미 정제하지만, 프롬프트에 직접 들어가므로 서버에서도 좁게 통과시킨다.
-CONTEXT_KEYS = {"topic"}
+CONTEXT_KEYS = {"topic", "mode"}
 CONTEXT_VALUE_MAX = 80
+
+# mode는 키뿐 아니라 값도 화이트리스트다. topic과 달리 프롬프트 분기를 결정하므로
+# 임의 문자열이 들어오면 의도하지 않은 경로를 탈 수 있다.
+CONTEXT_MODES = {"report"}
 
 
 def _clean_text(value: str) -> str:
@@ -110,6 +114,10 @@ class ChatRequest(BaseModel):
             if key not in CONTEXT_KEYS or not isinstance(value, str):
                 continue
             text = _clean_text(value)[:CONTEXT_VALUE_MAX]
+            # 허용되지 않은 mode 값은 키 자체를 버린다(422가 아니라 무시).
+            # 알 수 없는 키를 조용히 떨구는 기존 동작과 같은 규칙을 값에도 적용한다.
+            if key == "mode" and text not in CONTEXT_MODES:
+                continue
             if text:
                 cleaned[key] = text
         return cleaned or None
