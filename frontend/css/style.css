@@ -1,5 +1,8 @@
 * { box-sizing: border-box; }
 
+/* hidden 속성은 항상 요소를 숨긴다 (작성자 display 규칙이 UA 스타일을 덮는 것을 방지) */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
@@ -7,43 +10,57 @@ body {
   color: #1f2328;
 }
 
+/* ── 3분할 레이아웃: 좌 사이드바 · 중앙 대시보드 · 우 채팅 ── */
 .layout {
-  display: flex;
-  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr) 400px;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
-  width: 300px;
-  padding: 20px;
+  padding: 18px;
   background: #fff;
   border-right: 1px solid #e2e4e8;
-  flex-shrink: 0;
+  overflow-y: auto;
 }
 
-.main {
-  flex: 1;
-  padding: 20px;
+.dashboard-pane {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  min-width: 0;
+  padding: 14px;
+  gap: 10px;
 }
 
-h1 { font-size: 1.2rem; margin-bottom: 20px; }
-h2 { font-size: 1rem; margin: 0 0 10px; }
+.chat-pane {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-left: 1px solid #e2e4e8;
+  padding: 14px;
+  min-width: 0;
+}
+
+h1 { font-size: 1.1rem; margin: 0 0 18px; }
+h2 { font-size: 0.95rem; margin: 0 0 10px; }
 
 .panel {
   background: #fff;
   border: 1px solid #e2e4e8;
   border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 16px;
+  padding: 14px;
+  margin-bottom: 14px;
 }
 
-.panel-header {
+.pane-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 6px;
 }
+.pane-header h2 { margin: 0; }
+.pane-header a { font-size: 0.8rem; color: #2563eb; text-decoration: none; }
 
 .summary-box { font-size: 0.85rem; }
 .summary-row { display: flex; justify-content: space-between; padding: 4px 0; }
@@ -54,11 +71,62 @@ h2 { font-size: 1rem; margin: 0 0 10px; }
 .history-list .danger { flex: none; color: #c62828; }
 .history-list .empty { color: #999; font-size: 0.85rem; }
 
-.chat-panel { flex: 1; display: flex; flex-direction: column; }
+/* 데이터 관리: 기본 접힘 */
+.data-manage summary { cursor: pointer; font-size: 0.95rem; font-weight: 600; }
+.data-manage[open] summary { margin-bottom: 12px; }
+
+/* ── 대시보드 임베드 ── */
+.dashboard-frame-wrap {
+  position: relative;
+  flex: 1;
+  border: 1px solid #e2e4e8;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f1319;
+}
+#dashboard-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.frame-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+  color: #93a2b3;
+  background: #0f1319;
+  font-size: 0.9rem;
+}
+.frame-status.error { color: #f0625f; }
+.frame-status button {
+  background: #1a1f27;
+  border: 1px solid #2b323c;
+  color: #4c8dff;
+}
+
+/* ── 채팅 ── */
+.screen-context {
+  font-size: 0.78rem;
+  color: #3b4252;
+  background: #eef4ff;
+  border: 1px solid #d5e3ff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.screen-context b { color: #1d4ed8; }
 
 .chat-messages {
   flex: 1;
-  min-height: 300px;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -67,16 +135,34 @@ h2 { font-size: 1rem; margin: 0 0 10px; }
 }
 
 .bubble {
-  max-width: 70%;
+  max-width: 80%;
   padding: 10px 14px;
   border-radius: 12px;
   white-space: pre-wrap;
+  word-break: break-word;
 }
-
 .bubble.user { align-self: flex-end; background: #2563eb; color: #fff; }
 .bubble.assistant { align-self: flex-start; background: #eef0f3; }
+.bubble.error { align-self: flex-start; background: #fdecea; color: #b71c1c; border: 1px solid #f5c6c0; }
+.bubble.error button {
+  display: block;
+  margin-top: 8px;
+  background: #fff;
+  color: #b71c1c;
+  border: 1px solid #f5c6c0;
+  font-size: 0.82rem;
+}
 
-.chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.chat-suggestions button {
+  background: #eef0f3;
+  color: #1f2328;
+  font-size: 0.82rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.chat-input-row { display: flex; gap: 8px; }
 .chat-input-row input { flex: 1; padding: 10px; border: 1px solid #d0d3d9; border-radius: 8px; }
 
 button {
@@ -87,37 +173,74 @@ button {
   color: #fff;
   cursor: pointer;
 }
+button.ghost { background: none; color: #2563eb; border: 1px solid #cdd6e4; }
 
 .data-form { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.data-form input { padding: 8px; border: 1px solid #d0d3d9; border-radius: 8px; }
+.data-form input { padding: 8px; border: 1px solid #d0d3d9; border-radius: 8px; min-width: 0; }
+.data-form input[name="date"] { flex: 1 1 130px; }
+.data-form input[name="value"] { flex: 1 1 80px; }
+.data-form input[name="memo"] { flex: 1 1 100%; }
+.data-form button { flex: 1 1 100%; }
 
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-.data-table th, .data-table td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+.data-table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.data-table th, .data-table td { text-align: left; padding: 6px; border-bottom: 1px solid #eee; }
 .data-table button { background: #eef0f3; color: #1f2328; padding: 4px 8px; margin-right: 4px; }
 
-/* 태블릿 이하: 사이드바를 상단으로 접는다 */
-@media (max-width: 800px) {
-  .layout { flex-direction: column; }
-  .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e2e4e8; }
+/* ── 모바일 하단 탭 ── */
+.tabbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: #fff;
+  border-top: 1px solid #e2e4e8;
+  z-index: 40;
+}
+.tabbar button {
+  flex: 1;
+  background: none;
+  color: #6b7280;
+  border-radius: 0;
+  padding: 12px;
+  font-size: 0.9rem;
+}
+.tabbar button.active { color: #2563eb; font-weight: 700; box-shadow: inset 0 -2px 0 #2563eb; }
+
+/* 태블릿: 사이드바를 좁히고 채팅 폭 축소 */
+@media (max-width: 1180px) {
+  .layout { grid-template-columns: 248px minmax(0, 1fr) 340px; }
 }
 
-/* 모바일: 폼·입력·테이블을 세로로 펴고, 터치 타깃을 키운다 */
-@media (max-width: 560px) {
-  .sidebar, .main { padding: 14px; }
-  .main { gap: 14px; }
+/* 모바일/좁은 화면: 한 번에 한 패널만 보이고 하단 탭으로 전환 */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  .layout > .sidebar,
+  .layout > .dashboard-pane,
+  .layout > .chat-pane {
+    grid-column: 1;
+    grid-row: 1;
+    border: none;
+  }
+  /* JS가 .pane-active 하나만 표시 */
+  .layout > [id^="pane-"] { display: none; }
+  .layout > [id^="pane-"].pane-active { display: flex; }
+  .sidebar.pane-active { display: block; }
 
-  /* 데이터 추가 폼: 입력을 한 줄에 하나씩, 버튼은 가로 전체 */
-  .data-form { flex-direction: column; align-items: stretch; }
-  .data-form input, .data-form button { width: 100%; }
+  .dashboard-pane, .chat-pane {
+    height: calc(100vh - 52px); /* 하단 탭 높이 */
+  }
+  .sidebar { min-height: calc(100vh - 52px); padding-bottom: 64px; }
+}
 
-  /* 넓은 표는 가로 스크롤로 처리 (레이아웃이 터지지 않도록) */
-  .data-table { display: block; overflow-x: auto; white-space: nowrap; }
-
-  /* 채팅 입력을 세로로, 버튼을 가로 전체 + 터치하기 쉽게 */
+/* 아주 좁은 화면: 터치 타깃·버블 폭 조정 */
+@media (max-width: 480px) {
+  .bubble { max-width: 88%; }
   .chat-input-row { flex-direction: column; }
   .chat-input-row button { width: 100%; padding: 12px; }
-  .chat-messages { min-height: 220px; }
-  .bubble { max-width: 85%; }
-
-  button { padding: 10px 14px; }  /* 최소 44px 터치 타깃 확보 */
+  button { padding: 10px 14px; }
 }
