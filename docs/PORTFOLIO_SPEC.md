@@ -25,6 +25,7 @@
 | [`specs/`](specs/README.md) | A~F 스펙 항목 전체 (ID·우선순위·공수·수용 기준) | **작업 단위** |
 | [`roadmap.md`](roadmap.md) | Phase 1 / 1-b / 2 / 3 계획 · 리스크 · 진행 현황 | 계획 |
 | [`decisions.md`](decisions.md) | 확정된 결정 5건 + 미결 1건 | **재논의 금지 목록** |
+| [`agent-roles.md`](agent-roles.md) | 역할 6종 · 파일 소유권 · 충돌 지점 · 병렬 계획 | **팀 구성 시** |
 | [`CHANGELOG.md`](CHANGELOG.md) | 문서 변경 이력 (v0.1~v1.0) | 이력 |
 
 **저장소 안**: [`../README.md`](../README.md) · [`../backend/app/seed/insights.md`](../backend/app/seed/insights.md)
@@ -39,6 +40,7 @@
 | 맡은 일 | 읽을 문서 |
 |---|---|
 | **아무거나 시작 전 (공통)** | 이 파일 → [`context.md`](context.md) → [`decisions.md`](decisions.md) |
+| **여러 에이전트로 나눠 작업** | [`agent-roles.md`](agent-roles.md) — 역할·소유 파일·순서 제약 |
 | A9~A14 (여정 보강) | [`research/user-journey.md`](research/user-journey.md) + [`specs/A-product-ux.md`](specs/A-product-ux.md) |
 | A15·A16·A19 (토큰·타이포·색) | [`design/design-system.md`](design/design-system.md) |
 | A17·A12·A14 (컴포넌트) | [`design/components.md`](design/components.md) |
