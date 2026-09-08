@@ -294,7 +294,11 @@ h3 { font-size: var(--fs-h3); }
   word-break: break-word;
 }
 .bubble.user { align-self: flex-end; background: var(--primary); color: var(--surface); }
-.bubble.assistant { align-self: flex-start; background: var(--surface-sunken); }
+.bubble.assistant {
+  align-self: flex-start;
+  background: var(--warm-050);
+  border: 1px solid var(--warm-300);
+}
 .bubble.error { align-self: flex-start; background: var(--error-bg); color: var(--error); border: 1px solid var(--error-line); }
 .bubble.error button {
   display: block;
