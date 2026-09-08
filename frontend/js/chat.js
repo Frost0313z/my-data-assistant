@@ -1,10 +1,59 @@
 let currentConversationId = null;
 
-const SUGGESTIONS = [
-  "이 주제의 핵심을 세 줄로 요약해줘",
+// A10: 주제별 제안 질문. 주제를 바꾸면 칩도 함께 바뀐다.
+// topics-data.js가 아니라 여기 두는 이유: 그 파일은 insights.md와 같은 출처를
+// 미러링하는 분석 데이터고, 제안 질문은 UI 문구라 성격이 다르다.
+//
+// 문구 규칙 — 각 주제마다 마지막 하나는 '이 데이터로 알 수 없는 것'을 묻는다.
+// 한계를 먼저 말하는 게 이 서비스의 차별점이라 진입 질문에서부터 드러낸다.
+const SUGGESTIONS_DEFAULT = [
+  "이 데이터로 뭘 알 수 있어?",
   "어느 지역이 성장 중이고 어디가 정체야?",
-  "교체율이 높다는 게 무슨 뜻이야?",
+  "이 데이터의 한계는 뭐야?",
 ];
+
+const SUGGESTIONS_BY_TOPIC = {
+  scale: [
+    "2,800개 증가는 큰 편이야?",
+    "6개 시점 추이에서 눈에 띄는 구간은?",
+    "이 수치로는 알 수 없는 게 뭐야?",
+  ],
+  district: [
+    "자치구별 증감을 순서대로 알려줘",
+    "서구와 동구 격차가 2%p 안쪽인 건 어떻게 봐야 해?",
+    "증감률만으로 판단하기 어려운 점은?",
+  ],
+  industry: [
+    "부동산업은 늘고 음식점업은 준 배경이 뭐야?",
+    "업종별 증감 상위·하위를 알려줘",
+    "히트맵에서 예외적인 칸이 있어?",
+  ],
+  survival: [
+    "잔존율 73.7%는 어떻게 읽어야 해?",
+    "공급밀도 1·2위가 오히려 안정적인 이유는?",
+    "잔존율로는 알 수 없는 게 뭐야?",
+  ],
+  density: [
+    "중앙동 585개는 과밀이라는 뜻이야?",
+    "생활권 행정동들의 밀도는 어느 정도야?",
+    "밀도만으로 판단할 수 없는 건 뭐야?",
+  ],
+  lq: [
+    "LQ 1.0이 무슨 뜻이야?",
+    "LQ가 높은데 규모는 작은 사례가 있어?",
+    "특화도만 보고 판단하면 안 되는 이유는?",
+  ],
+  growth: [
+    "성장 상권과 정체 상권을 나눠서 알려줘",
+    "목동과 대흥동이 예외인 이유는?",
+    "이 산점도로는 판단할 수 없는 게 뭐야?",
+  ],
+  turnover: [
+    "교체율 높은 동 TOP 5",
+    "교체율이 높으면 나쁜 건가?",
+    "순증이 0인데 교체율이 높으면 무슨 뜻이야?",
+  ],
+};
 
 let lastNotifiedTopic = null;
 
@@ -81,10 +130,12 @@ function classifyError(err) {
   return "generic";
 }
 
+// topics.js가 주제를 바꿀 때마다 다시 부른다(window.activeTopicId 기준).
 function renderSuggestions() {
   const box = document.getElementById("chat-suggestions");
   box.textContent = "";
-  SUGGESTIONS.forEach((text) => {
+  const list = SUGGESTIONS_BY_TOPIC[window.activeTopicId] || SUGGESTIONS_DEFAULT;
+  list.forEach((text) => {
     const b = document.createElement("button");
     b.textContent = text;
     b.addEventListener("click", () => {

@@ -99,6 +99,10 @@ window.screenContext = null;
     activeId = id === activeId ? null : id; // 같은 버튼 다시 누르면 해제
     const topic = window.TOPICS.find((t) => t.id === activeId) || null;
     window.screenContext = topic ? { topic: topic.label } : null;
+    // A10: 제안 질문이 주제를 따라가도록 id를 공개한다. 백엔드로 가는 screenContext는
+    // 허용 키가 topic 하나뿐(CONTEXT_KEYS)이라 id를 거기 넣으면 422가 난다.
+    window.activeTopicId = activeId;
+    if (window.renderSuggestions) window.renderSuggestions();
     list.querySelectorAll("button").forEach((b) => {
       const on = b.dataset.id === activeId;
       b.classList.toggle("active", on);
