@@ -26,32 +26,17 @@ SYSTEM_PROMPT_TEMPLATE = """당신은 사용자의 데이터를 잘 아는 상�
 {screen_block}
 규칙:
 - 수치를 묻는 질문은 [실시간 데이터 요약]을 우선한다. 배경·해석·지역/업종별 세부는 [사전 분석 리포트]를 활용한다.
-- 사용자가 "지금 화면", "이 지역", "여기" 등으로 물으면 [현재 보고 있는 화면]의 선택값을 기준으로 답한다.
+- [선택한 분석 주제]가 있으면 사용자가 "이 주제", "지금 보고 있는", "여기" 등으로 물을 때 그 주제를 기준으로, [사전 분석 리포트]의 해당 섹션을 중심으로 답한다.
 - 리포트에 없는 지역·수치는 지어내지 말고 "그 부분은 리포트에 없다"고 답한다.
 - 구체적이고 친근하게, 근거가 된 수치를 함께 제시한다."""
 
-_SCREEN_LABELS = {
-    "district": "자치구",
-    "dong": "행정동",
-    "category": "업종",
-    "metric": "선택 지표",
-    "period": "비교 기간",
-    "mapPeriod": "지도 관측 시점",
-}
-
 
 def _build_screen_block(context: Optional[Dict[str, str]]) -> str:
-    """대시보드에서 사용자가 지금 보고 있는 필터 상태를 프롬프트 블록으로 만든다."""
-    if not context:
+    """사용자가 화면에서 고른 분석 주제를 프롬프트 블록으로 만든다."""
+    topic = (context or {}).get("topic")
+    if not topic:
         return ""
-    lines = [
-        f"- {_SCREEN_LABELS.get(key, key)}: {value}"
-        for key, value in context.items()
-        if key in _SCREEN_LABELS and value
-    ]
-    if not lines:
-        return ""
-    return "\n[현재 보고 있는 화면] — 사용자가 대시보드에서 선택한 필터\n" + "\n".join(lines) + "\n"
+    return f"\n[선택한 분석 주제] — 사용자가 화면에서 고른 주제\n- 주제: {topic}\n"
 
 _client: Optional[OpenAI] = None
 

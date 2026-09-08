@@ -3,7 +3,6 @@
 const PLACEHOLDER = "__API_BASE_URL__";
 window.API_BASE_URL = PLACEHOLDER.startsWith("__") ? "http://localhost:8000" : PLACEHOLDER;
 
-// 중앙에 임베드할 대전 상권 인터랙티브 대시보드 (분석 저장소 GitHub Pages 산출물).
-// origin은 postMessage 수신 검증(화이트리스트)에 쓰므로 정확히 맞춰야 한다.
+// "전체 대시보드 ↗" 링크 대상 — 분석 저장소의 인터랙티브 대시보드(GitHub Pages).
+// 각 주제의 anchor(#heatmapTitle 등)를 붙여 해당 섹션으로 바로 연다.
 window.DASHBOARD_URL = "https://frost0313z.github.io/daejeon-commercial-analysis/interactive-dashboard.html";
-window.DASHBOARD_ORIGIN = "https://frost0313z.github.io";

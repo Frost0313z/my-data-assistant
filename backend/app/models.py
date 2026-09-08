@@ -13,9 +13,9 @@ MESSAGE_MAX = 2000
 TITLE_MAX = 100
 CONTENT_MAX = 8000
 
-# 대시보드 화면 상태(context): 허용 키 화이트리스트 + 값 길이 상한.
+# 화면 상태(context): 사용자가 고른 분석 주제. 허용 키 화이트리스트 + 값 길이 상한.
 # 프론트가 이미 정제하지만, 프롬프트에 직접 들어가므로 서버에서도 좁게 통과시킨다.
-CONTEXT_KEYS = {"district", "dong", "category", "metric", "period", "mapPeriod"}
+CONTEXT_KEYS = {"topic"}
 CONTEXT_VALUE_MAX = 80
 
 
@@ -89,7 +89,7 @@ class ChatRequest(BaseModel):
     # 채팅 입력: 빈 문자열 거부, 상한 2000자, 제어문자 제거
     message: str = Field(..., min_length=1, max_length=MESSAGE_MAX)
     conversation_id: Optional[str] = None
-    # 대시보드에서 보고 있는 화면 상태(자치구·업종·기간 등). 허용 키만, 값은 정제된 짧은 문자열.
+    # 화면에서 고른 분석 주제 등. 허용 키만, 값은 정제된 짧은 문자열.
     context: Optional[Dict[str, str]] = None
 
     @field_validator("message")

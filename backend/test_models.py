@@ -48,16 +48,16 @@ def main():
         lambda: models.ConversationIn(title="t" * (models.TITLE_MAX + 1)), "title 길이 초과"
     )
 
-    # --- ChatRequest.context: 대시보드 화면 상태 화이트리스트 ---
-    r = models.ChatRequest(message="안녕", context={"district": "서구", "evil": "무시됨"})
-    assert r.context == {"district": "서구"}, r.context
-    print("OK  통과: context는 허용 키만 남긴다:", r.context)
+    # --- ChatRequest.context: 선택한 분석 주제 화이트리스트 ---
+    r = models.ChatRequest(message="안녕", context={"topic": "업종별 증감", "evil": "무시됨"})
+    assert r.context == {"topic": "업종별 증감"}, r.context
+    print("OK  통과: context는 허용 키(topic)만 남긴다:", r.context)
 
-    r = models.ChatRequest(message="안녕", context={"category": "x" * 200})
-    assert len(r.context["category"]) == models.CONTEXT_VALUE_MAX, r.context
+    r = models.ChatRequest(message="안녕", context={"topic": "x" * 200})
+    assert len(r.context["topic"]) == models.CONTEXT_VALUE_MAX, r.context
     print("OK  통과: context 값 길이 상한 적용")
 
-    r = models.ChatRequest(message="안녕", context={"district": "  "})
+    r = models.ChatRequest(message="안녕", context={"topic": "  "})
     assert r.context is None, r.context
     print("OK  통과: 빈 context는 None으로 정규화")
 
@@ -66,9 +66,10 @@ def main():
 
     assert _build_screen_block(None) == ""
     assert _build_screen_block({}) == ""
-    block = _build_screen_block({"district": "서구", "category": "음식점"})
-    assert "[현재 보고 있는 화면]" in block and "자치구: 서구" in block and "업종: 음식점" in block, block
-    print("OK  통과: _build_screen_block이 화면 상태 블록을 만든다")
+    assert _build_screen_block({"district": "서구"}) == ""  # topic 외 키는 무시
+    block = _build_screen_block({"topic": "점포 교체율"})
+    assert "[선택한 분석 주제]" in block and "주제: 점포 교체율" in block, block
+    print("OK  통과: _build_screen_block이 선택 주제 블록을 만든다")
 
     # --- main._json_safe: 검증 에러 응답 직렬화 안전장치 ---
     from main import _json_safe

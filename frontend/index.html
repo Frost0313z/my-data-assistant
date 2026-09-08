@@ -41,16 +41,15 @@
     </details>
   </aside>
 
-  <!-- 중앙: 대전 상권 인터랙티브 대시보드 (분석 저장소 산출물 임베드) -->
-  <main class="dashboard-pane" id="pane-dashboard">
+  <!-- 중앙: 분석 주제 버튼 + 상세 (사전 분석 리포트 스냅샷) -->
+  <main class="topics-pane" id="pane-dashboard">
     <div class="pane-header">
-      <h2>상권 대시보드</h2>
-      <a id="dashboard-open" href="#" target="_blank" rel="noopener">새 탭에서 열기 ↗</a>
+      <h2>분석 주제</h2>
+      <a id="dashboard-open" href="#" target="_blank" rel="noopener">전체 대시보드 ↗</a>
     </div>
-    <div class="dashboard-frame-wrap">
-      <div id="dashboard-status" class="frame-status">대시보드를 불러오는 중...</div>
-      <iframe id="dashboard-frame" title="대전 상권 인터랙티브 대시보드" loading="lazy"></iframe>
-    </div>
+    <div id="topic-list" class="topic-list" role="group" aria-label="분석 주제 선택"></div>
+    <section id="topic-detail" class="panel topic-detail" aria-live="polite"></section>
+    <p class="topics-foot">2025-03 → 2026-06 대전 5개 자치구 · 82개 행정동 · 등록 업소 수 기준 고정 스냅샷. 매출·유동인구는 포함되지 않음.</p>
   </main>
 
   <!-- 우: 채팅 -->
@@ -63,7 +62,7 @@
     <div id="chat-messages" class="chat-messages"></div>
     <div id="chat-suggestions" class="chat-suggestions"></div>
     <div class="chat-input-row">
-      <input id="chat-input" type="text" placeholder="지금 보고 있는 화면에 대해 물어보세요" />
+      <input id="chat-input" type="text" placeholder="주제를 고르고 물어보세요 (예: 이 주제 핵심이 뭐야?)" />
       <button id="chat-send">보내기</button>
     </div>
   </section>
@@ -71,14 +70,15 @@
 
 <!-- 모바일 하단 탭 -->
 <nav class="tabbar" id="tabbar" hidden>
-  <button data-pane="pane-dashboard" class="active">대시보드</button>
+  <button data-pane="pane-dashboard" class="active">분석</button>
   <button data-pane="pane-chat">채팅</button>
   <button data-pane="pane-side">데이터</button>
 </nav>
 
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
-<script src="js/dashboard-bridge.js"></script>
+<script src="js/topics-data.js"></script>
+<script src="js/topics.js"></script>
 <script src="js/tabs.js"></script>
 <script src="js/summary.js"></script>
 <script src="js/chat.js"></script>
