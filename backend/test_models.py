@@ -48,6 +48,13 @@ def main():
         lambda: models.ConversationIn(title="t" * (models.TITLE_MAX + 1)), "title 길이 초과"
     )
 
+    # --- main._json_safe: 검증 에러 응답 직렬화 안전장치 ---
+    from main import _json_safe
+
+    out = _json_safe([{"input": float("inf")}, {"input": float("nan")}, {"x": 1}])
+    assert out == [{"input": "inf"}, {"input": "nan"}, {"x": 1}], out
+    print("OK  통과: _json_safe가 Inf/NaN을 문자열로 치환")
+
     print("\n모든 검증 규칙 통과.")
 
 
