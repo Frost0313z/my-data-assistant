@@ -118,3 +118,5 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
+    # OpenAI 토큰 사용량 (prompt/completion/total). 응답 실패 시 None.
+    usage: Optional[Dict[str, int]] = None

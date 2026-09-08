@@ -106,6 +106,10 @@ window.screenContext = null;
     });
     renderDetail(topic);
     renderChip(topic);
+    // 대화가 이미 시작됐다면 주제가 바뀐 지점을 채팅에 남긴다
+    if (window.notifyTopicChange && document.querySelector("#chat-messages .bubble")) {
+      window.notifyTopicChange(topic ? topic.label : null);
+    }
   }
 
   window.TOPICS.forEach((t) => {

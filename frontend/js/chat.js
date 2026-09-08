@@ -6,6 +6,8 @@ const SUGGESTIONS = [
   "교체율이 높다는 게 무슨 뜻이야?",
 ];
 
+let lastNotifiedTopic = null;
+
 function appendMessage(role, content) {
   const list = document.getElementById("chat-messages");
   const bubble = document.createElement("div");
@@ -14,6 +16,30 @@ function appendMessage(role, content) {
   list.appendChild(bubble);
   list.scrollTop = list.scrollHeight;
   return bubble;
+}
+
+// 주제를 바꾸면 대화 흐름에 그 지점을 남긴다 (topics.js가 호출).
+function notifyTopicChange(label) {
+  if (label === lastNotifiedTopic) return;
+  lastNotifiedTopic = label;
+  const list = document.getElementById("chat-messages");
+  const div = document.createElement("div");
+  div.className = "topic-divider";
+  div.textContent = label ? `주제를 '${label}'(으)로 바꿨습니다` : "주제 선택을 해제했습니다";
+  list.appendChild(div);
+  list.scrollTop = list.scrollHeight;
+}
+
+// 답변 아래 토큰 사용량 문구
+function appendUsage(usage) {
+  if (!usage || !usage.total_tokens) return;
+  const list = document.getElementById("chat-messages");
+  const line = document.createElement("div");
+  line.className = "usage";
+  const n = (v) => (v || 0).toLocaleString("ko-KR");
+  line.textContent = `토큰 ${n(usage.total_tokens)} (입력 ${n(usage.prompt_tokens)} · 출력 ${n(usage.completion_tokens)})`;
+  list.appendChild(line);
+  list.scrollTop = list.scrollHeight;
 }
 
 // F3: 에러 버블 — 상황별 문구 + 재시도 버튼
@@ -65,6 +91,7 @@ function renderSuggestions() {
 
 function startNewConversation() {
   currentConversationId = null;
+  lastNotifiedTopic = null;
   document.getElementById("chat-messages").innerHTML = "";
   renderSuggestions();
 }
@@ -76,6 +103,7 @@ async function loadConversationIntoChat(conversationId) {
   list.innerHTML = "";
   (conversation.messages || []).forEach((m) => appendMessage(m.role, m.content));
   document.getElementById("chat-suggestions").textContent = "";
+  lastNotifiedTopic = null;
 }
 
 async function sendMessage() {
@@ -93,6 +121,7 @@ async function sendMessage() {
     const result = await api.sendChat(message, currentConversationId, window.screenContext);
     currentConversationId = result.conversation_id;
     loadingBubble.textContent = result.reply;
+    appendUsage(result.usage);
     refreshHistory();
   } catch (err) {
     loadingBubble.remove();
