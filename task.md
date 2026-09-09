@@ -73,9 +73,9 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 | ~~**C7**~~ | S | ✅ **완료(백엔드)** — `SENTRY_DSN` 없으면 안 켜지고 SDK가 없어도 앱이 뜬다. 질문·답변은 `before_send`로 제거. **프론트는 미적용** — 정적 페이지에 외부 스크립트를 하나 더 붙이는 판단이 필요 |
 | ~~**F1**~~ | M | ✅ **완료** — Lighthouse 접근성 **100**. 색 대비 위반 0건. 스킵 링크·`aria-live`·스트리밍 중 `aria-busy` 추가 |
 | ~~**F2**~~ | S | ✅ **완료(로컬)** — LCP **713ms** / CLS **0.00**. 캐시 헤더 추가, iframe 지연 로드는 이미 돼 있었음. **배포본 재측정은 남음** |
-| **E2** | S | ADR 3~5건 (바닐라 JS · Firestore · 컨텍스트 주입 · 임베드 · 키 관리) |
-| **E3** | M | 데모 시나리오 + GIF/영상, README 상단 |
-| **E4** | S | 회고 — 배운 점, 트레이드오프, 다음 단계 |
+| ~~**E2**~~ | S | ✅ **완료** — [`docs/adr/`](docs/adr/README.md) 5건. 각각 맥락·결정·**대신 잃은 것**·언제 뒤집나 |
+| **E3** | M | 🟡 **대본만** — [`docs/DEMO.md`](docs/DEMO.md) 60초 대본 + 녹화 주의. **녹화는 사람이 해야 한다** |
+| ~~**E4**~~ | S | ✅ **완료** — [`docs/RETROSPECTIVE.md`](docs/RETROSPECTIVE.md) |
 | B4·B5 | S·L | (선택) 트렌드 판정 고도화 · `insights` RAG |
 
 ---
