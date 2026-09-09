@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app import config, observability
-from app.routers import chat, conversations, data
+from app.routers import chat, conversations, data, dev
 
 observability.configure_logging()
 
@@ -43,6 +43,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.include_router(data.router)
 app.include_router(conversations.router)
 app.include_router(chat.router)
+app.include_router(dev.router)
 
 
 @app.get("/")

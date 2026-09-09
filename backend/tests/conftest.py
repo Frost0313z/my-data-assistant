@@ -18,10 +18,10 @@ from fake_firestore import FakeFirestore  # noqa: E402
 @pytest.fixture
 def db(monkeypatch):
     """빈 메모리 DB. 서비스들이 이걸 보게 만든다."""
-    from app.services import conversation_service, data_service
+    from app.services import conversation_service, data_service, seed_service
 
     fake = FakeFirestore()
-    for module in (conversation_service, data_service):
+    for module in (conversation_service, data_service, seed_service):
         monkeypatch.setattr(module, "get_db", lambda: fake)
     # 요약 캐시는 프로세스 전역이라 DB를 갈아 끼워도 남는다. 안 비우면 앞 테스트의
     # 요약이 다음 테스트로 새어 들어간다.

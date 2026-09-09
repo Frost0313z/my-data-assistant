@@ -17,7 +17,7 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 ```
 
 - [ ] Render `Branch` 설정이 `feat/portfolio-phase1`로 남아 있으면 `main`으로 원복
-- [ ] 배포 후 `openapi.json` 스키마로 실제 배포본 확인 (브랜치 설정이 안 먹은 전례 있음)
+- [ ] **배포본 확인** — `GET /`의 `build` 필드로 본다(C4에서 추가). **2026-09-09 현재 배포본에는 `build`가 없다 = 아직 옛 코드다.** Render가 `main`을 안 보고 있거나 배포가 안 돌았다는 뜻 → 아래 Branch 설정 확인 필요
 - [x] R2 워크트리(`Frost0313z/R2`) 최신화 — `db4d7b5`로 fast-forward — 안 하면 코덱스가 `665751f` 시점의 낡은 브리핑을 읽는다
 
 ---
@@ -40,11 +40,10 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
   요청마다 UUID, JSON 로그. `/api/chat`은 모델·프롬프트 토큰·완료 토큰·추정 비용 기록.
   **곁들일 것**: 프롬프트 캐시 적중(`prompt_tokens_details.cached_tokens`)을 함께 남기면 캐시 프리픽스가 깨졌을 때 알 수 있다. 지금은 응답이 멀쩡해서 비용만 조용히 오른다.
 
-- [ ] **C6 · 콜드스타트 핑** (S, P1)
-  외부 크론(cron-job.org 등)으로 10분마다 `GET /`. **쓰기 요청을 폴링하면 안 된다** — 과거 Firestore에 쓰레기 레코드가 쌓인 전례.
+- [x] **C6 · 콜드스타트 핑** (S, P1) — `.github/workflows/warmup.yml`이 10분마다 `GET /`만 부른다(계정 불필요). 실측 콜드스타트 **42.7초**로 재확인
+  ⚠️ GitHub 예약 실행은 best-effort라 5~15분 밀릴 수 있고, **60일간 커밋이 없으면 자동으로 꺼진다.** 데모를 오래 세워 둘 거면 cron-job.org가 더 안전하다.
 
-- [ ] **D3 · 시드 리셋 엔드포인트** (S, P1)
-  `POST /api/dev/reset` (토큰 보호). 리뷰어가 데모 데이터를 망가뜨려도 복구. 기준 상태는 **conversations 0 / data 492**.
+- [x] **D3 · 시드 리셋 엔드포인트** (S, P1) — `POST /api/dev/reset`, `X-Dev-Token`. 토큰 미설정이면 **404로 감춘다**. 데이터 시드 복구 + 대화 비우기 + 요약 캐시 무효화
 
 - [ ] **A4 · 채팅 스트리밍 + 마크다운 렌더** (M, P1)
   OpenAI SSE → 토큰 단위 출력. 마크다운(표·목록·굵게) 렌더, **화이트리스트 방식으로 XSS 차단 유지**.

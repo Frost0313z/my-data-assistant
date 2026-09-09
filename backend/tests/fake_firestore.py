@@ -79,8 +79,9 @@ class FakeCollection(FakeQuery):
         self._ids = ids
         self._collection = self
 
-    def document(self, doc_id):
-        return FakeDocument(self, doc_id)
+    def document(self, doc_id=None):
+        # 인자 없이 부르면 새 id를 만든다 — 배치 쓰기가 그렇게 쓴다.
+        return FakeDocument(self, doc_id or f"{self.name}-{next(self._ids)}")
 
     def add(self, data):
         doc_id = f"{self.name}-{next(self._ids)}"
@@ -135,6 +136,25 @@ class FakeTransaction:
         self._writes.append((ref, data))
 
 
+class FakeBatch:
+    """모아서 한 번에 쓰는 경로(D3 시드 리셋)가 쓴다."""
+
+    def __init__(self, db):
+        self._db = db
+        self._ops = []
+
+    def set(self, ref, data):
+        self._ops.append(("set", ref, data))
+
+    def delete(self, ref):
+        self._ops.append(("delete", ref, None))
+
+    def commit(self):
+        for kind, ref, data in self._ops:
+            ref.set(data) if kind == "set" else ref.delete()
+        self._ops = []
+
+
 class FakeFirestore:
     def __init__(self):
         self._collections = {}
@@ -149,3 +169,6 @@ class FakeFirestore:
 
     def transaction(self):
         return FakeTransaction(self)
+
+    def batch(self):
+        return FakeBatch(self)

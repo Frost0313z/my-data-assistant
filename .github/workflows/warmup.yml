@@ -1,0 +1,41 @@
+name: 콜드스타트 예열
+
+# C6: Render 무료 티어는 15분 놀면 잠들고, 깨어나는 데 30~50초가 걸린다(실측 43초).
+# 데모 첫인상이 그 시간에 다 걸려 있다.
+#
+# **GET /만 부른다.** 워밍업 목적으로 쓰기 요청을 폴링하면 안 된다 — 과거에 그렇게
+# 하다 Firestore에 쓰레기 레코드가 쌓인 적이 있다. `GET /`는 로그에서도 제외돼 있어
+# (C4) 10분마다 들어와도 로그를 채우지 않는다.
+#
+# 한계 두 가지를 알고 쓴다:
+#  1. GitHub의 예약 실행은 **best-effort**다. 혼잡하면 5~15분 밀린다. 정확히 10분
+#     간격을 보장하지 않으므로 "대체로 깨어 있음"이 목표지 SLA가 아니다.
+#  2. 공개 저장소라도 **60일간 커밋이 없으면 예약 워크플로가 자동으로 꺼진다.**
+#     데모를 오래 세워 둘 거라면 cron-job.org 같은 외부 크론이 더 안전하다.
+#
+# 데모 직전에는 수동 실행(workflow_dispatch)으로 확실히 깨워 두는 편이 낫다.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# 같은 워크플로가 겹쳐 돌 이유가 없다
+concurrency:
+  group: warmup
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 백엔드 깨우기
+        run: |
+          url="${API_URL:-https://my-data-assistant.onrender.com/}"
+          # 콜드스타트는 최대 50초까지 걸린다. 그보다 짧게 끊으면 깨우다 만다.
+          body=$(curl -sS --max-time 90 --retry 2 --retry-delay 10 -w '\n%{http_code} %{time_total}s' "$url")
+          echo "$body"
+          echo "$body" | tail -1 | grep -q '^200 ' || { echo "예열 실패"; exit 1; }
+        env:
+          # 배포 주소가 바뀌면 저장소 변수 API_URL만 고치면 된다.
+          API_URL: ${{ vars.API_URL }}
