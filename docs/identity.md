@@ -8,7 +8,7 @@
 ## 정의
 
 ```
-Service Name        상권 브리핑 (Sanggwon Briefing)   ※ 미확정 — decisions.md ⑥
+Service Name        대전 상권분석 매니저   ※ 사용자 확정 — decisions.md ⑥
 One-liner           대전 82개 동 상권 흐름을 AI가 근거와 함께 설명합니다
 Category            지역 상권 정보 · 대화형 분석 (Local Commercial Analytics × Conversational BI)
 Positioning         지표를 대신 읽어주고, 모르는 건 모른다고 말하는 상권 분석
@@ -23,11 +23,9 @@ Brand Personality   침착한 · 솔직한 · 정확한
 
 ### 이름
 
-현재 제목 `대전 상권 분석 AI 비서`는 이름이 아니라 **설명**이다. 포트폴리오에서 기억에 남으려면 이름이 필요하다.
+사용자가 **대전 상권분석 매니저**로 확정했다. 대전 상권 데이터를 정리하고 근거와 한계를 설명하는 역할을 나타낸다.
 
-`브리핑`을 고른 이유는 감성 방향([`design/emotional-design.md`](design/emotional-design.md))과 일치하기 때문이다. **브리핑은 결정을 대신해 주지 않고 아는 것만 정리해 전달한다.** `내비게이션`·`컨설턴트` 계열 이름은 우리가 할 수 없는 약속(목적지 지정)을 한다.
-
-최종 결정은 사용자 몫이라 [`decisions.md`](decisions.md) ⑥으로 열어둔다. 미확정이어도 다른 작업에는 지장이 없다.
+이전 제안은 `상권 브리핑`이었으며, 최종 이름은 [`decisions.md`](decisions.md) ⑥에 기록했다. 서비스명과 관계없이 창업 결정을 대신하지 않는다는 원칙은 유지한다.
 
 ### Positioning
 

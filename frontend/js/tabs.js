@@ -4,6 +4,8 @@
 (function () {
   const MQ = window.matchMedia("(max-width: 900px)");
   const tabbar = document.getElementById("tabbar");
+  const layout = document.querySelector(".layout");
+  const dataToggle = document.getElementById("data-panel-toggle");
   const buttons = Array.from(tabbar.querySelectorAll("button"));
   const panes = ["pane-side", "pane-dashboard", "pane-chat"].map((id) => document.getElementById(id));
 
@@ -13,6 +15,8 @@
   }
 
   function applyMode() {
+    layout.classList.remove("data-open");
+    dataToggle.setAttribute("aria-expanded", "false");
     if (MQ.matches) {
       tabbar.hidden = false;
       const current = buttons.find((b) => b.classList.contains("active"));
@@ -24,6 +28,25 @@
   }
 
   buttons.forEach((b) => b.addEventListener("click", () => activate(b.dataset.pane)));
+  dataToggle.addEventListener("click", () => {
+    const open = layout.classList.toggle("data-open");
+    dataToggle.setAttribute("aria-expanded", String(open));
+  });
+
+  // A22: 지도를 넓게 보려고 채팅 칸을 접는다. CSS 규칙이 넓은 화면에만 걸려 있어
+  // 좁은 화면(탭 모드)에서는 이 클래스가 남아 있어도 채팅 탭이 정상 동작한다.
+  const chatToggle = document.getElementById("chat-panel-toggle");
+  chatToggle.addEventListener("click", () => {
+    const collapsed = layout.classList.toggle("chat-collapsed");
+    chatToggle.setAttribute("aria-expanded", String(!collapsed));
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && layout.classList.contains("data-open")) {
+      layout.classList.remove("data-open");
+      dataToggle.setAttribute("aria-expanded", "false");
+      dataToggle.focus();
+    }
+  });
   MQ.addEventListener("change", applyMode);
   applyMode();
 

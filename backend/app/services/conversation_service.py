@@ -58,7 +58,23 @@ def delete_conversation(conversation_id: str) -> None:
     get_db().collection(COLLECTION).document(conversation_id).delete()
 
 
-def append_turn(conversation_id: str | None, user_message: str, assistant_message: str) -> str:
+def _derive_title(user_message: str, topic: str | None) -> str:
+    """A13: 대화 제목 앞에 주제를 붙인다.
+
+    첫 메시지에서만 파생하면 '이 주제 핵심만 한 줄로' 같은 제목이 중복 누적돼
+    기록에서 서로 구분되지 않는다. 주제를 앞에 두면 목록만 보고 갈라진다.
+    """
+    head = user_message[:30]
+    title = f"[{topic}] {head}" if topic else head
+    return title[: models.TITLE_MAX]
+
+
+def append_turn(
+    conversation_id: str | None,
+    user_message: str,
+    assistant_message: str,
+    topic: str | None = None,
+) -> str:
     """conversation_id가 없으면 새 대화를 만들고, 있으면 이어붙인다 (채팅 API의 자동 저장용)."""
     db = get_db()
     ref = db.collection(COLLECTION).document(conversation_id) if conversation_id else None
@@ -76,8 +92,14 @@ def append_turn(conversation_id: str | None, user_message: str, assistant_messag
     ]
 
     if ref is None:
+        # 제목은 대화를 처음 만들 때만 정한다. 이어붙일 때 갱신하면 기록 목록이
+        # 마지막 질문을 따라 계속 흔들려 식별 가치가 사라진다.
         _, ref = db.collection(COLLECTION).add(
-            {"title": user_message[:30], "messages": messages, "updated_at": _now()}
+            {
+                "title": _derive_title(user_message, topic),
+                "messages": messages,
+                "updated_at": _now(),
+            }
         )
     else:
         ref.update({"messages": messages, "updated_at": _now()})

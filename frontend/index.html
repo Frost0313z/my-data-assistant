@@ -3,14 +3,28 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>대전 상권 분석 AI 비서</title>
+<title>대전 상권분석 매니저</title>
+<meta name="description" content="대전 82개 동 상권 흐름을 AI가 근거와 함께 설명합니다." />
+<meta property="og:type" content="website" />
+<meta property="og:locale" content="ko_KR" />
+<meta property="og:site_name" content="대전 상권분석 매니저" />
+<meta property="og:title" content="대전 상권분석 매니저" />
+<meta property="og:description" content="대전 82개 동 상권 흐름을 AI가 근거와 함께 설명합니다." />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" crossorigin />
 <link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" />
 </head>
 <body>
+<header class="workspace-header">
+  <h1>대전 상권분석 매니저</h1>
+  <button id="data-panel-toggle" aria-controls="pane-side" aria-expanded="false">데이터·대화 기록</button>
+  <button id="chat-panel-toggle" aria-controls="pane-chat" aria-expanded="true">AI 채팅</button>
+</header>
 <div class="layout">
   <!-- 좌: 요약 · 대화 기록 · 데이터 관리 -->
   <aside class="sidebar" id="pane-side">
-    <h1>대전 상권 분석 AI 비서</h1>
+    <h2>데이터·대화 기록</h2>
 
     <section class="panel">
       <h2>데이터 요약</h2>
@@ -44,12 +58,64 @@
   <!-- 중앙: 분석 주제 버튼 + 상세 (사전 분석 리포트 스냅샷) -->
   <main class="topics-pane" id="pane-dashboard">
     <div class="pane-header">
-      <h2>분석 주제</h2>
+      <h2>대전 상권 지도</h2>
       <a id="dashboard-open" href="#" target="_blank" rel="noopener">전체 대시보드 ↗</a>
     </div>
-    <div id="topic-list" class="topic-list" role="group" aria-label="분석 주제 선택"></div>
-    <section id="topic-detail" class="panel topic-detail" aria-live="polite"></section>
-    <p class="topics-foot">2025-03 → 2026-06 대전 5개 자치구 · 82개 행정동 · 등록 업소 수 기준 고정 스냅샷. 매출·유동인구는 포함되지 않음.</p>
+    <div class="topic-basis" role="note" aria-label="데이터 기준과 한계">
+      <p>2025-03 → 2026-06 · 대전 82개 행정동 · 등록 업소 수</p>
+      <p>매출·유동인구 미포함 · 참고용</p>
+    </div>
+    <!-- A28: 목적/페르소나 진입. 처음 온 사람이 못 지나치게 지도 위에 카드로 두고,
+         고르면 한 줄로 접힌다. 별도 온보딩 화면을 만들지 않는 이유는 A9 참조. -->
+    <section class="persona" id="persona" aria-labelledby="persona-title">
+      <h3 class="persona-title" id="persona-title">무엇이 궁금하세요?</h3>
+      <div id="persona-list" class="persona-list" role="group" aria-label="목적 선택"></div>
+      <button id="persona-skip" class="persona-skip">바로 지도 보기 ↓</button>
+    </section>
+    <p class="persona-current" id="persona-current" hidden>
+      <span id="persona-current-label"></span>
+      <button id="persona-reset" class="link-button">바꾸기</button>
+    </p>
+
+    <section class="map-explorer" aria-label="대전 상권 지도">
+      <div class="map-toolbar">
+        <label>지표 <select id="map-metric" disabled aria-label="지도 지표"></select></label>
+        <label>기준 시점 <select id="map-period" disabled aria-label="지도 기준 시점"></select></label>
+        <label>업종 점 <select id="map-category" disabled aria-label="업종 점 표시"><option value="">표시 안 함</option></select></label>
+        <label>자치구 <select id="map-district" disabled aria-label="지도 자치구"><option value="">대전 전체</option></select></label>
+        <label>행정동 <select id="map-dong" disabled aria-label="지도 행정동"><option value="">지도에서 선택</option></select></label>
+        <div class="map-view-toggle" role="group" aria-label="지도 표현 방식">
+          <button data-map-view="2d" aria-pressed="false" disabled>2D</button>
+          <button data-map-view="3d" aria-pressed="true" disabled>3D</button>
+        </div>
+        <button id="map-reset" disabled>대전 전체 보기</button>
+      </div>
+      <div class="map-stage">
+        <div id="daejeon-map" role="region" aria-label="대전 82개 행정동 공급 밀도, 행정동 선택은 위 선택 상자에서도 가능합니다"></div>
+        <p id="map-status" class="map-status" role="status">대전 지도를 불러오는 중입니다.</p>
+      </div>
+      <!-- A23: 지표마다 구간·단위가 달라 map.js가 채운다. -->
+      <div class="map-legend" id="map-legend" aria-label="지표 범례"></div>
+      <!-- A23·A27: 선택한 지표의 해설. 지도 주제 3종을 임베드에서 여기로 옮겼다. -->
+      <p class="map-note" id="map-insight"></p>
+      <p class="map-note" id="map-points-note" hidden></p>
+      <p class="map-note" id="map-view-note">3D 높이는 공급 밀도를 표현합니다. 실제 건물 높이가 아닙니다.</p>
+      <div class="map-selection" aria-live="polite">
+        <div><h3 id="map-selection-name">어느 동이 궁금하세요?</h3><p id="map-selection-value">지도나 행정동 목록에서 지역을 선택해 주세요.</p></div>
+        <button id="map-ask" disabled>이 동을 AI에게 질문</button>
+      </div>
+      <p class="map-note">공급 밀도가 높다고 매출이나 수익성이 높은 것은 아닙니다. <a href="https://frost0313z.github.io/daejeon-commercial-analysis/interactive-dashboard.html?only=map&amp;metric=density" target="_blank" rel="noopener">원본 지도 확인 ↗</a></p>
+    </section>
+
+    <!-- A27: 분석 패널은 지도와 같은 무대를 나눠 쓴다. 세로로 쌓지 않아 스크롤이 없다. -->
+    <section id="topic-detail" class="panel topic-detail" aria-live="polite" hidden></section>
+
+
+    <!-- A27: 무대 전환 탭. 주제 버튼은 topics.js가 #topic-list에 채운다. -->
+    <nav class="analysis-tabs" aria-label="분석 무대 선택">
+      <button id="stage-map-tab" class="topic-btn" aria-pressed="true">지도</button>
+      <div id="topic-list" class="topic-list" role="group" aria-label="분석 주제 선택"></div>
+    </nav>
   </main>
 
   <!-- 우: 채팅 -->
@@ -70,7 +136,7 @@
 
 <!-- 모바일 하단 탭 -->
 <nav class="tabbar" id="tabbar" hidden>
-  <button data-pane="pane-dashboard" class="active">분석</button>
+  <button data-pane="pane-dashboard" class="active">지도</button>
   <button data-pane="pane-chat">채팅</button>
   <button data-pane="pane-side">데이터</button>
 </nav>
@@ -84,5 +150,7 @@
 <script src="js/chat.js"></script>
 <script src="js/data.js"></script>
 <script src="js/history.js"></script>
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<script src="js/map.js"></script>
 </body>
 </html>
