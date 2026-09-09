@@ -56,5 +56,7 @@ jobs:
         run: |
           grep -q "https://example.invalid" js/config.js
           ! grep -q "__API_BASE_URL__" js/config.js
+      - name: 마크다운 렌더러 (XSS 포함)
+        run: node scripts/check_markdown.js
       - name: 지도 데이터 무결성
         run: node scripts/check_map_data.js

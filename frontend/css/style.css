@@ -638,3 +638,29 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .chat-input-row button { width: 100%; padding: var(--sp-3); }
   button { padding: var(--sp-3) var(--sp-4); }
 }
+
+/* A4: AI 답변의 마크다운 서식. 버블 안에서만 적용된다.
+   답변 안 제목은 화면 위계를 넘지 않아야 한다 — h3(18px)보다 크면 서비스 제목보다
+   답변 소제목이 커진다. */
+.bubble.assistant > :first-child { margin-top: 0; }
+.bubble.assistant > :last-child { margin-bottom: 0; }
+.bubble.assistant p { margin: 0 0 var(--sp-2); }
+.bubble.assistant h3, .bubble.assistant h4, .bubble.assistant h5, .bubble.assistant h6 {
+  margin: var(--sp-3) 0 var(--sp-2);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.bubble.assistant ul, .bubble.assistant ol { margin: 0 0 var(--sp-2); padding-left: 1.2em; }
+.bubble.assistant li { margin-bottom: var(--sp-1); }
+.bubble.assistant code {
+  padding: 0 var(--sp-1);
+  background: var(--surface-sunken);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .92em;
+}
+/* 표는 좁은 채팅 칸을 넘길 수 있다. 페이지가 아니라 표만 가로로 스크롤한다. */
+.md-table { display: block; overflow-x: auto; width: 100%; border-collapse: collapse; margin: 0 0 var(--sp-2); font-variant-numeric: tabular-nums; }
+.md-table th, .md-table td { padding: var(--sp-1) var(--sp-2); border: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.md-table th { background: var(--surface-sunken); font-weight: 600; }

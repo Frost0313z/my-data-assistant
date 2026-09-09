@@ -45,7 +45,7 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 
 - [x] **D3 · 시드 리셋 엔드포인트** (S, P1) — `POST /api/dev/reset`, `X-Dev-Token`. 토큰 미설정이면 **404로 감춘다**. 데이터 시드 복구 + 대화 비우기 + 요약 캐시 무효화
 
-- [ ] **A4 · 채팅 스트리밍 + 마크다운 렌더** (M, P1)
+- [x] **A4 · 채팅 스트리밍 + 마크다운 렌더** (M, P1) — SSE `POST /api/chat/stream` + 화이트리스트 마크다운 렌더러. 실측 498조각 스트리밍, `p/h4/ul/li/strong/table/thead/th/td`로 렌더, `**`·`##` 잔여 0
   OpenAI SSE → 토큰 단위 출력. 마크다운(표·목록·굵게) 렌더, **화이트리스트 방식으로 XSS 차단 유지**.
   **여기서 해소되는 것**: 답변에 `### 종합 해석`이 서식 없이 그대로 노출되는 문제(`A4a`). 렌더가 들어간 뒤 남는 품질 문제(문단 길이·수치 인용 밀도·반복)는 그때 다시 본다.
 

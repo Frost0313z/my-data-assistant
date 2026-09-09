@@ -244,7 +244,12 @@ async function loadConversationIntoChat(conversationId) {
   currentConversationId = conversation.id;
   const list = document.getElementById("chat-messages");
   list.innerHTML = "";
-  (conversation.messages || []).forEach((m) => appendMessage(m.role, m.content));
+  // 저장된 AI 답변도 서식으로 그린다. 불러온 대화만 마크다운이 날것으로 보이면
+  // 방금 받은 답과 달라 보인다.
+  (conversation.messages || []).forEach((m) => {
+    const bubble = appendMessage(m.role, m.content);
+    if (m.role === "assistant") renderReply(bubble, m.content);
+  });
   document.getElementById("chat-suggestions").textContent = "";
   lastNotifiedTopic = null;
 }
@@ -271,6 +276,52 @@ function appendReportCta() {
   wrap.appendChild(button);
   list.appendChild(wrap);
   list.scrollTop = list.scrollHeight;
+}
+
+// A4: 답변을 그린다. 마크다운 렌더러가 없으면(로드 실패) 글자 그대로 — 서식이
+// 없을 뿐 내용은 보인다.
+function renderReply(bubble, text) {
+  if (window.renderMarkdown) window.renderMarkdown(bubble, text);
+  else bubble.textContent = text;
+}
+
+// 스트리밍 경로. 실패하면 비스트리밍으로 떨어진다.
+//
+// 스트리밍 중에는 **글자 그대로** 붙인다. 조각마다 마크다운을 다시 그리면 미완성
+// 문법(`**중앙`)이 매번 다르게 해석돼 화면이 덜덜 떨린다. 다 받은 뒤 한 번만 그린다.
+async function sendStreaming(message, context, bubble, stopWaitTimer) {
+  if (!api.streamChat || typeof window.TextDecoder === "undefined") {
+    const result = await api.sendChat(message, currentConversationId, context);
+    renderReply(bubble, result.reply);
+    return result;
+  }
+
+  let text = "";
+  let started = false;
+  try {
+    const result = await api.streamChat(message, currentConversationId, context, (piece) => {
+      // 첫 글자가 도착하면 대기 타이머를 멈춘다. 안 그러면 답변 위에 경과 초가
+      // 계속 덧쓰인다.
+      if (!started) {
+        started = true;
+        stopWaitTimer();
+        bubble.textContent = "";
+      }
+      text += piece;
+      bubble.textContent = text;
+      const list = document.getElementById("chat-messages");
+      list.scrollTop = list.scrollHeight;
+    });
+    renderReply(bubble, text);
+    return result;
+  } catch (err) {
+    // 한 글자라도 받았으면 이미 화면에 답이 떠 있다. 여기서 다시 보내면 같은 질문에
+    // 두 번 과금되고 답이 두 번 저장된다.
+    if (started) throw err;
+    const result = await api.sendChat(message, currentConversationId, context);
+    renderReply(bubble, result.reply);
+    return result;
+  }
 }
 
 // options 없이 부르면 입력창의 내용을 보낸다. 리포트·재시도는 options로 넘긴다.
@@ -307,9 +358,11 @@ async function sendMessage(options) {
   const stopWaitTimer = startWaitTimer(loadingBubble);
 
   try {
-    const result = await api.sendChat(message, currentConversationId, context);
+    // A4: 스트리밍을 먼저 시도한다. 첫 글자가 빨리 나와야 사용자가 기다릴 수 있다.
+    // 실패하면(SSE를 버퍼링하는 프록시, 구형 브라우저) 기존 경로로 떨어진다 —
+    // 스트리밍은 표현 방식이지 기능이 아니므로 없다고 서비스가 멈추면 안 된다.
+    const result = await sendStreaming(message, context, loadingBubble, stopWaitTimer);
     currentConversationId = result.conversation_id;
-    loadingBubble.textContent = result.reply;
     appendUsage(result.usage);
     refreshHistory();
     // 리포트 답변 뒤에 또 리포트를 권하지 않는다
