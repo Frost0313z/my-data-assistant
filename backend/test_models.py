@@ -85,6 +85,36 @@ def main():
     assert "[선택한 분석 주제]" in block and "주제: 점포 교체율" in block, block
     print("OK  통과: _build_screen_block이 선택 주제 블록을 만든다")
 
+    # --- 프롬프트 캐시 프리픽스: 가변 블록이 앞으로 올라오면 조용히 깨진다 ---
+    # OpenAI 자동 캐싱은 앞에서부터 같은 구간만 재사용하고 1,024토큰 이상이어야 붙는다.
+    # 요약·주제·페르소나 중 하나라도 위로 올라가면 그 뒤가 전부 캐시에서 빠지는데,
+    # 응답은 멀쩡해서 아무도 모른다. 그래서 프리픽스 길이를 여기서 지킨다.
+    from app.services.chat_service import SYSTEM_PROMPT_TEMPLATE, _INSIGHTS
+
+    def render(period, count, ctx):
+        return SYSTEM_PROMPT_TEMPLATE.format(
+            period=period, count=count, metrics="{}", trend="유지",
+            insights=_INSIGHTS, screen_block=_build_screen_block(ctx),
+        )
+
+    variants = [
+        render("2025-03-01 ~ 2026-06-01", 492, {"topic": "공급 밀도", "persona": "prepare"}),
+        render("2020-01-01 ~ 2020-02-01", 7, {"topic": "점포 교체율", "mode": "report"}),
+        render("1999-12-31 ~ 1999-12-31", 0, None),  # 주제도 페르소나도 없는 요청
+    ]
+    a = variants[0]
+    shared = 0
+    while shared < min(len(v) for v in variants) and len({v[shared] for v in variants}) == 1:
+        shared += 1
+    # 한국어는 문자당 대략 0.6토큰 아래로 내려가지 않는다. 2,000자면 1,024토큰을 넘는다.
+    assert shared >= 2000, f"고정 프리픽스가 {shared}자뿐 — 가변 블록이 앞으로 올라왔다"
+    assert "[사전 분석 리포트]" in a[:shared], "리포트가 프리픽스 밖에 있다"
+    assert "규칙:" in a[:shared], "규칙 블록이 프리픽스 밖에 있다"
+    # 규칙 본문이 "[선택한 분석 주제]"를 언급하므로 블록 헤더로는 판별이 안 된다.
+    # 실제로 값이 들어가는 줄로 본다.
+    assert "- 주제: " not in a[:shared], "선택 주제 값이 프리픽스 안에 들어갔다"
+    print(f"OK  통과: 프롬프트 고정 프리픽스 {shared}자 (캐시 임계 1,024토큰 충족)")
+
     # --- main._json_safe: 검증 에러 응답 직렬화 안전장치 ---
     from main import _json_safe
 

@@ -272,7 +272,9 @@ async function sendMessage(options) {
     : base;
 
   document.getElementById("chat-suggestions").textContent = "";
-  appendMessage("user", message);
+  // 재시도는 실패한 요청을 다시 보내는 것이지 새 질문이 아니다. 다시 붙이면
+  // 같은 질문이 두 번 쌓인다.
+  if (!opts.retry) appendMessage("user", message);
   if (window.switchToChatPane) window.switchToChatPane();
   const loadingBubble = appendMessage("assistant", WAIT_BASE);
   const stopWaitTimer = startWaitTimer(loadingBubble);
@@ -288,7 +290,7 @@ async function sendMessage(options) {
   } catch (err) {
     loadingBubble.remove();
     showErrorBubble(classifyError(err), () =>
-      sendMessage({ text: message, context: context, isReport: opts.isReport })
+      sendMessage({ text: message, context: context, isReport: opts.isReport, retry: true })
     );
   } finally {
     // 성공·실패 어느 쪽이든 반드시 멈춘다. 안 그러면 답변이 도착한 뒤에도
