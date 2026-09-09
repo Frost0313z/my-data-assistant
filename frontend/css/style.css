@@ -679,3 +679,31 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
 .md-table { display: block; overflow-x: auto; width: 100%; border-collapse: collapse; margin: 0 0 var(--sp-2); font-variant-numeric: tabular-nums; }
 .md-table th, .md-table td { padding: var(--sp-1) var(--sp-2); border: 1px solid var(--line); text-align: left; white-space: nowrap; }
 .md-table th { background: var(--surface-sunken); font-weight: 600; }
+
+/* F1: 접근성 보조 */
+
+/* 화면에는 안 보이지만 스크린리더는 읽는다. display:none이면 안 읽힌다. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 평소엔 숨어 있다가 탭으로 오면 나타난다. 마우스 사용자에게는 보이지 않고
+   키보드 사용자에게는 첫 정지점이 된다. */
+.skip-link {
+  position: absolute;
+  left: var(--sp-3);
+  top: -100px;
+  z-index: 100;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--r-control);
+  transition: top var(--motion-feedback);
+}
+.skip-link:focus { top: var(--sp-3); }

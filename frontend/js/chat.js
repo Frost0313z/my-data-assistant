@@ -175,6 +175,8 @@ function showErrorBubble(kind, retryFn, detail) {
   const list = document.getElementById("chat-messages");
   const bubble = document.createElement("div");
   bubble.className = "bubble error";
+  // 오류는 기다릴 것이 없으므로 바로 알린다.
+  bubble.setAttribute("role", "alert");
 
   // 이 버블은 요청이 '실제로 실패했을 때'만 뜬다. 대기 중 안내는 A21 타이머가 맡는다.
   // 예전 cold 문구는 "깨우는 중… 잠시 후 다시 시도"였는데, 콜드스타트 요청은 붙잡힌 채
@@ -315,6 +317,9 @@ async function sendStreaming(message, context, bubble, stopWaitTimer) {
         started = true;
         stopWaitTimer();
         bubble.textContent = "";
+        // F1: 채우는 동안은 읽지 않게 한다. aria-live 영역이라 그냥 두면 토큰마다
+        // 읽어 소음이 된다. 다 받고 false로 바꿀 때 한 번에 읽힌다.
+        bubble.setAttribute("aria-busy", "true");
       }
       text += piece;
       bubble.textContent = text;
@@ -322,6 +327,7 @@ async function sendStreaming(message, context, bubble, stopWaitTimer) {
       list.scrollTop = list.scrollHeight;
     });
     renderReply(bubble, text);
+    bubble.removeAttribute("aria-busy");
     return result;
   } catch (err) {
     // 한 글자라도 받았으면 이미 화면에 답이 떠 있다. 여기서 다시 보내면 같은 질문에
@@ -330,6 +336,7 @@ async function sendStreaming(message, context, bubble, stopWaitTimer) {
     // 제한에 걸린 것은 스트리밍이 안 되는 게 아니다. 폴백해도 똑같이 막히면서
     // 요청 수만 두 배가 된다.
     if (err && err.rateLimited) throw err;
+    bubble.removeAttribute("aria-busy");
     const result = await api.sendChat(message, currentConversationId, context);
     renderReply(bubble, result.reply);
     return result;
@@ -367,6 +374,8 @@ async function sendMessage(options) {
   if (!opts.retry) appendMessage("user", message);
   if (window.switchToChatPane) window.switchToChatPane();
   const loadingBubble = appendMessage("assistant", WAIT_BASE);
+  // F1: 경과 초가 1초마다 바뀐다. 그대로 두면 스크린리더가 매초 읽는다.
+  loadingBubble.setAttribute("aria-busy", "true");
   const stopWaitTimer = startWaitTimer(loadingBubble);
 
   try {
@@ -374,6 +383,7 @@ async function sendMessage(options) {
     // 실패하면(SSE를 버퍼링하는 프록시, 구형 브라우저) 기존 경로로 떨어진다 —
     // 스트리밍은 표현 방식이지 기능이 아니므로 없다고 서비스가 멈추면 안 된다.
     const result = await sendStreaming(message, context, loadingBubble, stopWaitTimer);
+    loadingBubble.removeAttribute("aria-busy");
     currentConversationId = result.conversation_id;
     appendUsage(result.usage);
     refreshHistory();

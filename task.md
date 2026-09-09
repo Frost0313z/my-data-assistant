@@ -71,8 +71,8 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 | **B1** | M | `insights.md` 자동 생성 스크립트 (`scripts/build_insights.py`). 지금은 수기 큐레이션 |
 | ~~**C3**~~ | M | ✅ **완료** — 분당 10회(IP·XFF 기준) + 일일 30만 토큰, 429 + `Retry-After`. 프론트는 429를 고장이 아니라 정책으로 안내 |
 | ~~**C7**~~ | S | ✅ **완료(백엔드)** — `SENTRY_DSN` 없으면 안 켜지고 SDK가 없어도 앱이 뜬다. 질문·답변은 `before_send`로 제거. **프론트는 미적용** — 정적 페이지에 외부 스크립트를 하나 더 붙이는 판단이 필요 |
-| **F1** | M | 접근성 — 키보드 내비, ARIA, **색 대비 AA**, Lighthouse 90+. **A15가 끝나 지금 할 수 있다** |
-| **F2** | S | 성능 — iframe 지연 로드, 캐시 헤더, Lighthouse 90+ |
+| ~~**F1**~~ | M | ✅ **완료** — Lighthouse 접근성 **100**. 색 대비 위반 0건. 스킵 링크·`aria-live`·스트리밍 중 `aria-busy` 추가 |
+| ~~**F2**~~ | S | ✅ **완료(로컬)** — LCP **713ms** / CLS **0.00**. 캐시 헤더 추가, iframe 지연 로드는 이미 돼 있었음. **배포본 재측정은 남음** |
 | **E2** | S | ADR 3~5건 (바닐라 JS · Firestore · 컨텍스트 주입 · 임베드 · 키 관리) |
 | **E3** | M | 데모 시나리오 + GIF/영상, README 상단 |
 | **E4** | S | 회고 — 배운 점, 트레이드오프, 다음 단계 |

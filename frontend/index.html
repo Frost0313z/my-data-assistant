@@ -16,6 +16,9 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" />
 </head>
 <body>
+<!-- F1: 키보드 사용자는 지도 툴바(셀렉트 5개 + 버튼 4개)를 전부 지나야 채팅에 닿는다.
+     건너뛸 길을 첫 번째 탭 정지점으로 둔다. -->
+<a class="skip-link" href="#chat-input">채팅 입력으로 건너뛰기</a>
 <header class="workspace-header">
   <h1>대전 상권분석 매니저</h1>
   <button id="data-panel-toggle" aria-controls="pane-side" aria-expanded="false">데이터·대화 기록</button>
@@ -45,7 +48,7 @@
         <button type="submit">추가</button>
       </form>
       <div class="data-table-wrap">
-        <table class="data-table">
+        <table class="data-table"><caption class="sr-only">저장된 데이터 목록. 날짜·값·메모와 삭제 버튼</caption>
           <thead>
             <tr><th>날짜</th><th>값</th><th>메모</th><th>동작</th></tr>
           </thead>
@@ -125,10 +128,10 @@
       <button id="chat-new" class="ghost">새 대화</button>
     </div>
     <div id="screen-context" class="screen-context" hidden></div>
-    <div id="chat-messages" class="chat-messages"></div>
+    <div id="chat-messages" class="chat-messages" aria-live="polite" aria-relevant="additions" aria-atomic="false"></div>
     <div id="chat-suggestions" class="chat-suggestions"></div>
     <div class="chat-input-row">
-      <input id="chat-input" type="text" placeholder="주제를 고르고 물어보세요 (예: 이 주제 핵심이 뭐야?)" />
+      <input id="chat-input" type="text" aria-label="AI에게 보낼 질문" placeholder="주제를 고르고 물어보세요 (예: 이 주제 핵심이 뭐야?)" />
       <button id="chat-send">보내기</button>
     </div>
   </section>
