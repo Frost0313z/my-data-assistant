@@ -42,7 +42,9 @@ window.TOPICS = [
   },
   {
     id: "turnover",
-    label: "점포 교체율",
+    // 지도 지표에도 "점포 교체율"이 있는데 그건 행정동 코로플레스이고 이 탭은 산점도다.
+    // 같은 이름이 다른 것을 가리키면 사용자가 둘을 같은 화면의 두 표현으로 읽는다.
+    label: "교체율 산점도",
     embed: "only=turnover",
     anchor: "#turnoverTitle",
     headline: "대전 전체 교체율 54.7% — '제자리'여도 안에선 크게 갈린다",

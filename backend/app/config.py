@@ -36,3 +36,7 @@ ALLOWED_ORIGINS = [
     for origin in os.environ.get("ALLOWED_ORIGINS", "*").split(",")
     if origin.strip()
 ]
+# 기본값을 좁히지 않는 이유: `ALLOWED_ORIGINS`가 빠진 배포에서 프론트가 그냥 죽는다.
+# 대신 **조용하지 않게** 만든다 — 와일드카드로 뜨면 시작 로그가 그렇게 말한다.
+# 진짜 잠그는 것은 C3(rate limit·상한)과 함께 판단한다.
+CORS_IS_WILDCARD = "*" in ALLOWED_ORIGINS

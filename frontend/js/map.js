@@ -7,8 +7,11 @@
   const viewButtons = [...document.querySelectorAll("[data-map-view]")];
   const css = getComputedStyle(document.documentElement);
   const color = (name) => css.getPropertyValue(name).trim();
-  const colors = [1, 2, 3, 4, 5].map((n) => color(`--map-level-${n}`));
-  const typeColors = [1, 2, 3, 4, 5].map((n) => color(`--map-type-${n}`));
+  const ramp = (name) => [1, 2, 3, 4, 5].map((n) => color(`--map-${name}-${n}`));
+  const colors = ramp("level");
+  // 지표마다 색의 뜻이 다르다. 순서형은 한 색 명도 램프, 범주형(A26)은 색상+명도,
+  // 증감은 0을 기준으로 갈리는 발산형이다. 같은 램프를 돌려 쓰면 거짓말이 된다.
+  const RAMPS = { level: colors, type: ramp("type"), change: ramp("change") };
 
   // A26: 지역 유형. 점수가 아니라 유형이다 — 어느 칸도 다른 칸보다 낫지 않다.
   //
@@ -66,9 +69,15 @@
       unit: "", digits: 3,
       note: "입지계수(LQ)와는 다른 지표입니다. 기성동 숙박업은 LQ 19.2지만 35개뿐이고, 중앙동 음식점업은 LQ 0.73(평균 이하)인데 1,000명당 125개로 최다입니다. 비율만으로 시장 크기를 판단하면 안 됩니다.",
     },
+    change: {
+      label: "업소 수 증감", legend: "등록 업소 수 증감률",
+      unit: "%", digits: 1, allPeriods: true, ramp: "change", signed: true,
+      fixed: [0, 1.4, 3.4, 5.7],
+      note: "82개 동 중 9곳이 줄었고 중앙값은 +3.4%입니다. 분모가 작으면 크게 흔들립니다 — 월평3동 +82.2%는 101개에서 184개가 된 것입니다. 늘었다고 좋고 줄었다고 나쁜 것이 아닙니다(목동은 잔존율 최저인데 늘었고, 대흥동은 밀도 2위인데 멈췄습니다).",
+    },
     type: {
       label: "지역 유형", legend: "밀도 × 교체율 4유형",
-      unit: "", digits: 0, categorical: true,
+      unit: "", digits: 0, categorical: true, ramp: "type",
       note: "점수가 아니라 유형입니다 — 어느 칸도 다른 칸보다 낫지 않습니다. 두 축 모두 그 시점 82개 동의 중앙값에서 자릅니다. 업소가 200개 미만이면 교체율이 분모 때문에 크게 흔들리고, 밀도가 75분위의 3배를 넘으면 상주인구 나눗셈이 만든 값이라 어느 쪽도 유형에 넣지 않습니다.",
     },
   };
@@ -110,18 +119,29 @@
 
   const spec = () => METRICS[metric];
   // 범주형은 색이 순서를 뜻하지 않으므로 램프 대신 별도 팔레트를 쓴다.
-  const palette = () => (spec().categorical ? typeColors : colors);
+  const palette = () => RAMPS[spec().ramp || "level"];
   const fmt = (v) =>
     v === null || v === undefined
       ? "-"
       : spec().categorical
         ? TYPES[v].label
-        : `${v.toLocaleString("ko-KR", { maximumFractionDigits: spec().digits })}${spec().unit}`;
+        : `${spec().signed && v > 0 ? "+" : ""}${v.toLocaleString("ko-KR", { maximumFractionDigits: spec().digits })}${spec().unit}`;
   const colorFor = (v) => (v === null || v === undefined ? color("--map-canvas") : palette()[breaks.filter((b) => v >= b).length]);
 
-  // 지표 값. 유형은 데이터에 없고 두 지표에서 계산한다.
+  // 지표 값. 유형과 증감은 데이터에 없고 계산한다.
   function valueOf(row, cuts) {
-    return spec().categorical ? typeIndex(row, cuts || typeCuts()) : row[metric];
+    if (spec().categorical) return typeIndex(row, cuts || typeCuts());
+    if (metric === "change") return changeOf(row);
+    return row[metric];
+  }
+  // 첫 시점 대비 증감률. 지도에는 "변화" 축이 없었는데 하단 탭 5개 중 4개가 그것을 쓴다.
+  let baseStores = null;
+  function changeOf(row) {
+    if (!baseStores) {
+      baseStores = new Map(data.metrics[data.periods[0]].map((r) => [r.dong_code, r.stores]));
+    }
+    const base = baseStores.get(row.dong_code);
+    return base ? Math.round((row.stores - base) / base * 1000) / 10 : null;
   }
 
   // 분위 구간. 값이 몰려 있어 경계가 겹치면 중복을 제거한다(구간 수가 줄 뿐 색은 어긋나지 않는다).
@@ -250,7 +270,7 @@
       breaks.concat([null]).forEach((_, i) => {
         const span = document.createElement("span");
         const swatch = document.createElement("i");
-        swatch.className = `map-swatch map-level-${i + 1}`;
+        swatch.className = `map-swatch map-${s.ramp || "level"}-${i + 1}`;
         span.append(swatch, document.createTextNode(
           i === 0 ? `${edges[1]} 미만`
             : i === breaks.length ? `${edges[i]} 이상`
@@ -292,7 +312,7 @@
     $("map-selection-value").textContent = row
       ? spec().categorical ? describeType(row, when)
         // 밀도만 볼 때 원도심이 과대해 보이는 문제가 있어 업소 수를 항상 함께 적는다.
-        : `${when} · ${spec().legend} ${fmt(row[metric])}` +
+        : `${when} · ${spec().legend} ${fmt(valueOf(row))}` +
           (metric === "stores" ? "" : ` · 등록 업소 ${row.stores.toLocaleString("ko-KR")}개`)
       : "지도나 행정동 목록에서 지역을 선택해 주세요.";
     $("map-ask").disabled = !row;
@@ -329,6 +349,11 @@
     // 범주형은 높이가 뜻을 가질 수 없다. 유형 번호를 높이로 세우면 4번이 1번보다
     // 큰 값이라는 거짓말이 된다. 전부 같은 높이로 눕히고 색만 읽게 한다.
     if (spec().categorical) {
+      map.setPaintProperty("density-3d", "fill-extrusion-height", 900);
+      return;
+    }
+    // 증감은 음수가 있어 높이로 세울 수 없다(아래로 파인 건물은 없다). 색만 쓴다.
+    if (metric === "change") {
       map.setPaintProperty("density-3d", "fill-extrusion-height", 900);
       return;
     }
@@ -488,10 +513,18 @@
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
     map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "대전 상권 분석 · 행정동 경계 / 구 경계 © OpenStreetMap" }));
     map.on("webglcontextlost", useFallback);
-    map.on("error", () => {
+    map.on("error", (event) => {
+      // 오류마다 SVG로 내려가지 않는다 — `error`는 일시적인 것에도 뜬다. 다만 아직
+      // 한 번도 그려지지 않았다면 그건 일시적인 게 아니라 못 뜨고 있는 것이다.
+      if (!ready) { useFallback(); return; }
       status.hidden = false;
       status.textContent = "지도 표시 중 오류가 발생했습니다. 페이지를 새로고침해 주세요.";
+      if (event && event.error) console.warn("[map]", event.error.message || event.error);
     });
+    // 오류 이벤트조차 없이 조용히 안 뜨는 경우가 있다(WebGL 초기화 실패 등).
+    // 그때 사용자는 빈 회색 칸만 본다. 정해진 시간 안에 안 그려지면 2D로 내려간다.
+    const LOAD_TIMEOUT_MS = 8000;
+    setTimeout(() => { if (!ready && !fallback) useFallback(); }, LOAD_TIMEOUT_MS);
     map.on("load", () => {
       // 색·높이는 지표에 따라 달라지므로 여기서는 자리만 잡고 paint()가 채운다.
       const fill = ["step", ["get", "value"], colors[0], ...breaks.flatMap((b, i) => [b, colors[i + 1]])];
