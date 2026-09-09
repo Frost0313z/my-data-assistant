@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from .. import models
 from ..services import data_service
@@ -20,12 +20,16 @@ def create_data(record: models.DataRecordIn):
 
 @router.put("/{record_id}", response_model=models.DataRecordOut)
 def update_data(record_id: str, record: models.DataRecordIn):
-    return data_service.update_record(record_id, record)
+    updated = data_service.update_record(record_id, record)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="데이터를 찾을 수 없습니다.")
+    return updated
 
 
 @router.delete("/{record_id}")
 def delete_data(record_id: str):
-    data_service.delete_record(record_id)
+    if not data_service.delete_record(record_id):
+        raise HTTPException(status_code=404, detail="데이터를 찾을 수 없습니다.")
     return {"ok": True}
 
 

@@ -14,13 +14,27 @@ def create_record(record: models.DataRecordIn) -> models.DataRecordOut:
     return models.DataRecordOut(id=ref.id, **record.model_dump())
 
 
-def update_record(record_id: str, record: models.DataRecordIn) -> models.DataRecordOut:
-    get_db().collection(COLLECTION).document(record_id).set(record.model_dump())
+def update_record(record_id: str, record: models.DataRecordIn) -> models.DataRecordOut | None:
+    """없는 id면 None. set()은 문서를 만들어 버리므로 존재 확인이 필수다.
+
+    확인 없이 set()을 부르면 오타 난 id로 보낸 PUT이 그 id를 가진 레코드를 새로 만들고
+    200을 돌려준다. 이 저장소에 쓰레기 레코드가 쌓였던 전례가 있어(운영 제약 참조)
+    쓰기 경로에서 조용히 만들어지는 길을 남기지 않는다.
+    """
+    ref = get_db().collection(COLLECTION).document(record_id)
+    if not ref.get().exists:
+        return None
+    ref.set(record.model_dump())
     return models.DataRecordOut(id=record_id, **record.model_dump())
 
 
-def delete_record(record_id: str) -> None:
-    get_db().collection(COLLECTION).document(record_id).delete()
+def delete_record(record_id: str) -> bool:
+    """지웠으면 True, 없었으면 False. Firestore delete는 없어도 성공한다."""
+    ref = get_db().collection(COLLECTION).document(record_id)
+    if not ref.get().exists:
+        return False
+    ref.delete()
+    return True
 
 
 def get_summary() -> models.DataSummary:

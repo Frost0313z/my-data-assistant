@@ -204,6 +204,18 @@ function classifyError(err) {
   return "generic";
 }
 
+// 보내는 동안 버튼을 잠근다. 잠그지 않으면 대기 중에 눌러도 아무 일이 없어
+// (sending 가드가 조용히 막는다) 사용자는 화면이 멈춘 줄로 읽는다.
+function setSendingState(busy) {
+  const button = document.getElementById("chat-send");
+  const input = document.getElementById("chat-input");
+  if (button) {
+    button.disabled = busy;
+    button.textContent = busy ? "보내는 중" : "보내기";
+  }
+  if (input) input.disabled = busy;
+}
+
 // topics.js가 주제를 바꿀 때마다 다시 부른다(window.activeTopicId 기준).
 function renderSuggestions() {
   const box = document.getElementById("chat-suggestions");
@@ -263,13 +275,21 @@ function appendReportCta() {
 
 // options 없이 부르면 입력창의 내용을 보낸다. 리포트·재시도는 options로 넘긴다.
 // 주의: 클릭 핸들러로 직접 넘기면 안 된다. Event 객체가 options 자리에 들어온다.
+// 한 번에 한 요청만 보낸다. 백엔드가 대화를 읽고-고쳐-쓰는 방식이라
+// (conversation_service.append_turn) 같은 대화에 두 요청이 겹치면 나중 것이 앞의 턴을
+// 덮어써 대화가 통째로 사라진다. 엔터를 두 번 누르면 실제로 닿는 경로였다.
+let sending = false;
+
 async function sendMessage(options) {
   const opts = options || {};
+  if (sending) return;
   const fromInput = opts.text === undefined;
   const input = document.getElementById("chat-input");
   const message = fromInput ? input.value.trim() : opts.text;
   if (!message) return;
 
+  sending = true;
+  setSendingState(true);
   if (fromInput) input.value = "";
   // A28: 화면에서 고른 목적을 함께 보낸다. 백엔드가 허용 값(explore·prepare·running)만
   // 통과시키므로 임의 값이 들어가도 조용히 무시된다.
@@ -303,6 +323,8 @@ async function sendMessage(options) {
     // 성공·실패 어느 쪽이든 반드시 멈춘다. 안 그러면 답변이 도착한 뒤에도
     // 타이머가 버블 내용을 경과 초로 덮어쓴다.
     stopWaitTimer();
+    sending = false;
+    setSendingState(false);
     // 전송할 때 비운 제안 질문을 되돌린다. 안 되돌리면 첫 질문 뒤로는
     // 주제를 바꾸기 전까지 다음 질문 경로가 사라진다.
     renderSuggestions();
