@@ -61,6 +61,29 @@ REPORT_INSTRUCTION = """
 """
 
 
+# A28: 화면에서 고른 목적(페르소나). 같은 질문이라도 무엇을 하러 왔는지에 따라
+# 짚어줘야 할 것이 다르다. 문구는 백엔드가 갖는다 — 프롬프트에 들어가는 말이라
+# 프론트가 임의 문자열을 넣게 두면 프롬프트 주입 표면이 된다.
+PERSONA_HINTS = {
+    "explore": "아직 특정 지역을 정하지 않고 둘러보는 중이다. 여러 지역을 견주어 보여주고, 어디부터 볼지 고를 수 있게 돕는다.",
+    "prepare": "창업할 곳을 고르는 중이다. 후보지의 공급 밀도·교체율·잔존율을 함께 짚고, 판단에 필요한 반대 신호도 빠뜨리지 않는다.",
+    "running": "이미 가게를 운영 중이다. 업종 구성과 주변 변화에 초점을 두고, 내 업종이 속한 흐름을 설명한다.",
+}
+
+
+def _build_persona_block(context: Optional[Dict[str, str]]) -> str:
+    hint = PERSONA_HINTS.get((context or {}).get("persona", ""))
+    if not hint:
+        return ""
+    # 페르소나는 초점을 바꾸는 장치지 어투를 바꾸는 장치가 아니다. 창업 준비 중인
+    # 사용자에게 특히 권유가 나가기 쉬워 금지 규칙을 여기서 한 번 더 못 박는다.
+    return (
+        f"\n[사용자 상황] — 사용자가 화면에서 직접 고른 목적\n- {hint}\n"
+        "- 이 상황을 답변의 초점에만 반영한다. 상황을 알더라도 창업을 권하거나 말리지 않고, "
+        "매출·유동인구가 없어 판단할 수 없는 것은 그대로 없다고 말한다.\n"
+    )
+
+
 def _is_report(context: Optional[Dict[str, str]]) -> bool:
     """context.mode == 'report' 이면 리포트 경로를 탄다. 값은 models에서 이미 검증됐다."""
     return (context or {}).get("mode") == "report"
@@ -72,6 +95,7 @@ def _build_screen_block(context: Optional[Dict[str, str]]) -> str:
     block = ""
     if topic:
         block = f"\n[선택한 분석 주제] — 사용자가 화면에서 고른 주제\n- 주제: {topic}\n"
+    block += _build_persona_block(context)
     if _is_report(context):
         block += REPORT_INSTRUCTION
     return block

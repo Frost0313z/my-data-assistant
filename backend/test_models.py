@@ -68,6 +68,13 @@ def main():
     assert r.context == {"topic": "공급 밀도"}, r.context
     print("OK  통과: context.mode는 허용 값(report)만 남긴다")
 
+    # persona도 값 화이트리스트다 (A28)
+    r = models.ChatRequest(message="안녕", context={"persona": "prepare"})
+    assert r.context == {"persona": "prepare"}, r.context
+    r = models.ChatRequest(message="안녕", context={"persona": "ceo"})
+    assert r.context is None, r.context
+    print("OK  통과: context.persona는 허용 값(explore·prepare·running)만 남긴다")
+
     # --- chat_service._build_screen_block ---
     from app.services.chat_service import _build_screen_block
 

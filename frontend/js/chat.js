@@ -264,7 +264,12 @@ async function sendMessage(options) {
   if (!message) return;
 
   if (fromInput) input.value = "";
-  const context = opts.context || window.screenContext;
+  // A28: 화면에서 고른 목적을 함께 보낸다. 백엔드가 허용 값(explore·prepare·running)만
+  // 통과시키므로 임의 값이 들어가도 조용히 무시된다.
+  const base = opts.context || window.screenContext;
+  const context = window.activePersona
+    ? Object.assign({}, base, { persona: window.activePersona })
+    : base;
 
   document.getElementById("chat-suggestions").textContent = "";
   appendMessage("user", message);
