@@ -63,6 +63,13 @@
   --r-bubble: 16px;
   --r-pill: 999px;
   --tabbar-height: 52px;
+  --workspace-header-height: 64px;
+  --map-canvas: #EAF0F5;
+  --map-level-1: #D7E7F0;
+  --map-level-2: #97C2D7;
+  --map-level-3: #5698B9;
+  --map-level-4: #2B6A94;
+  --map-level-5: #163E65;
 
   /* 그림자 */
   --shadow-float: 0 4px 16px rgba(22, 25, 29, .10);
@@ -96,9 +103,44 @@ button { font-weight: 500; }
    좌·우 칸은 sticky로 화면에 고정. */
 .layout {
   display: grid;
-  grid-template-columns: 288px minmax(0, 1fr) 400px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   align-items: start;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--workspace-header-height));
+}
+
+.workspace-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: var(--workspace-header-height);
+  padding: var(--sp-3) var(--sp-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.workspace-header h1 { margin: 0; }
+/* A22: 채팅을 접어 지도에 전체 폭을 준다.
+   넓은 화면에만 건다 — 좁은 화면은 탭 전환(.pane-active)이라 여기서 숨기면 채팅 탭이 죽는다. */
+@media (min-width: 901px) {
+  .layout.chat-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .layout.chat-collapsed > .chat-pane { display: none; }
+}
+
+.layout > .sidebar { display: none; }
+.layout.data-open > .sidebar {
+  display: block;
+  position: fixed;
+  top: calc(var(--workspace-header-height) + var(--sp-3));
+  right: var(--sp-4);
+  width: min(360px, calc(100vw - 32px));
+  height: calc(100dvh - var(--workspace-header-height) - 32px);
+  z-index: 60;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-float);
 }
 
 .sidebar {
@@ -127,9 +169,40 @@ button { font-weight: 500; }
   padding: var(--sp-4);
   min-width: 0;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--workspace-header-height);
+  height: calc(100vh - var(--workspace-header-height));
 }
+
+.map-explorer { border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--surface); overflow: hidden; }
+.map-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-2); padding: var(--sp-3); }
+.map-toolbar label { display: grid; gap: var(--sp-1); font-size: var(--fs-caption); color: var(--ink-700); }
+.map-toolbar select { max-width: 100%; min-height: 36px; padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); color: var(--ink-900); }
+.map-view-toggle { display: flex; margin-left: auto; gap: var(--sp-1); }
+.map-view-toggle button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+.map-stage { position: relative; height: clamp(360px, calc(100dvh - 340px), 680px); background: var(--map-canvas); }
+#daejeon-map { width: 100%; height: 100%; }
+#daejeon-map svg { display: block; width: 100%; height: 100%; }
+#daejeon-map svg path { cursor: pointer; }
+.map-status { position: absolute; top: var(--sp-3); left: var(--sp-3); right: 56px; margin: 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-control); background: var(--surface); color: var(--ink-700); font-size: var(--fs-caption); pointer-events: none; }
+.map-district-label { color: var(--primary); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-control); padding: var(--sp-1) var(--sp-2); font-family: inherit; font-size: var(--fs-caption); pointer-events: none; }
+.map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3); font-size: var(--fs-caption); }
+.map-legend span { display: inline-flex; align-items: center; gap: var(--sp-1); }
+.map-swatch { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--line-strong); }
+.map-level-1 { background: var(--map-level-1); }
+.map-level-2 { background: var(--map-level-2); }
+.map-level-3 { background: var(--map-level-3); }
+.map-level-4 { background: var(--map-level-4); }
+.map-level-5 { background: var(--map-level-5); }
+.map-note { margin: 0; padding: 0 var(--sp-3) var(--sp-3); color: var(--ink-700); font-size: var(--fs-caption); line-height: 1.6; }
+.map-note a { color: var(--primary); }
+.map-selection { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3); margin: 0 var(--sp-3) var(--sp-3); background: var(--surface-sunken); border-radius: var(--r-control); font-variant-numeric: tabular-nums; }
+.map-selection h3 { margin: 0 0 var(--sp-1); }
+.map-selection p { margin: 0; font-size: var(--fs-caption); line-height: 1.6; }
+.map-selection button { flex-shrink: 0; }
+.map-toolbar button:disabled, .map-selection button:disabled { opacity: .55; cursor: not-allowed; }
+select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.secondary-analysis > summary { cursor: pointer; padding: var(--sp-3) 0; font-weight: 500; }
+.secondary-analysis[open] > * + * { margin-top: var(--sp-3); }
 
 h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
 h2 { font-size: var(--fs-h2); margin: 0 0 var(--sp-3); }
@@ -420,7 +493,7 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
 
 /* 태블릿: 사이드바를 좁히고 채팅 폭 축소 */
 @media (max-width: 1180px) {
-  .layout { grid-template-columns: 248px minmax(0, 1fr) 340px; }
+  .layout { grid-template-columns: minmax(0, 1fr) 320px; }
 }
 
 /* 모바일/좁은 화면: 한 번에 한 패널만 보이고 하단 탭으로 전환 */
@@ -428,7 +501,7 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .layout {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: 100vh;
+    min-height: calc(100vh - var(--workspace-header-height));
     overflow: visible;
     padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px));
   }
@@ -448,10 +521,15 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .layout > [id^="pane-"].pane-active { animation: pane-fade var(--motion-pane); }
 
   .layout > .chat-pane {
-    height: calc(100vh - var(--tabbar-height) - env(safe-area-inset-bottom, 0px));
-    height: calc(100dvh - var(--tabbar-height) - env(safe-area-inset-bottom, 0px));
+    height: calc(100vh - var(--workspace-header-height) - var(--tabbar-height) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - var(--workspace-header-height) - var(--tabbar-height) - env(safe-area-inset-bottom, 0px));
   }
-  .sidebar { min-height: calc(100vh - var(--tabbar-height)); }
+  .sidebar { min-height: calc(100vh - var(--workspace-header-height) - var(--tabbar-height)); }
+  #data-panel-toggle { display: none; }
+  .workspace-header { padding: var(--sp-3) var(--sp-4); }
+  .workspace-header h1 { font-size: var(--fs-h2); }
+  .map-selection { flex-direction: column; align-items: stretch; }
+  .map-toolbar label { flex: 1 1 120px; min-width: 0; }
   .tabbar {
     height: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px));
     padding-bottom: env(safe-area-inset-bottom, 0px);

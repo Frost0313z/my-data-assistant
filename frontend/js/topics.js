@@ -117,6 +117,7 @@ window.screenContext = null;
   }
 
   function select(id) {
+    detail.hidden = false;
     activeId = id === activeId ? null : id; // 같은 버튼 다시 누르면 해제
     const topic = window.TOPICS.find((t) => t.id === activeId) || null;
     window.screenContext = topic ? { topic: topic.label } : null;
@@ -138,6 +139,23 @@ window.screenContext = null;
       window.notifyTopicChange(topic ? topic.label : null);
     }
   }
+
+  // 지도에서 선택한 지역·시점을 기존 topic 컨텍스트로 전달한다.
+  window.focusMapAnalysis = function (label) {
+    activeId = null;
+    window.screenContext = { topic: label };
+    window.activeTopicId = "density";
+    list.querySelectorAll("button").forEach((b) => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    detail.hidden = true;
+    renderChip({ label });
+    if (window.renderSuggestions) window.renderSuggestions();
+    if (window.notifyTopicChange && document.querySelector("#chat-messages .bubble:not(.onboarding)")) {
+      window.notifyTopicChange(label);
+    }
+  };
 
   window.TOPICS.forEach((t) => {
     const b = el("button", "topic-btn", t.label);
