@@ -62,6 +62,7 @@
   --r-panel: 10px;
   --r-bubble: 16px;
   --r-pill: 999px;
+  --tabbar-height: 52px;
 
   /* 그림자 */
   --shadow-float: 0 4px 16px rgba(22, 25, 29, .10);
@@ -132,7 +133,7 @@ button { font-weight: 500; }
 
 h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-4); }
 h2 { font-size: var(--fs-h2); margin: 0 0 var(--sp-3); }
-h3 { font-size: var(--fs-h3); }
+h3 { font-size: var(--fs-h3); font-weight: 500; }
 
 .panel {
   background: var(--surface);
@@ -227,7 +228,7 @@ h3 { font-size: var(--fs-h3); }
 .topic-detail { margin-bottom: 0; }
 .topic-detail > :not(.topic-frame-wrap) { animation: content-fade var(--motion-fade); }
 .topic-empty { color: var(--ink-500); font-size: var(--fs-body); margin: var(--sp-2) 0; line-height: 1.6; }
-.topic-headline { font-size: var(--fs-display); margin: 0 0 var(--sp-2); line-height: 1.35; }
+.topic-headline { font-size: var(--fs-display); font-weight: 600; margin: 0 0 var(--sp-2); line-height: 1.35; overflow-wrap: anywhere; }
 .trend-up { color: var(--trend-up); }
 .trend-down { color: var(--trend-down); }
 .topic-desc { font-size: var(--fs-body); color: var(--ink-700); margin: 0 0 var(--sp-4); line-height: 1.6; }
@@ -429,6 +430,7 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
     height: auto;
     min-height: 100vh;
     overflow: visible;
+    padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px));
   }
   .layout > .sidebar,
   .layout > .topics-pane,
@@ -442,13 +444,18 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   /* JS가 .pane-active 하나만 표시 */
   .layout > [id^="pane-"] { display: none; }
   .layout > [id^="pane-"].pane-active { display: flex; }
-  .sidebar.pane-active { display: block; }
+  .layout > .sidebar.pane-active { display: block; }
   .layout > [id^="pane-"].pane-active { animation: pane-fade var(--motion-pane); }
 
-  .topics-pane, .chat-pane {
-    height: calc(100vh - 52px); /* 하단 탭 높이 */
+  .layout > .chat-pane {
+    height: calc(100vh - var(--tabbar-height) - env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - var(--tabbar-height) - env(safe-area-inset-bottom, 0px));
   }
-  .sidebar { min-height: calc(100vh - 52px); padding-bottom: calc(var(--sp-8) * 2); }
+  .sidebar { min-height: calc(100vh - var(--tabbar-height)); }
+  .tabbar {
+    height: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 
 @keyframes pane-fade {
