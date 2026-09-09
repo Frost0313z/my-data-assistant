@@ -1,7 +1,23 @@
-from .. import models
+import threading
+import time
+
+from .. import config, models
 from ..firestore_client import get_db
 
 COLLECTION = "data"
+
+# C5: 요약은 매 채팅마다 다시 계산된다. 계산이 아니라 **읽기**가 비싸다 —
+# 컬렉션을 통째로 스트리밍한다(현재 492건, B2 전량 적재 후에는 훨씬 커진다).
+# 짧은 TTL이면 사용자가 데이터를 고친 직후에도 화면이 어긋나지 않는다.
+# 게다가 쓰기 경로에서 직접 비우므로 사실상 어긋날 창이 없다.
+_summary_cache: tuple[float, "models.DataSummary"] | None = None
+_summary_lock = threading.Lock()
+
+
+def invalidate_summary_cache() -> None:
+    global _summary_cache
+    with _summary_lock:
+        _summary_cache = None
 
 
 def list_records():
@@ -11,6 +27,7 @@ def list_records():
 
 def create_record(record: models.DataRecordIn) -> models.DataRecordOut:
     _, ref = get_db().collection(COLLECTION).add(record.model_dump())
+    invalidate_summary_cache()
     return models.DataRecordOut(id=ref.id, **record.model_dump())
 
 
@@ -25,6 +42,7 @@ def update_record(record_id: str, record: models.DataRecordIn) -> models.DataRec
     if not ref.get().exists:
         return None
     ref.set(record.model_dump())
+    invalidate_summary_cache()
     return models.DataRecordOut(id=record_id, **record.model_dump())
 
 
@@ -34,10 +52,24 @@ def delete_record(record_id: str) -> bool:
     if not ref.get().exists:
         return False
     ref.delete()
+    invalidate_summary_cache()
     return True
 
 
 def get_summary() -> models.DataSummary:
+    """짧은 TTL 캐시. 쓰기 경로가 직접 비우므로 TTL은 다중 인스턴스 대비 안전망이다."""
+    global _summary_cache
+    with _summary_lock:
+        if _summary_cache and time.monotonic() - _summary_cache[0] < config.SUMMARY_CACHE_TTL:
+            return _summary_cache[1]
+
+    summary = _compute_summary()
+    with _summary_lock:
+        _summary_cache = (time.monotonic(), summary)
+    return summary
+
+
+def _compute_summary() -> models.DataSummary:
     records = sorted(list_records(), key=lambda r: r.date)
     if not records:
         return models.DataSummary(period="데이터 없음", count=0, metrics={}, trend="데이터 없음")

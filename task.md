@@ -33,7 +33,7 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 - [x] **C2 · GitHub Actions CI** (S, P0) — `.github/workflows/ci.yml`. 백엔드 pytest(자격증명 없이) + 프론트 JS 문법·빌드·지도 데이터 검사
   ⚠️ **배포 차단은 못 한다** — Render·Vercel이 GitHub 푸시를 보고 스스로 배포한다. 진짜로 막으려면 `main`에 브랜치 보호 규칙을 걸고 이 체크를 필수로 지정해야 하는데 **대시보드 작업이라 코드로 못 넣는다.**
 
-- [ ] **C5 · 요약 결과 캐시** (S, P1)
+- [x] **C5 · 요약 결과 캐시** (S, P1) — TTL 30초 + 쓰기 경로에서 즉시 무효화. 채팅 3회에 읽기 1회로 실측
   `/api/data/summary`를 매 채팅마다 Firestore 492건 전량 읽어 재계산 중. 짧은 TTL(30초) 인메모리 캐시 + 데이터 변경 시 무효화. 코드 리뷰에서도 지적된 항목.
 
 - [ ] **C4 · 구조적 로깅 + 요청 ID** (S, P1)

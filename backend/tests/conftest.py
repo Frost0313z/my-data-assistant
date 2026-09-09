@@ -23,6 +23,9 @@ def db(monkeypatch):
     fake = FakeFirestore()
     for module in (conversation_service, data_service):
         monkeypatch.setattr(module, "get_db", lambda: fake)
+    # 요약 캐시는 프로세스 전역이라 DB를 갈아 끼워도 남는다. 안 비우면 앞 테스트의
+    # 요약이 다음 테스트로 새어 들어간다.
+    data_service.invalidate_summary_cache()
     return fake
 
 
