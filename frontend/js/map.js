@@ -22,24 +22,27 @@
     density: {
       label: "공급 밀도", legend: "인구 1,000명당 등록 업소 수",
       unit: "개", digits: 1, fixed: [40, 60, 100, 200],
+      note: "생활권 행정동은 대체로 20~40개 수준입니다(효동 40.3 · 판암1동 34.1 · 판암2동 21.1). 원도심은 방문 수요를 상주인구로 나눠 높게 나오므로 과밀이나 성공으로 단정할 수 없습니다.",
     },
     stores: {
       label: "등록 업소 수", legend: "행정동별 등록 업소 수",
       unit: "개", digits: 0,
-      note: "밀도와 함께 보면 좋습니다. 밀도는 상주인구로 나눈 값이라 원도심에서 커집니다.",
+      note: "밀도와 함께 보십시오. 밀도는 상주인구로 나눈 값이라 원도심에서 커집니다. 중앙동은 밀도 1위지만 실제 개수로는 전체의 2.4%입니다.",
     },
     survival: {
       label: "점포 잔존율", legend: "고정 코호트 잔존율",
       unit: "%", digits: 1,
+      note: "행정동 평균 약 86%, 최저 목동 73.7%, 최고 중앙동 90.3%. 공급 밀도 1·2위(중앙동·대흥동)가 오히려 평균 이상으로 안정적입니다 — 밀도가 높다고 불안정한 것은 아닙니다.",
     },
     turnover: {
       label: "점포 교체율", legend: "교체율 (이탈 + 진입) ÷ 시작 업소 수",
       unit: "%", digits: 1, allPeriods: true,
-      note: "전 기간 누적이라 기준 시점을 바꿔도 값이 같습니다. 업소 수가 적은 동은 크게 흔들립니다.",
+      note: "전 기간 누적이라 기준 시점을 바꿔도 값이 같습니다. 업소 수가 적은 동은 분모가 작아 크게 흔들립니다(월평3동 141.6%, 업소 184개).",
     },
     hhi: {
       label: "업종 집중도", legend: "업종 집중도 HHI (낮을수록 다양)",
       unit: "", digits: 3,
+      note: "입지계수(LQ)와는 다른 지표입니다. 기성동 숙박업은 LQ 19.2지만 35개뿐이고, 중앙동 음식점업은 LQ 0.73(평균 이하)인데 1,000명당 125개로 최다입니다. 비율만으로 시장 크기를 판단하면 안 됩니다.",
     },
   };
   const METRIC_KEYS = Object.keys(METRICS);
@@ -143,12 +146,9 @@
             : `${edges[i]}–${edges[i + 1]}`));
       box.append(span);
     });
-    if (s.note) {
-      const note = document.createElement("span");
-      note.className = "map-legend-note";
-      note.textContent = s.note;
-      box.append(note);
-    }
+    // 해설은 범례가 아니라 지도 아래 별도 줄에 둔다. 범례에 섞으면 색 읽기를 방해한다.
+    const insight = $("map-insight");
+    if (insight) insight.textContent = s.note || "";
   }
   function visibleFeatures() {
     return data.boundaries.features.filter((f) => !district.value || f.properties.district === district.value);
@@ -157,7 +157,7 @@
     const row = rows().find((r) => r.dong_code === selected);
     const when = spec().allPeriods ? data.turnoverRange.map((p) => p.slice(0, 7)).join(" → ") : period.value.slice(0, 7);
     const label = `${spec().label} · ${when}${row ? ` · ${row.district} ${row.dong}` : " · 대전 전체"}`;
-    if (window.focusMapAnalysis) window.focusMapAnalysis(label);
+    if (window.focusMapAnalysis) window.focusMapAnalysis(label, metric);
   }
   function showSelection() {
     const row = rows().find((r) => r.dong_code === selected);
@@ -277,13 +277,18 @@
     [...new Set(rows().map((r) => r.district))].sort().forEach((d) => district.add(new Option(d, d)));
     updateDongOptions();
     [metricSelect, period, district, dong, $("map-reset"), ...viewButtons].forEach((e) => { e.disabled = false; });
-    metricSelect.addEventListener("change", () => {
-      metric = metricSelect.value;
+    function applyMetric(next) {
+      if (!METRICS[next]) return;
+      metric = next;
+      metricSelect.value = next;
       // 교체율은 전 기간 누적이라 기준 시점이 의미가 없다. 고르지 못하게 막아 오해를 줄인다.
       period.disabled = !!spec().allPeriods;
       setView(view); // 안내 문구를 현재 지표로 갱신
       updateMap();
-    });
+    }
+    metricSelect.addEventListener("change", () => applyMetric(metricSelect.value));
+    // A9 목적 칩이 지도 지표를 바꿀 수 있게 연다(임베드 주제가 없어진 3종 대응).
+    window.setMapMetric = applyMetric;
     period.addEventListener("change", updateMap);
     district.addEventListener("change", () => { selected = ""; updateDongOptions(); updateMap(); fit(visibleFeatures()); });
     dong.addEventListener("change", () => selectDong(dong.value, true));

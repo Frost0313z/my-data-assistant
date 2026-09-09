@@ -141,10 +141,11 @@ window.screenContext = null;
   }
 
   // 지도에서 선택한 지역·시점을 기존 topic 컨텍스트로 전달한다.
-  window.focusMapAnalysis = function (label) {
+  // metricKey를 함께 받아 제안 질문(A10)이 현재 지도 지표를 따라가게 한다.
+  window.focusMapAnalysis = function (label, metricKey) {
     activeId = null;
     window.screenContext = { topic: label };
-    window.activeTopicId = "density";
+    window.activeTopicId = metricKey || "density";
     list.querySelectorAll("button").forEach((b) => {
       b.classList.remove("active");
       b.setAttribute("aria-pressed", "false");
@@ -182,10 +183,10 @@ window.screenContext = null;
       question: "업종별로 늘어난 곳과 줄어든 곳을 근거 수치와 함께 알려줘",
     },
     {
-      // 스펙상 공급밀도·교체율·잔존율 세 주제에 걸치는데 주제는 단일 선택이다.
-      // 화면은 공급 밀도를 열고, 나머지 둘은 질문에 담아 답변에서 함께 다루게 한다.
+      // 공급밀도·교체율·잔존율은 A23 이후 우리 지도의 지표라 임베드 주제가 없다.
+      // 주제 대신 지도 지표를 바꿔 화면을 맞춘다.
       label: "여기 창업해도 될까요?",
-      topicId: "density",
+      mapMetric: "density",
       question:
         "공급 밀도와 점포 교체율, 잔존율을 함께 보면 이 지역 상권은 어떤 상태야? 이 데이터로 알 수 없는 것도 같이 알려줘",
     },
@@ -197,7 +198,11 @@ window.screenContext = null;
     b.addEventListener("click", () => {
       // select()는 같은 id를 다시 누르면 해제하는 라디오식이다. 목적 칩은
       // 항상 켜는 동작이라 이미 선택돼 있으면 다시 부르지 않는다.
-      if (activeId !== chip.topicId) select(chip.topicId);
+      if (chip.mapMetric) {
+        if (window.setMapMetric) window.setMapMetric(chip.mapMetric);
+      } else if (activeId !== chip.topicId) {
+        select(chip.topicId);
+      }
       if (window.sendMessage) window.sendMessage({ text: chip.question });
     });
     chipList.appendChild(b);
