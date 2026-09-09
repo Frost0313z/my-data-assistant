@@ -77,6 +77,8 @@ F3의 책임은 **진짜 실패했을 때의 3종 분기**로 유지한다.
 
 ### F2에서 한 것
 
+> `vercel.json`에는 주석을 넣을 수 없다. `"//"` 키를 쓰면 **배포가 `Invalid vercel.json`으로 거부된다** — 실제로 한 번 막혔다. 각 규칙의 이유는 아래에 적는다.
+
 - **캐시 헤더**(`vercel.json`) — HTML·JS·CSS는 `max-age=0, must-revalidate`. 파일 이름에 해시가 없어 오래 캐시하면 배포해도 옛 화면이 남는다. **이번 작업 중에도 브라우저가 옛 JS를 잡고 있어 여러 번 헤맸다.** 지도 데이터(392KB + 54KB)만 1시간 + `stale-while-revalidate`.
 - **iframe 지연 로드** — 이미 돼 있었다. `loading="lazy"`인 데다 A27 이후로는 **탭을 눌러야 만들어진다.**
 - **폰트** — Pretendard CDN이 이미 `font-display: swap`이라 글자가 안 보이는 구간이 없다. `font-family` 폴백도 있다.
