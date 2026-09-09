@@ -29,6 +29,16 @@ BUILD_REV = (os.environ.get("RENDER_GIT_COMMIT") or os.environ.get("BUILD_REV") 
 # 통째로 없는 것처럼 404를 낸다.** 데이터를 지우는 경로라 기본값은 꺼짐이어야 한다.
 DEV_RESET_TOKEN = os.environ.get("DEV_RESET_TOKEN", "")
 
+# C3: 채팅 남용 방어. 0이면 그 겹을 끈다.
+#  - 분당 요청: 사람이 손으로 낼 수 있는 속도를 넘는 것을 끊는다.
+#  - 일일 토큰: 느리게 오래 두드리는 것을 끊는다. 분당 제한만으로는 못 막는다.
+# C7: 에러 트래킹. DSN이 없으면 Sentry를 아예 켜지 않는다 — 계정 없이도 돌아야 한다.
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+SENTRY_ENV = os.environ.get("SENTRY_ENVIRONMENT", "production" if os.environ.get("RENDER") else "local")
+
+CHAT_RATE_PER_MINUTE = int(os.environ.get("CHAT_RATE_PER_MINUTE", "10"))
+DAILY_TOKEN_BUDGET = int(os.environ.get("DAILY_TOKEN_BUDGET", "300000"))
+
 FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
 
 ALLOWED_ORIGINS = [

@@ -6,7 +6,10 @@ const api = {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `요청 실패 (${res.status})`);
+      const error = new Error(body.detail || `요청 실패 (${res.status})`);
+      // C3: 429는 고장이 아니라 정책이다. 화면이 다르게 말해야 한다.
+      if (res.status === 429) error.rateLimited = true;
+      throw error;
     }
     if (res.status === 204) return null;
     return res.json();
@@ -66,7 +69,9 @@ const api = {
     });
     if (!res.ok || !res.body) {
       const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `요청 실패 (${res.status})`);
+      const error = new Error(body.detail || `요청 실패 (${res.status})`);
+      if (res.status === 429) error.rateLimited = true;
+      throw error;
     }
 
     const reader = res.body.getReader();

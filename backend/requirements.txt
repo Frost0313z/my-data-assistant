@@ -3,3 +3,5 @@ uvicorn[standard]
 firebase-admin
 openai
 python-dotenv
+# C7 에러 트래킹. SENTRY_DSN이 없으면 아무 일도 하지 않는다.
+sentry-sdk

@@ -171,7 +171,7 @@ function appendUsage(usage) {
 }
 
 // F3: 에러 버블 — 상황별 문구 + 재시도 버튼
-function showErrorBubble(kind, retryFn) {
+function showErrorBubble(kind, retryFn, detail) {
   const list = document.getElementById("chat-messages");
   const bubble = document.createElement("div");
   bubble.className = "bubble error";
@@ -181,10 +181,11 @@ function showErrorBubble(kind, retryFn) {
   // 자동 완료되므로(실측 43초) 재시도를 권하는 것이 오안내였다.
   const messages = {
     connection: "서버에 연결하지 못했습니다. 백엔드가 절전 상태였다면 다시 시도할 때 깨어납니다 (최대 50초). 로컬에서 개발 중이라면 백엔드 실행 여부와 CORS 설정도 확인해 주세요.",
+    limited: "요청이 너무 잦습니다. 잠시 뒤에 다시 시도해 주세요.",
     ai: "AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
     generic: "요청을 처리하지 못했습니다. 네트워크 상태를 확인하고 다시 시도해 주세요.",
   };
-  bubble.appendChild(document.createTextNode(messages[kind] || messages.generic));
+  bubble.appendChild(document.createTextNode(detail || messages[kind] || messages.generic));
 
   if (retryFn) {
     const retry = document.createElement("button");
@@ -204,6 +205,9 @@ function showErrorBubble(kind, retryFn) {
 // 오진한 적이 있다. 원인을 단정할 수 없으므로 이름과 문구를 중립적으로 둔다.
 function classifyError(err) {
   const msg = (err && err.message) || "";
+  // C3: 제한에 걸린 것은 실패가 아니다. "네트워크를 확인하라"고 하면 엉뚱한 곳을 보게 된다.
+  // 백엔드가 이유까지 문장으로 주므로 그대로 보여준다.
+  if (err && err.rateLimited) return "limited";
   if (/Failed to fetch|NetworkError|timeout|시간 초과/i.test(msg)) return "connection";
   if (/OpenAI|AI|502|503|LLM/i.test(msg)) return "ai";
   return "generic";
@@ -323,6 +327,9 @@ async function sendStreaming(message, context, bubble, stopWaitTimer) {
     // 한 글자라도 받았으면 이미 화면에 답이 떠 있다. 여기서 다시 보내면 같은 질문에
     // 두 번 과금되고 답이 두 번 저장된다.
     if (started) throw err;
+    // 제한에 걸린 것은 스트리밍이 안 되는 게 아니다. 폴백해도 똑같이 막히면서
+    // 요청 수만 두 배가 된다.
+    if (err && err.rateLimited) throw err;
     const result = await api.sendChat(message, currentConversationId, context);
     renderReply(bubble, result.reply);
     return result;
@@ -374,8 +381,12 @@ async function sendMessage(options) {
     if (!opts.isReport) appendReportCta();
   } catch (err) {
     loadingBubble.remove();
-    showErrorBubble(classifyError(err), () =>
-      sendMessage({ text: message, context: context, isReport: opts.isReport, retry: true })
+    const kind = classifyError(err);
+    showErrorBubble(
+      kind,
+      () => sendMessage({ text: message, context: context, isReport: opts.isReport, retry: true }),
+      // 제한 안내는 백엔드가 "몇 초 뒤"까지 계산해서 준다. 여기서 다시 쓰지 않는다.
+      kind === "limited" ? err.message : undefined
     );
   } finally {
     // 성공·실패 어느 쪽이든 반드시 멈춘다. 안 그러면 답변이 도착한 뒤에도

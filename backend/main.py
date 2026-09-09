@@ -10,6 +10,7 @@ from app import config, observability
 from app.routers import chat, conversations, data, dev
 
 observability.configure_logging()
+_SENTRY = observability.init_error_tracking()
 
 app = FastAPI(title="대전 상권분석 매니저 API")
 
@@ -31,6 +32,9 @@ def announce_config():
         history_max_messages=config.HISTORY_MAX_MESSAGES,
         summary_cache_ttl=config.SUMMARY_CACHE_TTL,
         dev_reset="on" if config.DEV_RESET_TOKEN else "off",
+        sentry=_SENTRY,
+        chat_rate_per_minute=config.CHAT_RATE_PER_MINUTE,
+        daily_token_budget=config.DAILY_TOKEN_BUDGET,
         allowed_origins=config.ALLOWED_ORIGINS,
     )
     if config.CORS_IS_WILDCARD:

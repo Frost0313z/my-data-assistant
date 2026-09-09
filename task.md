@@ -69,8 +69,8 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 | ~~**B2**~~ | L+ | ✅ **완료(범위 정정)** — 82 행정동 × 6 시점 **492건은 이미 전량**이었다. 없던 것은 데이터가 아니라 **구조**였다(자치구·행정동·업종이 `memo` 한 줄에 뭉쳐 필터를 걸 수 없었다). 구조 필드로 분해하고 지도 데이터와 **불일치 0건** 교차검증. `업종 × 행정동` 교차 집계는 원본에 없어 불가([`specs/B-data.md`](docs/specs/B-data.md) §점 데이터의 한계) |
 | ~~**B3**~~ | M | ✅ **완료** — `/api/data/summary?district=&dong=&industry=&date_from=&date_to=` + `/api/data/dimensions`(고를 수 있는 값 목록). 정확 일치만 — 부분 일치면 `중구`가 `유성구`를 잡는다 |
 | **B1** | M | `insights.md` 자동 생성 스크립트 (`scripts/build_insights.py`). 지금은 수기 큐레이션 |
-| **C3** | M | 채팅 rate limit + 일일 토큰 상한 → 429 |
-| **C7** | S | Sentry 무료 티어 (백엔드·프론트) |
+| ~~**C3**~~ | M | ✅ **완료** — 분당 10회(IP·XFF 기준) + 일일 30만 토큰, 429 + `Retry-After`. 프론트는 429를 고장이 아니라 정책으로 안내 |
+| ~~**C7**~~ | S | ✅ **완료(백엔드)** — `SENTRY_DSN` 없으면 안 켜지고 SDK가 없어도 앱이 뜬다. 질문·답변은 `before_send`로 제거. **프론트는 미적용** — 정적 페이지에 외부 스크립트를 하나 더 붙이는 판단이 필요 |
 | **F1** | M | 접근성 — 키보드 내비, ARIA, **색 대비 AA**, Lighthouse 90+. **A15가 끝나 지금 할 수 있다** |
 | **F2** | S | 성능 — iframe 지연 로드, 캐시 헤더, Lighthouse 90+ |
 | **E2** | S | ADR 3~5건 (바닐라 JS · Firestore · 컨텍스트 주입 · 임베드 · 키 관리) |

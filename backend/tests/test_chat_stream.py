@@ -2,49 +2,7 @@
 
 import json
 
-import pytest
-
 from app import config
-
-
-class StreamChunk:
-    def __init__(self, content=None, usage=None):
-        delta = type("D", (), {"content": content})()
-        self.choices = [type("C", (), {"delta": delta})()] if content is not None else []
-        self.usage = usage
-
-
-class StreamUsage:
-    prompt_tokens = 1700
-    completion_tokens = 30
-    total_tokens = 1730
-    prompt_tokens_details = type("P", (), {"cached_tokens": 1024})()
-
-
-@pytest.fixture
-def streaming(monkeypatch):
-    """OpenAI 스트리밍 응답 대역. 실제 호출은 하지 않는다."""
-    from app.services import chat_service
-
-    pieces = ["## 요약\n", "대전 상권은 ", "완만히 늘었다."]
-    calls = []
-
-    class Stub:
-        chat = property(lambda self: self)
-
-        @property
-        def completions(self):
-            return self
-
-        def create(self, **kwargs):
-            calls.append(kwargs)
-            return iter([StreamChunk(p) for p in pieces] + [StreamChunk(usage=StreamUsage())])
-
-    stub = Stub()
-    monkeypatch.setattr(chat_service, "_get_client", lambda: stub)
-    stub.calls = calls
-    stub.pieces = pieces
-    return stub
 
 
 def read_events(response):

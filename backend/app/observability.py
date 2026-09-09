@@ -15,6 +15,8 @@ from contextvars import ContextVar
 
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from . import config
+
 # 요청 ID는 미들웨어가 넣고 서비스 계층이 읽는다. 인자로 들고 다니면 함수 시그니처가
 # 로깅 때문에 오염된다.
 request_id_var: ContextVar[str] = ContextVar("request_id", default="-")
@@ -111,3 +113,54 @@ def estimate_cost(model: str, prompt: int, cached: int, completion: int) -> floa
         fresh * price["input"] + cached * price["cached"] + completion * price["output"]
     ) / 1_000_000
     return round(usd, 6)
+
+
+def init_error_tracking() -> str:
+    """C7: Sentry를 켠다. DSN이 없으면 아무것도 하지 않고 그렇게 말한다.
+
+    `sentry-sdk`는 requirements에 두되, **없어도 앱이 뜬다.** 무료 티어 배포에서
+    의존성 하나가 빠졌다고 서비스 전체가 죽으면 안 된다.
+
+    `send_default_pii=False`가 중요하다 — 이 서비스는 사용자의 질문을 다루는데
+    그게 이벤트에 실려 나가면 안 된다.
+    """
+    if not config.SENTRY_DSN:
+        return "off"
+    try:
+        import sentry_sdk
+    except ImportError:
+        log("sentry.missing", hint="sentry-sdk가 설치되지 않아 건너뜁니다")
+        return "missing"
+
+    sentry_sdk.init(
+        dsn=config.SENTRY_DSN,
+        environment=config.SENTRY_ENV,
+        release=config.BUILD_REV,
+        send_default_pii=False,
+        # 무료 티어라 성능 트레이스까지 보낼 여유가 없다. 예외만 받는다.
+        traces_sample_rate=0.0,
+        before_send=_scrub,
+    )
+    return "on"
+
+
+# 사용자의 질문·답변이 이벤트에 실리지 않게 한 겹 더 막는다. send_default_pii=False가
+# 요청 본문을 빼 주지만, 우리가 직접 남긴 로그가 예외에 섞여 들어갈 수 있다.
+_SENSITIVE = ("message", "reply", "content", "authorization", "x-dev-token")
+
+
+def _scrub(event, hint):
+    request = event.get("request") or {}
+    request.pop("data", None)
+    headers = request.get("headers") or {}
+    for key in list(headers):
+        if key.lower() in _SENSITIVE:
+            headers[key] = "[제거됨]"
+    breadcrumbs = event.get("breadcrumbs")
+    entries = breadcrumbs.get("values", []) if isinstance(breadcrumbs, dict) else []
+    for entry in entries:
+        data = entry.get("data") or {}
+        for key in list(data):
+            if key.lower() in _SENSITIVE:
+                data[key] = "[제거됨]"
+    return event
