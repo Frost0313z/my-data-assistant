@@ -2,14 +2,68 @@
 (async function () {
   const $ = (id) => document.getElementById(id);
   const period = $("map-period"), district = $("map-district"), dong = $("map-dong");
+  const metricSelect = $("map-metric");
   const status = $("map-status"), host = $("daejeon-map");
   const viewButtons = [...document.querySelectorAll("[data-map-view]")];
   const css = getComputedStyle(document.documentElement);
   const color = (name) => css.getPropertyValue(name).trim();
   const colors = [1, 2, 3, 4, 5].map((n) => color(`--map-level-${n}`));
-  const breaks = [40, 60, 100, 200];
-  const colorFor = (v) => colors[breaks.filter((b) => v >= b).length];
+
+  // A23: 지표마다 범위와 단위가 다르다.
+  //
+  // 밀도만 고정 구간을 쓴다 — 40/60/100/200은 원본 대시보드와 같은 경계라
+  // 두 화면이 같은 색을 같은 뜻으로 쓴다.
+  //
+  // 나머지는 분위(5분위) 구간이다. 고정 구간을 쓰면 안 되는 이유가 실측에 있다 —
+  // HHI는 82개 중 절반이 0.18~0.22의 0.04 폭에, 잔존율은 절반이 3.4%p 폭에 몰려 있다.
+  // 균등 구간으로 자르면 대부분이 한 칸에 들어가 아무것도 구분되지 않는다.
+  // 분위는 반대로 극단값이 화면을 지배하는 것도 막는다(교체율 월평3동 141.6%).
+  const METRICS = {
+    density: {
+      label: "공급 밀도", legend: "인구 1,000명당 등록 업소 수",
+      unit: "개", digits: 1, fixed: [40, 60, 100, 200],
+    },
+    stores: {
+      label: "등록 업소 수", legend: "행정동별 등록 업소 수",
+      unit: "개", digits: 0,
+      note: "밀도와 함께 보면 좋습니다. 밀도는 상주인구로 나눈 값이라 원도심에서 커집니다.",
+    },
+    survival: {
+      label: "점포 잔존율", legend: "고정 코호트 잔존율",
+      unit: "%", digits: 1,
+    },
+    turnover: {
+      label: "점포 교체율", legend: "교체율 (이탈 + 진입) ÷ 시작 업소 수",
+      unit: "%", digits: 1, allPeriods: true,
+      note: "전 기간 누적이라 기준 시점을 바꿔도 값이 같습니다. 업소 수가 적은 동은 크게 흔들립니다.",
+    },
+    hhi: {
+      label: "업종 집중도", legend: "업종 집중도 HHI (낮을수록 다양)",
+      unit: "", digits: 3,
+    },
+  };
+  const METRIC_KEYS = Object.keys(METRICS);
+
   let map, data, selected = "", view = "3d", ready = false, fallback = false;
+  let metric = "density";
+  let breaks = METRICS.density.fixed;
+
+  const spec = () => METRICS[metric];
+  const fmt = (v) =>
+    v === null || v === undefined
+      ? "-"
+      : `${v.toLocaleString("ko-KR", { maximumFractionDigits: spec().digits })}${spec().unit}`;
+  const colorFor = (v) => (v === null || v === undefined ? color("--map-canvas") : colors[breaks.filter((b) => v >= b).length]);
+
+  // 분위 구간. 값이 몰려 있어 경계가 겹치면 중복을 제거한다(구간 수가 줄 뿐 색은 어긋나지 않는다).
+  function computeBreaks() {
+    const s = spec();
+    if (s.fixed) return s.fixed;
+    const v = rows().map((r) => r[metric]).filter((x) => x !== null && x !== undefined).sort((a, b) => a - b);
+    if (!v.length) return [];
+    const at = (p) => v[Math.min(v.length - 1, Math.round(p * (v.length - 1)))];
+    return [...new Set([at(0.2), at(0.4), at(0.6), at(0.8)])];
+  }
 
   function coordinates(geometry) {
     return geometry.coordinates.flat(geometry.type === "MultiPolygon" ? 2 : 1);
@@ -20,23 +74,58 @@
       [Math.max(...points.map((p) => p[0])), Math.max(...points.map((p) => p[1]))]];
   }
   function rows() { return data.metrics[period.value]; }
+  // 선택된 지표를 항상 'value'로 실어 보낸다. 그래야 레이어 표현식이 지표와 무관해진다.
   function features() {
-    const values = new Map(rows().map((r) => [r.dong_code, r.density]));
-    return data.boundaries.features.map((f) => ({ ...f, properties: { ...f.properties, density: values.get(f.properties.dong_code) } }));
+    const values = new Map(rows().map((r) => [r.dong_code, r[metric]]));
+    return data.boundaries.features.map((f) => ({
+      ...f,
+      properties: { ...f.properties, value: values.get(f.properties.dong_code) ?? null },
+    }));
+  }
+
+  function renderLegend() {
+    const box = $("map-legend");
+    if (!box) return;
+    const s = spec();
+    box.replaceChildren();
+    const title = document.createElement("strong");
+    title.textContent = s.legend;
+    box.append(title);
+    const edges = ["", ...breaks.map(fmt)];
+    breaks.concat([null]).forEach((_, i) => {
+      const span = document.createElement("span");
+      const swatch = document.createElement("i");
+      swatch.className = `map-swatch map-level-${i + 1}`;
+      span.append(swatch, document.createTextNode(
+        i === 0 ? `${edges[1]} 미만`
+          : i === breaks.length ? `${edges[i]} 이상`
+            : `${edges[i]}–${edges[i + 1]}`));
+      box.append(span);
+    });
+    if (s.note) {
+      const note = document.createElement("span");
+      note.className = "map-legend-note";
+      note.textContent = s.note;
+      box.append(note);
+    }
   }
   function visibleFeatures() {
     return data.boundaries.features.filter((f) => !district.value || f.properties.district === district.value);
   }
   function syncContext() {
     const row = rows().find((r) => r.dong_code === selected);
-    const label = `공급 밀도 · ${period.value.slice(0, 7)}${row ? ` · ${row.district} ${row.dong}` : " · 대전 전체"}`;
+    const when = spec().allPeriods ? data.turnoverRange.map((p) => p.slice(0, 7)).join(" → ") : period.value.slice(0, 7);
+    const label = `${spec().label} · ${when}${row ? ` · ${row.district} ${row.dong}` : " · 대전 전체"}`;
     if (window.focusMapAnalysis) window.focusMapAnalysis(label);
   }
   function showSelection() {
     const row = rows().find((r) => r.dong_code === selected);
+    const when = spec().allPeriods ? data.turnoverRange.map((p) => p.slice(0, 7)).join(" → ") : period.value.slice(0, 7);
     $("map-selection-name").textContent = row ? `${row.district} ${row.dong}` : "어느 동이 궁금하세요?";
     $("map-selection-value").textContent = row
-      ? `${period.value.slice(0, 7)} · 인구 1,000명당 등록 업소 ${row.density.toLocaleString("ko-KR", { maximumFractionDigits: 1 })}개`
+      // 밀도만 볼 때 원도심이 과대해 보이는 문제가 있어 업소 수를 항상 함께 적는다.
+      ? `${when} · ${spec().legend} ${fmt(row[metric])}` +
+        (metric === "stores" ? "" : ` · 등록 업소 ${row.stores.toLocaleString("ko-KR")}개`)
       : "지도나 행정동 목록에서 지역을 선택해 주세요.";
     $("map-ask").disabled = !row;
     dong.value = selected;
@@ -58,11 +147,24 @@
     visibleFeatures().sort((a, b) => `${a.properties.district} ${a.properties.dong}`.localeCompare(`${b.properties.district} ${b.properties.dong}`, "ko"))
       .forEach((f) => dong.add(new Option(`${f.properties.district} ${f.properties.dong}`, f.properties.dong_code)));
   }
+  // 색·높이 표현식을 현재 지표 구간으로 다시 만든다. 지표마다 값의 크기가 달라
+  // (HHI 0.15~0.44 vs 업소 수 135~3,444) 3D 높이는 최대값 기준으로 정규화한다.
+  function paint() {
+    if (!ready) return;
+    const fill = ["step", ["get", "value"], colors[0], ...breaks.flatMap((b, i) => [b, colors[i + 1]])];
+    const max = Math.max(...rows().map((r) => r[metric] ?? 0), 1);
+    map.setPaintProperty("density-2d", "fill-color", fill);
+    map.setPaintProperty("density-3d", "fill-extrusion-color", fill);
+    map.setPaintProperty("density-3d", "fill-extrusion-height", ["*", ["coalesce", ["get", "value"], 0], 3500 / max]);
+  }
   function updateMap() {
+    breaks = computeBreaks();
+    renderLegend();
     if (ready) {
       map.getSource("dongs").setData({ type: "FeatureCollection", features: features() });
       const filter = district.value ? ["==", ["get", "district"], district.value] : null;
       ["density-2d", "density-3d", "dong-lines"].forEach((id) => map.setFilter(id, filter));
+      paint();
     }
     if (fallback) renderFallback();
     showSelection();
@@ -71,8 +173,8 @@
     view = mode;
     viewButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === mode)));
     $("map-view-note").textContent = mode === "3d"
-      ? "3D 높이는 공급 밀도를 표현합니다. 실제 건물 높이가 아닙니다."
-      : "2D 색은 공급 밀도를 표현합니다. 3D와 같은 데이터·구간을 사용합니다.";
+      ? `3D 높이는 ${spec().label}을(를) 표현합니다. 실제 건물 높이가 아닙니다.`
+      : `2D 색은 ${spec().label}을(를) 표현합니다. 3D와 같은 데이터·구간을 사용합니다.`;
     if (!ready) return;
     map.setLayoutProperty("density-2d", "visibility", mode === "2d" ? "visible" : "none");
     map.setLayoutProperty("density-3d", "visibility", mode === "3d" ? "visible" : "none");
@@ -90,18 +192,18 @@
     const svg = document.createElementNS(ns, "svg");
     svg.setAttribute("viewBox", `-0.015 -0.015 ${width + .03} ${height + .03}`);
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "대전 공급 밀도 2D 지도. 위 행정동 목록으로도 선택할 수 있습니다.");
+    svg.setAttribute("aria-label", `대전 ${spec().label} 2D 지도. 위 행정동 목록으로도 선택할 수 있습니다.`);
     for (const f of features().filter((f) => !district.value || f.properties.district === district.value)) {
       const polygons = f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates];
       const path = document.createElementNS(ns, "path");
       path.setAttribute("d", polygons.flatMap((polygon) => polygon.map((ring) => ring.map((p, i) =>
         `${i ? "L" : "M"}${(p[0] - box[0][0]) * ratio},${box[1][1] - p[1]}`).join(" ") + "Z")).join(" "));
-      path.setAttribute("fill", colorFor(f.properties.density));
+      path.setAttribute("fill", colorFor(f.properties.value));
       path.setAttribute("fill-rule", "evenodd");
       path.setAttribute("stroke", f.properties.dong_code === selected ? color("--caution") : color("--surface"));
       path.setAttribute("stroke-width", f.properties.dong_code === selected ? ".0015" : ".0004");
       const title = document.createElementNS(ns, "title");
-      title.textContent = `${f.properties.district} ${f.properties.dong} · ${f.properties.density}개/1,000명`;
+      title.textContent = `${f.properties.district} ${f.properties.dong} · ${spec().label} ${fmt(f.properties.value)}`;
       path.append(title);
       path.addEventListener("click", () => selectDong(f.properties.dong_code));
       svg.append(path);
@@ -126,9 +228,18 @@
     data = await response.json();
     data.periods.forEach((p) => period.add(new Option(p.slice(0, 7), p)));
     period.value = data.periods.at(-1);
+    METRIC_KEYS.forEach((k) => metricSelect.add(new Option(METRICS[k].label, k)));
+    metricSelect.value = metric;
     [...new Set(rows().map((r) => r.district))].sort().forEach((d) => district.add(new Option(d, d)));
     updateDongOptions();
-    [period, district, dong, $("map-reset"), ...viewButtons].forEach((e) => { e.disabled = false; });
+    [metricSelect, period, district, dong, $("map-reset"), ...viewButtons].forEach((e) => { e.disabled = false; });
+    metricSelect.addEventListener("change", () => {
+      metric = metricSelect.value;
+      // 교체율은 전 기간 누적이라 기준 시점이 의미가 없다. 고르지 못하게 막아 오해를 줄인다.
+      period.disabled = !!spec().allPeriods;
+      setView(view); // 안내 문구를 현재 지표로 갱신
+      updateMap();
+    });
     period.addEventListener("change", updateMap);
     district.addEventListener("change", () => { selected = ""; updateDongOptions(); updateMap(); fit(visibleFeatures()); });
     dong.addEventListener("change", () => selectDong(dong.value, true));
@@ -171,12 +282,13 @@
       status.textContent = "지도 표시 중 오류가 발생했습니다. 페이지를 새로고침해 주세요.";
     });
     map.on("load", () => {
-      const fill = ["step", ["get", "density"], colors[0], 40, colors[1], 60, colors[2], 100, colors[3], 200, colors[4]];
+      // 색·높이는 지표에 따라 달라지므로 여기서는 자리만 잡고 paint()가 채운다.
+      const fill = ["step", ["get", "value"], colors[0], ...breaks.flatMap((b, i) => [b, colors[i + 1]])];
       map.addSource("dongs", { type: "geojson", data: { type: "FeatureCollection", features: features() } });
       map.addSource("districts", { type: "geojson", data: data.districts });
       map.addLayer({ id: "density-2d", type: "fill", source: "dongs", layout: { visibility: "none" }, paint: { "fill-color": fill } });
       map.addLayer({ id: "density-3d", type: "fill-extrusion", source: "dongs", paint: {
-        "fill-extrusion-color": fill, "fill-extrusion-height": ["*", ["get", "density"], 6], "fill-extrusion-opacity": .96,
+        "fill-extrusion-color": fill, "fill-extrusion-height": ["*", ["coalesce", ["get", "value"], 0], 6], "fill-extrusion-opacity": .96,
       } });
       map.addLayer({ id: "dong-lines", type: "line", source: "dongs", paint: { "line-color": color("--surface"), "line-width": .7 } });
       map.addLayer({ id: "district-lines", type: "line", source: "districts", paint: { "line-color": color("--primary"), "line-width": 1.2 } });

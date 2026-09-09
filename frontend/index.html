@@ -67,6 +67,7 @@
     </div>
     <section class="map-explorer" aria-label="대전 공급 밀도 지도">
       <div class="map-toolbar">
+        <label>지표 <select id="map-metric" disabled aria-label="지도 지표"></select></label>
         <label>기준 시점 <select id="map-period" disabled aria-label="지도 기준 시점"></select></label>
         <label>자치구 <select id="map-district" disabled aria-label="지도 자치구"><option value="">대전 전체</option></select></label>
         <label>행정동 <select id="map-dong" disabled aria-label="지도 행정동"><option value="">지도에서 선택</option></select></label>
@@ -80,14 +81,8 @@
         <div id="daejeon-map" role="region" aria-label="대전 82개 행정동 공급 밀도, 행정동 선택은 위 선택 상자에서도 가능합니다"></div>
         <p id="map-status" class="map-status" role="status">대전 지도를 불러오는 중입니다.</p>
       </div>
-      <div class="map-legend" aria-label="공급 밀도 범례">
-        <strong>인구 1,000명당 등록 업소 수</strong>
-        <span><i class="map-swatch map-level-1"></i>40 미만</span>
-        <span><i class="map-swatch map-level-2"></i>40–60</span>
-        <span><i class="map-swatch map-level-3"></i>60–100</span>
-        <span><i class="map-swatch map-level-4"></i>100–200</span>
-        <span><i class="map-swatch map-level-5"></i>200 이상</span>
-      </div>
+      <!-- A23: 지표마다 구간·단위가 달라 map.js가 채운다. -->
+      <div class="map-legend" id="map-legend" aria-label="지표 범례"></div>
       <p class="map-note" id="map-view-note">3D 높이는 공급 밀도를 표현합니다. 실제 건물 높이가 아닙니다.</p>
       <div class="map-selection" aria-live="polite">
         <div><h3 id="map-selection-name">어느 동이 궁금하세요?</h3><p id="map-selection-value">지도나 행정동 목록에서 지역을 선택해 주세요.</p></div>
