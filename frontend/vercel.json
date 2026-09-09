@@ -3,22 +3,18 @@
   "outputDirectory": ".",
   "headers": [
     {
-      "//": "F2: HTML·JS·CSS는 파일 이름에 해시가 없다(빌드 단계가 없는 순수 정적). 오래 캐시하면 배포해도 옛 화면이 남는다 — 이번 작업 중에도 브라우저가 옛 JS를 잡고 있어 여러 번 헤맸다. 매번 물어보되 안 바뀌었으면 304로 끝낸다.",
       "source": "/(.*)\\.(html|js|css)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
-      "//": "지도 데이터는 392KB + 54KB로 이 서비스에서 가장 큰 짐이다. 대시보드 원본이 바뀌어 다시 뽑을 때만 달라지므로 한 시간 캐시하고, 그 뒤에도 하루 동안은 옛 것을 쓰면서 뒤에서 갱신한다.",
       "source": "/data/(.*)\\.json",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }]
     },
     {
-      "//": "루트 문서. 위 확장자 규칙에 안 걸린다.",
       "source": "/",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
     },
     {
-      "//": "정적 사이트라 보낼 것이 없다. 최소한만 건다 — 콘텐츠 보안 정책은 임베드하는 대시보드·MapLibre CDN과 함께 봐야 해서 여기서 단독으로 정하지 않는다.",
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
