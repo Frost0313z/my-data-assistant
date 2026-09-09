@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field, field_validator
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 
 # 길이 상한 (문자 수 기준). 초과 시 422로 거절한다.
+# B2 차원 필드(자치구·행정동·업종). 값이 짧아 상한도 짧다.
+DIMENSION_MAX = 40
 MEMO_MAX = 500
 MESSAGE_MAX = 2000
 TITLE_MAX = 100
@@ -44,6 +46,17 @@ class DataRecordIn(BaseModel):
     value: float = Field(..., ge=-1e12, le=1e12, allow_inf_nan=False)
     # 메모: 길이 제한 + 제어문자 제거
     memo: str = Field("", max_length=MEMO_MAX)
+    # B2: 자치구·행정동·주력업종. 예전에는 셋 다 memo에 문자열로 뭉쳐 있어 필터를
+    # 걸 수 없었다. 선택 필드로 두는 이유는 예전 레코드에는 없기 때문이다 —
+    # 필수로 바꾸면 이미 저장된 것들이 전부 읽히지 않는다.
+    district: str = Field("", max_length=DIMENSION_MAX)
+    dong: str = Field("", max_length=DIMENSION_MAX)
+    industry: str = Field("", max_length=DIMENSION_MAX)
+
+    @field_validator("district", "dong", "industry")
+    @classmethod
+    def _clean_dimension(cls, v: str) -> str:
+        return _clean_text(v)
 
     @field_validator("date")
     @classmethod

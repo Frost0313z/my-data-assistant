@@ -158,11 +158,21 @@ cd frontend && python -m http.server 5500
 | **인증 제외** | 미포함 | "개인 상권 분석 도구"로 범위를 좁혀 서사를 세웠다. 다중 사용자는 비범위 |
 | **바닐라 JS** | 프레임워크 없음 | 미션 제약이자, 빌드 스텝이 환경변수 주입 1개뿐이라 배포가 단순하다 |
 
-전체 결정 이력은 [`docs/decisions.md`](docs/decisions.md), 설계 근거는 [`docs/identity.md`](docs/identity.md) · [`docs/design/`](docs/design/)에 있습니다.
+각 결정의 **맥락 · 대신 잃은 것 · 언제 뒤집나**는 [`docs/adr/`](docs/adr/README.md)에 ADR 5건으로 있습니다. 전체 결정 이력은 [`docs/decisions.md`](docs/decisions.md), 설계 근거는 [`docs/identity.md`](docs/identity.md) · [`docs/design/`](docs/design/)에 있습니다.
 
 ---
 
-## 7. 알려진 제약
+## 7. 회고
+
+무엇이 실제로 어려웠고 무엇을 배웠는지는 [`docs/RETROSPECTIVE.md`](docs/RETROSPECTIVE.md)에 있습니다. 요약하면 —
+
+- **데이터가 답할 수 없는 것을 답하는 척하지 않기**가 기능보다 어려웠습니다. 화면에서 아무리 조심해도 AI가 유형의 정의를 모르면 *"좋은 지역 유형입니다"* 라고 답해 버립니다.
+- **"보인다"와 "읽힌다"는 다릅니다.** 스크린샷으로는 멀쩡했던 화면에서, 좌표를 재고 나서야 질문 버튼이 접힘선 밖(1066px vs 1000px)에 있는 것을 알았습니다.
+- **응답이 멀쩡한 고장이 제일 위험합니다.** 프롬프트 캐시가 깨져도, 답변이 상한에 잘려도, 설정이 안 먹어도 화면은 그대로입니다. 그래서 만든 것의 절반이 *조용한 고장을 시끄럽게 만드는 장치*입니다.
+
+---
+
+## 8. 알려진 제약
 
 - **콜드스타트** — Render 무료 티어. 요청 자체는 자동 완료되며, 화면이 경과 초와 상태를 알립니다.
 - **매출·유동인구 없음** — 이 데이터로는 상권의 수익성을 판단할 수 없습니다. 서비스가 이 한계를 숨기지 않고 화면과 리포트에 명시합니다.
@@ -249,7 +259,7 @@ cd frontend && python -m http.server 5500
 | `conversation.title` | 최대 100자, 제어문자 제거 |
 | `chat message.content` | 최대 8000자, 제어문자 제거 |
 
-위반 시 FastAPI가 `422 Unprocessable Entity`와 위반 필드를 반환합니다. 규칙은 `backend/test_models.py`(`python test_models.py`)로 검증합니다.
+위반 시 FastAPI가 `422 Unprocessable Entity`와 위반 필드를 반환합니다. 규칙은 `backend/tests/`(`pytest`)로 검증합니다. 테스트는 Firestore·OpenAI를 메모리 대역으로 갈아 끼워 **외부를 한 번도 부르지 않습니다.**
 
 ### 출력 이스케이프 (프론트엔드)
 

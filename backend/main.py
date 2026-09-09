@@ -6,11 +6,45 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app import config
-from app.routers import chat, conversations, data
+from app import config, observability
+from app.routers import chat, conversations, data, dev
+
+observability.configure_logging()
+_SENTRY = observability.init_error_tracking()
 
 app = FastAPI(title="대전 상권분석 매니저 API")
 
+
+@app.on_event("startup")
+def announce_config():
+    """뜰 때 무엇이 켜져 있는지 한 줄로 남긴다.
+
+    설정이 안 먹은 것을 화면에서 알아채기는 어렵다 — 배포 브랜치가 어긋난 적도,
+    CHAT_MAX_TOKENS가 .env에 덮여 답변이 계속 잘리던 적도 있었다. 시작 로그에
+    실효값을 찍어 두면 "왜 안 바뀌지"를 로그 한 줄로 끝낼 수 있다.
+    """
+    observability.log(
+        "startup",
+        build=config.BUILD_REV,
+        model=config.OPENAI_MODEL,
+        chat_max_tokens=config.CHAT_MAX_TOKENS,
+        report_max_tokens=config.REPORT_MAX_TOKENS,
+        history_max_messages=config.HISTORY_MAX_MESSAGES,
+        summary_cache_ttl=config.SUMMARY_CACHE_TTL,
+        dev_reset="on" if config.DEV_RESET_TOKEN else "off",
+        sentry=_SENTRY,
+        chat_rate_per_minute=config.CHAT_RATE_PER_MINUTE,
+        daily_token_budget=config.DAILY_TOKEN_BUDGET,
+        allowed_origins=config.ALLOWED_ORIGINS,
+    )
+    if config.CORS_IS_WILDCARD:
+        # 기본값을 좁히면 ALLOWED_ORIGINS가 빠진 배포가 조용히 죽는다. 대신 시끄럽게 한다.
+        observability.logger.warning(
+            "cors.wildcard",
+            extra={"fields": {"hint": "ALLOWED_ORIGINS가 비어 모든 오리진을 허용합니다"}},
+        )
+
+app.add_middleware(observability.RequestLogMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS,
@@ -40,8 +74,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 app.include_router(data.router)
 app.include_router(conversations.router)
 app.include_router(chat.router)
+app.include_router(dev.router)
 
 
 @app.get("/")
 def health():
-    return {"status": "ok"}
+    """콜드스타트 핑(C6)과 배포본 확인용.
+
+    `build`는 배포 브랜치와 실제 배포본이 어긋났을 때 원인을 오진하지 않게 해 준다 —
+    전에 브랜치 설정이 안 먹은 사례가 있었는데, 스키마만 봐서는 구분이 안 됐다.
+    Render는 커밋 SHA를 `RENDER_GIT_COMMIT`으로 넣어 준다.
+    """
+    return {"status": "ok", "build": config.BUILD_REV}

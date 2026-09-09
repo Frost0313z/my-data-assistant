@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from firebase_admin import firestore
+
 from .. import models
 from ..firestore_client import get_db
 
@@ -69,6 +71,24 @@ def _derive_title(user_message: str, topic: str | None) -> str:
     return title[: models.TITLE_MAX]
 
 
+@firestore.transactional
+def _append_in_transaction(transaction, ref, turns) -> bool:
+    """읽기와 쓰기를 한 트랜잭션에 묶는다. 붙였으면 True, 문서가 없으면 False.
+
+    트랜잭션 밖에서 읽고-고쳐-쓰면 같은 대화에 두 요청이 겹칠 때 나중 것이 앞의 턴을
+    통째로 덮어써 대화가 사라진다. `messages`가 배열 하나라 부분 갱신이 안 되기 때문이다.
+
+    ArrayUnion을 쓰지 않은 이유: 합집합이라 **같은 질문을 두 번 하면 두 번째가 조용히
+    사라진다.** 대화 기록에는 쓸 수 없는 의미다.
+    """
+    snap = ref.get(transaction=transaction)
+    if not snap.exists:
+        return False
+    messages = (snap.to_dict() or {}).get("messages", []) + turns
+    transaction.update(ref, {"messages": messages, "updated_at": _now()})
+    return True
+
+
 def append_turn(
     conversation_id: str | None,
     user_message: str,
@@ -77,31 +97,24 @@ def append_turn(
 ) -> str:
     """conversation_id가 없으면 새 대화를 만들고, 있으면 이어붙인다 (채팅 API의 자동 저장용)."""
     db = get_db()
-    ref = db.collection(COLLECTION).document(conversation_id) if conversation_id else None
-    messages = []
-    if ref is not None:
-        snap = ref.get()
-        if snap.exists:
-            messages = snap.to_dict().get("messages", [])
-        else:
-            ref = None
-
-    messages = messages + [
+    turns = [
         {"role": "user", "content": user_message},
         {"role": "assistant", "content": assistant_message},
     ]
 
-    if ref is None:
-        # 제목은 대화를 처음 만들 때만 정한다. 이어붙일 때 갱신하면 기록 목록이
-        # 마지막 질문을 따라 계속 흔들려 식별 가치가 사라진다.
-        _, ref = db.collection(COLLECTION).add(
-            {
-                "title": _derive_title(user_message, topic),
-                "messages": messages,
-                "updated_at": _now(),
-            }
-        )
-    else:
-        ref.update({"messages": messages, "updated_at": _now()})
+    if conversation_id:
+        ref = db.collection(COLLECTION).document(conversation_id)
+        if _append_in_transaction(db.transaction(), ref, turns):
+            return ref.id
+        # 문서가 사라졌으면(삭제 등) 새 대화로 떨어진다
 
+    # 제목은 대화를 처음 만들 때만 정한다. 이어붙일 때 갱신하면 기록 목록이
+    # 마지막 질문을 따라 계속 흔들려 식별 가치가 사라진다.
+    _, ref = db.collection(COLLECTION).add(
+        {
+            "title": _derive_title(user_message, topic),
+            "messages": turns,
+            "updated_at": _now(),
+        }
+    )
     return ref.id

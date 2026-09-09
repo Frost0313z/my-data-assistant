@@ -81,6 +81,16 @@
   --map-type-4: #C6BEDF;
   --map-type-5: #C9CED4;
 
+  /* 지도 증감률(§증감 지표). 발산형이라 한 색 램프를 쓸 수 없다 — 0을 기준으로
+     방향이 갈린다. 색상은 --trend-down/--trend-up과 같은 계열을 쓴다(규칙 2:
+     증감에 초록·빨강 금지). 감소는 한 칸뿐인데, 82개 중 9개만 줄어서 더 쪼개면
+     칸마다 두세 개씩만 들어간다. */
+  --map-change-1: #B06A2C;   /* 감소 */
+  --map-change-2: #D8E4F5;
+  --map-change-3: #9DBBE4;
+  --map-change-4: #5A88C4;
+  --map-change-5: #2F5FA8;
+
   /* 그림자 */
   --shadow-float: 0 4px 16px rgba(22, 25, 29, .10);
 
@@ -234,6 +244,11 @@ button { font-weight: 500; }
 .map-type-3 { background: var(--map-type-3); }
 .map-type-4 { background: var(--map-type-4); }
 .map-type-5 { background: var(--map-type-5); }
+.map-change-1 { background: var(--map-change-1); }
+.map-change-2 { background: var(--map-change-2); }
+.map-change-3 { background: var(--map-change-3); }
+.map-change-4 { background: var(--map-change-4); }
+.map-change-5 { background: var(--map-change-5); }
 .map-note { margin: 0; padding: 0 var(--sp-3) var(--sp-3); color: var(--ink-700); font-size: var(--fs-caption); line-height: 1.6; }
 .map-note a { color: var(--primary); }
 .map-selection { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3); margin: 0 var(--sp-3) var(--sp-3); background: var(--surface-sunken); border-radius: var(--r-control); font-variant-numeric: tabular-nums; }
@@ -638,3 +653,57 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .chat-input-row button { width: 100%; padding: var(--sp-3); }
   button { padding: var(--sp-3) var(--sp-4); }
 }
+
+/* A4: AI 답변의 마크다운 서식. 버블 안에서만 적용된다.
+   답변 안 제목은 화면 위계를 넘지 않아야 한다 — h3(18px)보다 크면 서비스 제목보다
+   답변 소제목이 커진다. */
+.bubble.assistant > :first-child { margin-top: 0; }
+.bubble.assistant > :last-child { margin-bottom: 0; }
+.bubble.assistant p { margin: 0 0 var(--sp-2); }
+.bubble.assistant h3, .bubble.assistant h4, .bubble.assistant h5, .bubble.assistant h6 {
+  margin: var(--sp-3) 0 var(--sp-2);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--ink-900);
+}
+.bubble.assistant ul, .bubble.assistant ol { margin: 0 0 var(--sp-2); padding-left: 1.2em; }
+.bubble.assistant li { margin-bottom: var(--sp-1); }
+.bubble.assistant code {
+  padding: 0 var(--sp-1);
+  background: var(--surface-sunken);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .92em;
+}
+/* 표는 좁은 채팅 칸을 넘길 수 있다. 페이지가 아니라 표만 가로로 스크롤한다. */
+.md-table { display: block; overflow-x: auto; width: 100%; border-collapse: collapse; margin: 0 0 var(--sp-2); font-variant-numeric: tabular-nums; }
+.md-table th, .md-table td { padding: var(--sp-1) var(--sp-2); border: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.md-table th { background: var(--surface-sunken); font-weight: 600; }
+
+/* F1: 접근성 보조 */
+
+/* 화면에는 안 보이지만 스크린리더는 읽는다. display:none이면 안 읽힌다. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* 평소엔 숨어 있다가 탭으로 오면 나타난다. 마우스 사용자에게는 보이지 않고
+   키보드 사용자에게는 첫 정지점이 된다. */
+.skip-link {
+  position: absolute;
+  left: var(--sp-3);
+  top: -100px;
+  z-index: 100;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--r-control);
+  transition: top var(--motion-feedback);
+}
+.skip-link:focus { top: var(--sp-3); }

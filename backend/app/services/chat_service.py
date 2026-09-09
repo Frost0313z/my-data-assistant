@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from openai import OpenAI
 
-from .. import config
+from .. import config, observability
 from . import conversation_service, data_service
 
 # 사전 분석 리포트(고정 스냅샷). 없으면 빈 문자열로 두고 실시간 요약만 주입한다.
@@ -149,11 +149,9 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def ask(
-    message: str,
-    conversation_id: Optional[str],
-    context: Optional[Dict[str, str]] = None,
-) -> tuple[str, str, Optional[Dict[str, int]]]:
+def _prepare(message, conversation_id, context):
+    """시스템 프롬프트·이력·상한을 만든다. 일반 답변과 스트리밍이 같은 것을 써야
+    두 경로의 답이 갈리지 않는다."""
     summary = data_service.get_summary()
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         period=summary.period,
@@ -175,15 +173,25 @@ def ask(
 
     # 리포트는 4블록을 채워야 해서 상한이 다르다. 일반 답변 상한(500)이면 [한계]가 잘린다.
     max_tokens = config.REPORT_MAX_TOKENS if _is_report(context) else config.CHAT_MAX_TOKENS
+    messages = [
+        {"role": "system", "content": system_prompt},
+        *history,
+        {"role": "user", "content": message},
+    ]
+    return messages, max_tokens, len(history)
+
+
+def ask(
+    message: str,
+    conversation_id: Optional[str],
+    context: Optional[Dict[str, str]] = None,
+) -> tuple[str, str, Optional[Dict[str, int]]]:
+    messages, max_tokens, history_len = _prepare(message, conversation_id, context)
 
     response = _get_client().chat.completions.create(
         model=config.OPENAI_MODEL,
         max_tokens=max_tokens,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            *history,
-            {"role": "user", "content": message},
-        ],
+        messages=messages,
     )
     reply = response.choices[0].message.content
 
@@ -199,8 +207,104 @@ def ask(
         else None
     )
 
+    # C4: 비용을 남긴다. `cached`가 0으로 굳어지면 프롬프트 캐시 프리픽스가 깨진
+    # 것이다 — 응답은 멀쩡하고 비용만 조용히 두 배가 되므로 로그가 유일한 단서다.
+    if raw:
+        details = getattr(raw, "prompt_tokens_details", None)
+        cached = getattr(details, "cached_tokens", 0) or 0
+        observability.log(
+            "chat.completed",
+            model=config.OPENAI_MODEL,
+            prompt_tokens=raw.prompt_tokens,
+            cached_tokens=cached,
+            completion_tokens=raw.completion_tokens,
+            max_tokens=max_tokens,
+            truncated=raw.completion_tokens >= max_tokens,
+            usd=observability.estimate_cost(
+                config.OPENAI_MODEL, raw.prompt_tokens, cached, raw.completion_tokens
+            ),
+            topic=(context or {}).get("topic"),
+            persona=(context or {}).get("persona"),
+            history_messages=history_len,
+        )
+
     # A13: 선택 주제를 제목에 반영한다. 기록 목록에서 대화를 구분하는 유일한 단서다.
     saved_id = conversation_service.append_turn(
         conversation_id, message, reply, (context or {}).get("topic")
     )
     return saved_id, reply, usage
+
+
+def stream(
+    message: str,
+    conversation_id: Optional[str],
+    context: Optional[Dict[str, str]] = None,
+):
+    """A4: 토큰이 도착하는 대로 흘려보낸다.
+
+    콜드스타트 43초는 C6가 줄이지만, 깨어 있어도 긴 답변은 10초 넘게 걸린다.
+    그동안 화면에 아무것도 안 나오면 사용자는 멈춘 줄 안다.
+
+    `(kind, payload)`를 yield한다. 라우터가 SSE로 감싼다 — 서비스가 전송 형식을
+    알 필요는 없다.
+
+    저장은 **끝까지 받은 뒤 한 번만** 한다. 조각마다 쓰면 Firestore 쓰기가 수백 번
+    일어나고, 중간에 끊긴 답을 대화 기록에 남기게 된다.
+    """
+    messages, max_tokens, history_len = _prepare(message, conversation_id, context)
+
+    chunks = []
+    usage_raw = None
+    response = _get_client().chat.completions.create(
+        model=config.OPENAI_MODEL,
+        max_tokens=max_tokens,
+        messages=messages,
+        stream=True,
+        # 스트리밍은 기본적으로 usage를 안 준다. 명시해야 마지막 청크에 실려 온다 —
+        # 없으면 토큰 표시(A8)와 비용 로그(C4)가 스트리밍 경로에서만 사라진다.
+        stream_options={"include_usage": True},
+    )
+    for chunk in response:
+        if getattr(chunk, "usage", None):
+            usage_raw = chunk.usage
+        for choice in chunk.choices or []:
+            piece = getattr(choice.delta, "content", None)
+            if piece:
+                chunks.append(piece)
+                yield "delta", piece
+
+    reply = "".join(chunks)
+    saved_id = conversation_service.append_turn(
+        conversation_id, message, reply, (context or {}).get("topic")
+    )
+
+    usage = (
+        {
+            "prompt_tokens": usage_raw.prompt_tokens,
+            "completion_tokens": usage_raw.completion_tokens,
+            "total_tokens": usage_raw.total_tokens,
+        }
+        if usage_raw
+        else None
+    )
+    if usage_raw:
+        details = getattr(usage_raw, "prompt_tokens_details", None)
+        cached = getattr(details, "cached_tokens", 0) or 0
+        observability.log(
+            "chat.completed",
+            streamed=True,
+            model=config.OPENAI_MODEL,
+            prompt_tokens=usage_raw.prompt_tokens,
+            cached_tokens=cached,
+            completion_tokens=usage_raw.completion_tokens,
+            max_tokens=max_tokens,
+            truncated=usage_raw.completion_tokens >= max_tokens,
+            usd=observability.estimate_cost(
+                config.OPENAI_MODEL, usage_raw.prompt_tokens, cached, usage_raw.completion_tokens
+            ),
+            topic=(context or {}).get("topic"),
+            persona=(context or {}).get("persona"),
+            history_messages=history_len,
+        )
+
+    yield "done", {"conversation_id": saved_id, "usage": usage}

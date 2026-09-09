@@ -40,6 +40,11 @@ const SUGGESTIONS_BY_TOPIC = {
   ],
   // 아래 세 키는 임베드 주제가 아니라 지도 지표(A23)에 붙는다. map.js가 지표를 바꾸면
   // window.activeTopicId가 지표 키로 바뀌어 제안 질문도 따라온다.
+  change: [
+    "늘어난 동과 줄어든 동은 각각 어디야?",
+    "월평3동 +82.2%는 왜 그렇게 커?",
+    "많이 늘어난 곳이 좋은 곳이라는 뜻이야?",
+  ],
   // A26 지역 유형. 유형은 우리가 만든 구분이라 "이 유형이 좋은 거야?"가 반드시 나온다.
   // 그 질문을 제안에 미리 올려 두고 프롬프트가 정직하게 받게 한다.
   type: [
@@ -166,20 +171,23 @@ function appendUsage(usage) {
 }
 
 // F3: 에러 버블 — 상황별 문구 + 재시도 버튼
-function showErrorBubble(kind, retryFn) {
+function showErrorBubble(kind, retryFn, detail) {
   const list = document.getElementById("chat-messages");
   const bubble = document.createElement("div");
   bubble.className = "bubble error";
+  // 오류는 기다릴 것이 없으므로 바로 알린다.
+  bubble.setAttribute("role", "alert");
 
   // 이 버블은 요청이 '실제로 실패했을 때'만 뜬다. 대기 중 안내는 A21 타이머가 맡는다.
   // 예전 cold 문구는 "깨우는 중… 잠시 후 다시 시도"였는데, 콜드스타트 요청은 붙잡힌 채
   // 자동 완료되므로(실측 43초) 재시도를 권하는 것이 오안내였다.
   const messages = {
     connection: "서버에 연결하지 못했습니다. 백엔드가 절전 상태였다면 다시 시도할 때 깨어납니다 (최대 50초). 로컬에서 개발 중이라면 백엔드 실행 여부와 CORS 설정도 확인해 주세요.",
+    limited: "요청이 너무 잦습니다. 잠시 뒤에 다시 시도해 주세요.",
     ai: "AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
     generic: "요청을 처리하지 못했습니다. 네트워크 상태를 확인하고 다시 시도해 주세요.",
   };
-  bubble.appendChild(document.createTextNode(messages[kind] || messages.generic));
+  bubble.appendChild(document.createTextNode(detail || messages[kind] || messages.generic));
 
   if (retryFn) {
     const retry = document.createElement("button");
@@ -199,6 +207,9 @@ function showErrorBubble(kind, retryFn) {
 // 오진한 적이 있다. 원인을 단정할 수 없으므로 이름과 문구를 중립적으로 둔다.
 function classifyError(err) {
   const msg = (err && err.message) || "";
+  // C3: 제한에 걸린 것은 실패가 아니다. "네트워크를 확인하라"고 하면 엉뚱한 곳을 보게 된다.
+  // 백엔드가 이유까지 문장으로 주므로 그대로 보여준다.
+  if (err && err.rateLimited) return "limited";
   if (/Failed to fetch|NetworkError|timeout|시간 초과/i.test(msg)) return "connection";
   if (/OpenAI|AI|502|503|LLM/i.test(msg)) return "ai";
   return "generic";
@@ -244,7 +255,12 @@ async function loadConversationIntoChat(conversationId) {
   currentConversationId = conversation.id;
   const list = document.getElementById("chat-messages");
   list.innerHTML = "";
-  (conversation.messages || []).forEach((m) => appendMessage(m.role, m.content));
+  // 저장된 AI 답변도 서식으로 그린다. 불러온 대화만 마크다운이 날것으로 보이면
+  // 방금 받은 답과 달라 보인다.
+  (conversation.messages || []).forEach((m) => {
+    const bubble = appendMessage(m.role, m.content);
+    if (m.role === "assistant") renderReply(bubble, m.content);
+  });
   document.getElementById("chat-suggestions").textContent = "";
   lastNotifiedTopic = null;
 }
@@ -271,6 +287,60 @@ function appendReportCta() {
   wrap.appendChild(button);
   list.appendChild(wrap);
   list.scrollTop = list.scrollHeight;
+}
+
+// A4: 답변을 그린다. 마크다운 렌더러가 없으면(로드 실패) 글자 그대로 — 서식이
+// 없을 뿐 내용은 보인다.
+function renderReply(bubble, text) {
+  if (window.renderMarkdown) window.renderMarkdown(bubble, text);
+  else bubble.textContent = text;
+}
+
+// 스트리밍 경로. 실패하면 비스트리밍으로 떨어진다.
+//
+// 스트리밍 중에는 **글자 그대로** 붙인다. 조각마다 마크다운을 다시 그리면 미완성
+// 문법(`**중앙`)이 매번 다르게 해석돼 화면이 덜덜 떨린다. 다 받은 뒤 한 번만 그린다.
+async function sendStreaming(message, context, bubble, stopWaitTimer) {
+  if (!api.streamChat || typeof window.TextDecoder === "undefined") {
+    const result = await api.sendChat(message, currentConversationId, context);
+    renderReply(bubble, result.reply);
+    return result;
+  }
+
+  let text = "";
+  let started = false;
+  try {
+    const result = await api.streamChat(message, currentConversationId, context, (piece) => {
+      // 첫 글자가 도착하면 대기 타이머를 멈춘다. 안 그러면 답변 위에 경과 초가
+      // 계속 덧쓰인다.
+      if (!started) {
+        started = true;
+        stopWaitTimer();
+        bubble.textContent = "";
+        // F1: 채우는 동안은 읽지 않게 한다. aria-live 영역이라 그냥 두면 토큰마다
+        // 읽어 소음이 된다. 다 받고 false로 바꿀 때 한 번에 읽힌다.
+        bubble.setAttribute("aria-busy", "true");
+      }
+      text += piece;
+      bubble.textContent = text;
+      const list = document.getElementById("chat-messages");
+      list.scrollTop = list.scrollHeight;
+    });
+    renderReply(bubble, text);
+    bubble.removeAttribute("aria-busy");
+    return result;
+  } catch (err) {
+    // 한 글자라도 받았으면 이미 화면에 답이 떠 있다. 여기서 다시 보내면 같은 질문에
+    // 두 번 과금되고 답이 두 번 저장된다.
+    if (started) throw err;
+    // 제한에 걸린 것은 스트리밍이 안 되는 게 아니다. 폴백해도 똑같이 막히면서
+    // 요청 수만 두 배가 된다.
+    if (err && err.rateLimited) throw err;
+    bubble.removeAttribute("aria-busy");
+    const result = await api.sendChat(message, currentConversationId, context);
+    renderReply(bubble, result.reply);
+    return result;
+  }
 }
 
 // options 없이 부르면 입력창의 내용을 보낸다. 리포트·재시도는 options로 넘긴다.
@@ -304,20 +374,29 @@ async function sendMessage(options) {
   if (!opts.retry) appendMessage("user", message);
   if (window.switchToChatPane) window.switchToChatPane();
   const loadingBubble = appendMessage("assistant", WAIT_BASE);
+  // F1: 경과 초가 1초마다 바뀐다. 그대로 두면 스크린리더가 매초 읽는다.
+  loadingBubble.setAttribute("aria-busy", "true");
   const stopWaitTimer = startWaitTimer(loadingBubble);
 
   try {
-    const result = await api.sendChat(message, currentConversationId, context);
+    // A4: 스트리밍을 먼저 시도한다. 첫 글자가 빨리 나와야 사용자가 기다릴 수 있다.
+    // 실패하면(SSE를 버퍼링하는 프록시, 구형 브라우저) 기존 경로로 떨어진다 —
+    // 스트리밍은 표현 방식이지 기능이 아니므로 없다고 서비스가 멈추면 안 된다.
+    const result = await sendStreaming(message, context, loadingBubble, stopWaitTimer);
+    loadingBubble.removeAttribute("aria-busy");
     currentConversationId = result.conversation_id;
-    loadingBubble.textContent = result.reply;
     appendUsage(result.usage);
     refreshHistory();
     // 리포트 답변 뒤에 또 리포트를 권하지 않는다
     if (!opts.isReport) appendReportCta();
   } catch (err) {
     loadingBubble.remove();
-    showErrorBubble(classifyError(err), () =>
-      sendMessage({ text: message, context: context, isReport: opts.isReport, retry: true })
+    const kind = classifyError(err);
+    showErrorBubble(
+      kind,
+      () => sendMessage({ text: message, context: context, isReport: opts.isReport, retry: true }),
+      // 제한 안내는 백엔드가 "몇 초 뒤"까지 계산해서 준다. 여기서 다시 쓰지 않는다.
+      kind === "limited" ? err.message : undefined
     );
   } finally {
     // 성공·실패 어느 쪽이든 반드시 멈춘다. 안 그러면 답변이 도착한 뒤에도

@@ -24,7 +24,10 @@
 | [`design/motion.md`](design/motion.md) | 모션 스케일 3단 · 인터랙션 8종 · 대기 상태 | **구현 스펙** |
 | [`specs/`](specs/README.md) | A~F 스펙 항목 전체 (ID·우선순위·공수·수용 기준) | **작업 단위** |
 | [`roadmap.md`](roadmap.md) | Phase 1 / 1-b / 2 / 3 계획 · 리스크 · 진행 현황 | 계획 |
-| [`decisions.md`](decisions.md) | 확정된 결정 5건 + 미결 1건 | **재논의 금지 목록** |
+| [`decisions.md`](decisions.md) | 확정된 결정 7건 + 설계 판단 | **재논의 금지 목록** |
+| [`adr/`](adr/README.md) | ADR 5건 — 바닐라 JS · Firestore · 컨텍스트 주입 · 임베드 · 키/CORS | **왜 그렇게 했나** |
+| [`RETROSPECTIVE.md`](RETROSPECTIVE.md) | 회고 — 어려웠던 지점 · 배운 것 · 트레이드오프 · 다음 단계 | 읽을거리 |
+| [`DEMO.md`](DEMO.md) | 데모 대본(60초) · 녹화 시 주의 | 녹화용 |
 | [`roles/`](roles/README.md) | 역할 6종 + 조율자 · 파일 소유권 · 충돌 지점 · 병렬 계획. **역할별 브리핑 7종** | **팀 구성 시** |
 | [`CHANGELOG.md`](CHANGELOG.md) | 문서 변경 이력 (v0.1~v1.0) | 이력 |
 

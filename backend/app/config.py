@@ -16,6 +16,29 @@ HISTORY_MAX_MESSAGES = int(os.environ.get("HISTORY_MAX_MESSAGES", "8"))
 # 500으로는 [한계] 블록이 잘려 나가는데, 그 블록이 이 서비스의 차별점이라 잘리면 안 된다.
 REPORT_MAX_TOKENS = int(os.environ.get("REPORT_MAX_TOKENS", "1200"))
 
+# C5: 요약 캐시 수명(초). 채팅 한 번마다 컬렉션을 통째로 읽는 것을 막는다.
+# 쓰기 경로가 캐시를 직접 비우므로 이 값은 "다른 인스턴스가 고쳤을 때" 대비용이다.
+# 0으로 두면 캐시가 꺼진다.
+SUMMARY_CACHE_TTL = float(os.environ.get("SUMMARY_CACHE_TTL", "30"))
+
+# C4: 배포된 것이 어느 커밋인지. Render가 `RENDER_GIT_COMMIT`을 넣어 준다.
+# 배포 브랜치와 실제 배포본이 어긋난 사례가 있었는데 스키마만으로는 구분이 안 됐다.
+BUILD_REV = (os.environ.get("RENDER_GIT_COMMIT") or os.environ.get("BUILD_REV") or "dev")[:12]
+
+# D3: 데모 복구 엔드포인트(POST /api/dev/reset)의 토큰. **비어 있으면 엔드포인트가
+# 통째로 없는 것처럼 404를 낸다.** 데이터를 지우는 경로라 기본값은 꺼짐이어야 한다.
+DEV_RESET_TOKEN = os.environ.get("DEV_RESET_TOKEN", "")
+
+# C3: 채팅 남용 방어. 0이면 그 겹을 끈다.
+#  - 분당 요청: 사람이 손으로 낼 수 있는 속도를 넘는 것을 끊는다.
+#  - 일일 토큰: 느리게 오래 두드리는 것을 끊는다. 분당 제한만으로는 못 막는다.
+# C7: 에러 트래킹. DSN이 없으면 Sentry를 아예 켜지 않는다 — 계정 없이도 돌아야 한다.
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+SENTRY_ENV = os.environ.get("SENTRY_ENVIRONMENT", "production" if os.environ.get("RENDER") else "local")
+
+CHAT_RATE_PER_MINUTE = int(os.environ.get("CHAT_RATE_PER_MINUTE", "10"))
+DAILY_TOKEN_BUDGET = int(os.environ.get("DAILY_TOKEN_BUDGET", "300000"))
+
 FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
 
 ALLOWED_ORIGINS = [
@@ -23,3 +46,7 @@ ALLOWED_ORIGINS = [
     for origin in os.environ.get("ALLOWED_ORIGINS", "*").split(",")
     if origin.strip()
 ]
+# 기본값을 좁히지 않는 이유: `ALLOWED_ORIGINS`가 빠진 배포에서 프론트가 그냥 죽는다.
+# 대신 **조용하지 않게** 만든다 — 와일드카드로 뜨면 시작 로그가 그렇게 말한다.
+# 진짜 잠그는 것은 C3(rate limit·상한)과 함께 판단한다.
+CORS_IS_WILDCARD = "*" in ALLOWED_ORIGINS
