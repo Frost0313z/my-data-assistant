@@ -54,7 +54,7 @@ GET  /api/data/summary 기간·개수·평균/최대/최소·추세
 - 현재 주제가 **대화 이력보다 우선**한다
 - 답변 **첫 문장에서 어떤 주제 기준인지 밝힌다**
 
-`ChatRequest.context`의 허용 키는 **`topic` 하나뿐**(`CONTEXT_KEYS`). 화이트리스트 검증이라 임의 키는 422가 난다.
+`ChatRequest.context`의 허용 키는 **`topic`·`mode`·`persona`·`regionType`**(`CONTEXT_KEYS`). 뒤 3개는 `CONTEXT_ENUMS`로 값까지 좁힌다. 화이트리스트 검증이라 임의 키는 422가 난다.
 
 ---
 

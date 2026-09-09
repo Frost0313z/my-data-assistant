@@ -85,6 +85,26 @@ def main():
     assert "[선택한 분석 주제]" in block and "주제: 점포 교체율" in block, block
     print("OK  통과: _build_screen_block이 선택 주제 블록을 만든다")
 
+    # A26 지역 유형도 값 화이트리스트다
+    r = models.ChatRequest(message="안녕", context={"regionType": "dense_churn"})
+    assert r.context == {"regionType": "dense_churn"}, r.context
+    r = models.ChatRequest(message="안녕", context={"regionType": "좋은곳"})
+    assert r.context is None, r.context
+    print("OK  통과: context.regionType은 허용 값 5종만 남긴다")
+
+    # 유형 블록은 "좋다/나쁘다로 답하지 말라"를 반드시 담아야 한다.
+    # 이 문장이 빠지면 AI가 "좋은 지역 유형입니다"라고 답한다 — 실제로 그랬다.
+    from app.services.chat_service import _build_region_type_block, REGION_TYPE_HINTS
+
+    assert _build_region_type_block(None) == ""
+    assert _build_region_type_block({"regionType": "없는값"}) == ""
+    for key in REGION_TYPE_HINTS:
+        b = _build_region_type_block({"regionType": key})
+        assert "평가나 점수가 아니다" in b, key
+        assert "좋다·나쁘다로 답하지 말고" in b, key
+        assert "매출·유동인구" in b, key
+    print(f"OK  통과: 지역 유형 {len(REGION_TYPE_HINTS)}종 전부 평가 금지 문구를 담는다")
+
     # --- 프롬프트 캐시 프리픽스: 가변 블록이 앞으로 올라오면 조용히 깨진다 ---
     # OpenAI 자동 캐싱은 앞에서부터 같은 구간만 재사용하고 1,024토큰 이상이어야 붙는다.
     # 요약·주제·페르소나 중 하나라도 위로 올라가면 그 뒤가 전부 캐시에서 빠지는데,

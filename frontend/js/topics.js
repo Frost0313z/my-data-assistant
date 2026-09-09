@@ -157,9 +157,10 @@ window.screenContext = null;
 
   // 지도에서 선택한 지역·시점을 기존 topic 컨텍스트로 전달한다.
   // metricKey를 함께 받아 제안 질문(A10)이 현재 지도 지표를 따라가게 한다.
-  window.focusMapAnalysis = function (label, metricKey) {
+  window.focusMapAnalysis = function (label, metricKey, regionType) {
     activeId = null;
-    window.screenContext = { topic: label };
+    // A26: 유형은 화면이 만든 구분이라 라벨만 보내면 AI가 뜻을 모른 채 평가해 버린다.
+    window.screenContext = regionType ? { topic: label, regionType: regionType } : { topic: label };
     window.activeTopicId = metricKey || "density";
     list.querySelectorAll("button").forEach((b) => {
       b.classList.remove("active");

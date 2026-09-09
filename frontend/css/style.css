@@ -71,6 +71,16 @@
   --map-level-4: #2B6A94;
   --map-level-5: #163E65;
 
+  /* A26 지역 유형. 순서 있는 램프가 아니라 범주라 색도 순서를 만들면 안 된다.
+     두 축을 두 속성으로 나눠 넣는다 — 색상(파랑=자리잡음 / 보라=자주 바뀜),
+     명도(진함=촘촘 / 연함=성김). 좋고 나쁨으로 읽히는 초록·빨강은 쓰지 않는다
+     (design-system 규칙 2). 다섯째는 유형에 넣지 않은 동이라 무채색이다. */
+  --map-type-1: #2B6A94;
+  --map-type-2: #6B5AA6;
+  --map-type-3: #AFCEE0;
+  --map-type-4: #C6BEDF;
+  --map-type-5: #C9CED4;
+
   /* 그림자 */
   --shadow-float: 0 4px 16px rgba(22, 25, 29, .10);
 
@@ -219,6 +229,11 @@ button { font-weight: 500; }
 .map-level-3 { background: var(--map-level-3); }
 .map-level-4 { background: var(--map-level-4); }
 .map-level-5 { background: var(--map-level-5); }
+.map-type-1 { background: var(--map-type-1); }
+.map-type-2 { background: var(--map-type-2); }
+.map-type-3 { background: var(--map-type-3); }
+.map-type-4 { background: var(--map-type-4); }
+.map-type-5 { background: var(--map-type-5); }
 .map-note { margin: 0; padding: 0 var(--sp-3) var(--sp-3); color: var(--ink-700); font-size: var(--fs-caption); line-height: 1.6; }
 .map-note a { color: var(--primary); }
 .map-selection { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3); margin: 0 var(--sp-3) var(--sp-3); background: var(--surface-sunken); border-radius: var(--r-control); font-variant-numeric: tabular-nums; }

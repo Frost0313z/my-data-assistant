@@ -15,14 +15,21 @@ CONTENT_MAX = 8000
 
 # 화면 상태(context): 사용자가 고른 분석 주제와 요청 모드. 허용 키 화이트리스트 + 값 길이 상한.
 # 프론트가 이미 정제하지만, 프롬프트에 직접 들어가므로 서버에서도 좁게 통과시킨다.
-CONTEXT_KEYS = {"topic", "mode", "persona"}
+CONTEXT_KEYS = {"topic", "mode", "persona", "regionType"}
 CONTEXT_VALUE_MAX = 80
 
-# mode·persona는 키뿐 아니라 값도 화이트리스트다. topic과 달리 프롬프트 분기를
+# mode·persona·regionType은 키뿐 아니라 값도 화이트리스트다. topic과 달리 프롬프트 분기를
 # 결정하므로 임의 문자열이 들어오면 의도하지 않은 경로를 탈 수 있다.
 CONTEXT_MODES = {"report"}
 CONTEXT_PERSONAS = {"explore", "prepare", "running"}
-CONTEXT_ENUMS = {"mode": CONTEXT_MODES, "persona": CONTEXT_PERSONAS}
+# A26 지역 유형. 화면이 만든 구분이라 리포트에는 없다 — 무슨 뜻인지 백엔드가 알려줘야
+# AI가 "좋은 지역 유형입니다" 같은 답을 하지 않는다.
+CONTEXT_REGION_TYPES = {"dense_stable", "dense_churn", "sparse_stable", "sparse_churn", "aside"}
+CONTEXT_ENUMS = {
+    "mode": CONTEXT_MODES,
+    "persona": CONTEXT_PERSONAS,
+    "regionType": CONTEXT_REGION_TYPES,
+}
 
 
 def _clean_text(value: str) -> str:

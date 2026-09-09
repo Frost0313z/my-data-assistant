@@ -8,6 +8,28 @@
   const css = getComputedStyle(document.documentElement);
   const color = (name) => css.getPropertyValue(name).trim();
   const colors = [1, 2, 3, 4, 5].map((n) => color(`--map-level-${n}`));
+  const typeColors = [1, 2, 3, 4, 5].map((n) => color(`--map-type-${n}`));
+
+  // A26: 지역 유형. 점수가 아니라 유형이다 — 어느 칸도 다른 칸보다 낫지 않다.
+  //
+  // 밀도와 교체율을 각각 중앙값에서 잘라 2×2로 놓는다. 두 축을 고른 이유는 이 데이터로
+  // 답할 수 있는 질문이 "가게가 얼마나 있나"와 "얼마나 오래 남나" 둘뿐이기 때문이다.
+  // 합성 점수를 만들지 않는 이유는 decisions.md 설계 판단에 있다 — 밀도는 9.4~596.6으로
+  // 퍼져 있고 나머지는 좁은 폭에 몰려 있어 가중합이 사실상 밀도 하나짜리가 된다.
+  //
+  // 이름은 전부 묘사다. "유망"·"침체"처럼 좋고 나쁨을 말하는 낱말은 쓸 수 없다 —
+  // 매출이 없어서 그 판단을 할 자격이 없다.
+  // key는 백엔드 화이트리스트 값이다. 유형은 우리가 만든 구분이라 AI가 알 수 없어,
+  // 고른 유형을 함께 보내지 않으면 "좋은 지역 유형입니다" 같은 답이 나온다(실측).
+  // 설명 문구는 백엔드가 갖는다 — 프론트가 임의 문자열을 넣으면 프롬프트 주입 표면이 된다.
+  const TYPES = [
+    { key: "dense_stable", label: "촘촘하고 자리잡은 곳", hint: "주민 수에 비해 가게가 많고, 교체가 평균보다 적습니다." },
+    { key: "dense_churn", label: "촘촘하고 자주 바뀌는 곳", hint: "주민 수에 비해 가게가 많고, 교체가 평균보다 잦습니다." },
+    { key: "sparse_stable", label: "성기고 자리잡은 곳", hint: "주민 수에 비해 가게가 적고, 교체가 평균보다 적습니다." },
+    { key: "sparse_churn", label: "성기고 자주 바뀌는 곳", hint: "주민 수에 비해 가게가 적고, 교체가 평균보다 잦습니다." },
+    { key: "aside", label: "따로 봐야 하는 곳", hint: "두 축 중 하나를 믿을 수 없어 유형에 넣지 않았습니다." },
+  ];
+  const ASIDE = 4;
 
   // A23: 지표마다 범위와 단위가 다르다.
   //
@@ -44,8 +66,42 @@
       unit: "", digits: 3,
       note: "입지계수(LQ)와는 다른 지표입니다. 기성동 숙박업은 LQ 19.2지만 35개뿐이고, 중앙동 음식점업은 LQ 0.73(평균 이하)인데 1,000명당 125개로 최다입니다. 비율만으로 시장 크기를 판단하면 안 됩니다.",
     },
+    type: {
+      label: "지역 유형", legend: "밀도 × 교체율 4유형",
+      unit: "", digits: 0, categorical: true,
+      note: "점수가 아니라 유형입니다 — 어느 칸도 다른 칸보다 낫지 않습니다. 두 축 모두 그 시점 82개 동의 중앙값에서 자릅니다. 업소가 200개 미만이면 교체율이 분모 때문에 크게 흔들리고, 밀도가 75분위의 3배를 넘으면 상주인구 나눗셈이 만든 값이라 어느 쪽도 유형에 넣지 않습니다.",
+    },
   };
   const METRIC_KEYS = Object.keys(METRICS);
+
+  // 유형 경계는 그 시점 82개 동에서 매번 다시 잡는다. 값을 코드에 박아두면
+  // 시점을 바꿨을 때 조용히 어긋난다.
+  function typeCuts() {
+    const all = rows();
+    const at = (key, p) => {
+      const v = all.map((r) => r[key]).filter((x) => x !== null && x !== undefined).sort((a, b) => a - b);
+      return v[Math.min(v.length - 1, Math.round(p * (v.length - 1)))];
+    };
+    return { density: at("density", 0.5), turnover: at("turnover", 0.5), overDense: at("density", 0.75) * 3 };
+  }
+  // 소수 자릿수를 고정한다. 32%와 32.0%가 섞이면 같은 줄에서 다른 정밀도로 읽힌다.
+  const num = (v, d) =>
+    v.toLocaleString("ko-KR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  // 왜 유형에서 뺐는지 — 화면에 그대로 적을 문장을 함께 돌려준다.
+  function asideReason(row, cuts) {
+    if (row.density > cuts.overDense) {
+      return `밀도가 75분위의 3배(${num(cuts.overDense, 1)})를 넘습니다 — 상주인구로 나눈 값이라 원도심에서 과대해집니다.`;
+    }
+    if (row.stores < 200) {
+      return `등록 업소가 ${num(row.stores, 0)}개뿐이라 교체율의 분모가 작습니다.`;
+    }
+    return "";
+  }
+  function typeIndex(row, cuts) {
+    if (row.turnover === null || row.turnover === undefined) return ASIDE;
+    if (asideReason(row, cuts)) return ASIDE;
+    return (row.density >= cuts.density ? 0 : 2) + (row.turnover >= cuts.turnover ? 1 : 0);
+  }
 
   const categorySelect = $("map-category");
   let map, data, points = null, selected = "", view = "3d", ready = false, fallback = false;
@@ -53,15 +109,26 @@
   let breaks = METRICS.density.fixed;
 
   const spec = () => METRICS[metric];
+  // 범주형은 색이 순서를 뜻하지 않으므로 램프 대신 별도 팔레트를 쓴다.
+  const palette = () => (spec().categorical ? typeColors : colors);
   const fmt = (v) =>
     v === null || v === undefined
       ? "-"
-      : `${v.toLocaleString("ko-KR", { maximumFractionDigits: spec().digits })}${spec().unit}`;
-  const colorFor = (v) => (v === null || v === undefined ? color("--map-canvas") : colors[breaks.filter((b) => v >= b).length]);
+      : spec().categorical
+        ? TYPES[v].label
+        : `${v.toLocaleString("ko-KR", { maximumFractionDigits: spec().digits })}${spec().unit}`;
+  const colorFor = (v) => (v === null || v === undefined ? color("--map-canvas") : palette()[breaks.filter((b) => v >= b).length]);
+
+  // 지표 값. 유형은 데이터에 없고 두 지표에서 계산한다.
+  function valueOf(row, cuts) {
+    return spec().categorical ? typeIndex(row, cuts || typeCuts()) : row[metric];
+  }
 
   // 분위 구간. 값이 몰려 있어 경계가 겹치면 중복을 제거한다(구간 수가 줄 뿐 색은 어긋나지 않는다).
   function computeBreaks() {
     const s = spec();
+    // 범주형은 0~4 인덱스를 그대로 칸으로 쓴다. 같은 step 표현식을 재사용한다.
+    if (s.categorical) return [0.5, 1.5, 2.5, 3.5];
     if (s.fixed) return s.fixed;
     const v = rows().map((r) => r[metric]).filter((x) => x !== null && x !== undefined).sort((a, b) => a - b);
     if (!v.length) return [];
@@ -80,7 +147,8 @@
   function rows() { return data.metrics[period.value]; }
   // 선택된 지표를 항상 'value'로 실어 보낸다. 그래야 레이어 표현식이 지표와 무관해진다.
   function features() {
-    const values = new Map(rows().map((r) => [r.dong_code, r[metric]]));
+    const cuts = spec().categorical ? typeCuts() : null;
+    const values = new Map(rows().map((r) => [r.dong_code, valueOf(r, cuts)]));
     return data.boundaries.features.map((f) => ({
       ...f,
       properties: { ...f.properties, value: values.get(f.properties.dong_code) ?? null },
@@ -168,17 +236,28 @@
     const title = document.createElement("strong");
     title.textContent = s.legend;
     box.append(title);
-    const edges = ["", ...breaks.map(fmt)];
-    breaks.concat([null]).forEach((_, i) => {
-      const span = document.createElement("span");
-      const swatch = document.createElement("i");
-      swatch.className = `map-swatch map-level-${i + 1}`;
-      span.append(swatch, document.createTextNode(
-        i === 0 ? `${edges[1]} 미만`
-          : i === breaks.length ? `${edges[i]} 이상`
-            : `${edges[i]}–${edges[i + 1]}`));
-      box.append(span);
-    });
+    if (s.categorical) {
+      TYPES.forEach((t, i) => {
+        const span = document.createElement("span");
+        const swatch = document.createElement("i");
+        swatch.className = `map-swatch map-type-${i + 1}`;
+        span.title = t.hint;
+        span.append(swatch, document.createTextNode(t.label));
+        box.append(span);
+      });
+    } else {
+      const edges = ["", ...breaks.map(fmt)];
+      breaks.concat([null]).forEach((_, i) => {
+        const span = document.createElement("span");
+        const swatch = document.createElement("i");
+        swatch.className = `map-swatch map-level-${i + 1}`;
+        span.append(swatch, document.createTextNode(
+          i === 0 ? `${edges[1]} 미만`
+            : i === breaks.length ? `${edges[i]} 이상`
+              : `${edges[i]}–${edges[i + 1]}`));
+        box.append(span);
+      });
+    }
     // 해설은 범례가 아니라 지도 아래 별도 줄에 둔다. 범례에 섞으면 색 읽기를 방해한다.
     const insight = $("map-insight");
     if (insight) insight.textContent = s.note || "";
@@ -190,16 +269,31 @@
     const row = rows().find((r) => r.dong_code === selected);
     const when = spec().allPeriods ? data.turnoverRange.map((p) => p.slice(0, 7)).join(" → ") : period.value.slice(0, 7);
     const label = `${spec().label} · ${when}${row ? ` · ${row.district} ${row.dong}` : " · 대전 전체"}`;
-    if (window.focusMapAnalysis) window.focusMapAnalysis(label, metric);
+    const regionType = row && spec().categorical ? TYPES[typeIndex(row, typeCuts())].key : "";
+    if (window.focusMapAnalysis) window.focusMapAnalysis(label, metric, regionType);
+  }
+  // A26: 유형 하나만 던지면 "왜"가 없다. 판정에 쓴 두 값과 그때의 기준선을 같이 적는다.
+  // 유형에 넣지 않은 동은 유형 대신 뺀 이유를 적는다 — 빈칸으로 두면 데이터가 없는 건지
+  // 우리가 못 정한 건지 알 수 없다.
+  function describeType(row, when) {
+    const cuts = typeCuts();
+    const idx = typeIndex(row, cuts);
+    const basis =
+      `밀도 ${num(row.density, 1)} (중앙 ${num(cuts.density, 1)})` +
+      ` · 교체율 ${row.turnover === null ? "-" : num(row.turnover, 1) + "%"} (중앙 ${num(cuts.turnover, 1)}%)` +
+      ` · 등록 업소 ${num(row.stores, 0)}개`;
+    const reason = idx === ASIDE ? ` ${asideReason(row, cuts) || "교체율 값이 없습니다."}` : "";
+    return `${when} · ${TYPES[idx].label} — ${TYPES[idx].hint}${reason} ${basis}`;
   }
   function showSelection() {
     const row = rows().find((r) => r.dong_code === selected);
     const when = spec().allPeriods ? data.turnoverRange.map((p) => p.slice(0, 7)).join(" → ") : period.value.slice(0, 7);
     $("map-selection-name").textContent = row ? `${row.district} ${row.dong}` : "어느 동이 궁금하세요?";
     $("map-selection-value").textContent = row
-      // 밀도만 볼 때 원도심이 과대해 보이는 문제가 있어 업소 수를 항상 함께 적는다.
-      ? `${when} · ${spec().legend} ${fmt(row[metric])}` +
-        (metric === "stores" ? "" : ` · 등록 업소 ${row.stores.toLocaleString("ko-KR")}개`)
+      ? spec().categorical ? describeType(row, when)
+        // 밀도만 볼 때 원도심이 과대해 보이는 문제가 있어 업소 수를 항상 함께 적는다.
+        : `${when} · ${spec().legend} ${fmt(row[metric])}` +
+          (metric === "stores" ? "" : ` · 등록 업소 ${row.stores.toLocaleString("ko-KR")}개`)
       : "지도나 행정동 목록에서 지역을 선택해 주세요.";
     $("map-ask").disabled = !row;
     dong.value = selected;
@@ -228,10 +322,17 @@
   // (HHI 0.15~0.44 vs 업소 수 135~3,444) 3D 높이는 최대값 기준으로 정규화한다.
   function paint() {
     if (!ready) return;
-    const fill = ["step", ["get", "value"], colors[0], ...breaks.flatMap((b, i) => [b, colors[i + 1]])];
-    const max = Math.max(...rows().map((r) => r[metric] ?? 0), 1);
+    const ramp = palette();
+    const fill = ["step", ["get", "value"], ramp[0], ...breaks.flatMap((b, i) => [b, ramp[i + 1]])];
     map.setPaintProperty("density-2d", "fill-color", fill);
     map.setPaintProperty("density-3d", "fill-extrusion-color", fill);
+    // 범주형은 높이가 뜻을 가질 수 없다. 유형 번호를 높이로 세우면 4번이 1번보다
+    // 큰 값이라는 거짓말이 된다. 전부 같은 높이로 눕히고 색만 읽게 한다.
+    if (spec().categorical) {
+      map.setPaintProperty("density-3d", "fill-extrusion-height", 900);
+      return;
+    }
+    const max = Math.max(...rows().map((r) => r[metric] ?? 0), 1);
     map.setPaintProperty("density-3d", "fill-extrusion-height", ["*", ["coalesce", ["get", "value"], 0], 3500 / max]);
   }
   function updateMap() {
@@ -256,9 +357,11 @@
     view = mode;
     viewButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === mode)));
     const metricLabel = withObjectParticle(spec().label);
-    $("map-view-note").textContent = mode === "3d"
-      ? `3D 높이는 ${metricLabel} 표현합니다. 실제 건물 높이가 아닙니다.`
-      : `2D 색은 ${metricLabel} 표현합니다. 3D와 같은 데이터·구간을 사용합니다.`;
+    $("map-view-note").textContent = spec().categorical
+      ? "지역 유형은 색으로만 구분합니다. 유형에는 순서가 없어 3D 높이를 쓰지 않습니다."
+      : mode === "3d"
+        ? `3D 높이는 ${metricLabel} 표현합니다. 실제 건물 높이가 아닙니다.`
+        : `2D 색은 ${metricLabel} 표현합니다. 3D와 같은 데이터·구간을 사용합니다.`;
     if (!ready) return;
     map.setLayoutProperty("density-2d", "visibility", mode === "2d" ? "visible" : "none");
     map.setLayoutProperty("density-3d", "visibility", mode === "3d" ? "visible" : "none");

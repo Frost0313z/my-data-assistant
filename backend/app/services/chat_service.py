@@ -93,6 +93,35 @@ def _build_persona_block(context: Optional[Dict[str, str]]) -> str:
     )
 
 
+# A26: 화면이 보여주는 지역 유형. 리포트에 없는 구분이라 뜻을 알려주지 않으면
+# AI가 아는 다른 수치(LQ 등)로 갈아타 "좋은 지역 유형입니다"라고 답한다(실측).
+REGION_TYPE_HINTS = {
+    "dense_stable": "주민 수에 비해 가게가 많고, 점포 교체가 82개 동 중앙값보다 적은 곳",
+    "dense_churn": "주민 수에 비해 가게가 많고, 점포 교체가 82개 동 중앙값보다 잦은 곳",
+    "sparse_stable": "주민 수에 비해 가게가 적고, 점포 교체가 82개 동 중앙값보다 적은 곳",
+    "sparse_churn": "주민 수에 비해 가게가 적고, 점포 교체가 82개 동 중앙값보다 잦은 곳",
+    "aside": "두 축 중 하나를 믿을 수 없어 유형에 넣지 않은 곳"
+    " (등록 업소가 200개 미만이라 교체율의 분모가 작거나, 밀도가 75분위의 3배를 넘어"
+    " 상주인구 나눗셈이 만든 값인 경우)",
+}
+
+
+def _build_region_type_block(context: Optional[Dict[str, str]]) -> str:
+    hint = REGION_TYPE_HINTS.get((context or {}).get("regionType", ""))
+    if not hint:
+        return ""
+    return (
+        f"\n[화면의 지역 유형] — 사용자가 보고 있는 지도가 이 동에 붙인 유형\n- {hint}\n"
+        "- 이 유형은 공급 밀도와 점포 교체율을 각각 중앙값에서 자른 **묘사**이지 평가나 점수가 아니다."
+        " 네 유형 사이에 좋고 나쁨의 순서가 없다.\n"
+        "- 사용자가 '이 유형이 좋냐 나쁘냐'고 물으면 좋다·나쁘다로 답하지 말고,"
+        " 그 판단에는 매출·유동인구가 필요한데 이 데이터에 없다고 말한다."
+        " 대신 이 유형이 실제로 무엇을 뜻하는지 두 축으로 풀어서 설명한다.\n"
+        "- 이 유형은 [사전 분석 리포트]에 없는 구분이다. 리포트의 다른 지표(입지계수 LQ 등)를"
+        " 유형의 근거인 것처럼 섞지 않는다.\n"
+    )
+
+
 def _is_report(context: Optional[Dict[str, str]]) -> bool:
     """context.mode == 'report' 이면 리포트 경로를 탄다. 값은 models에서 이미 검증됐다."""
     return (context or {}).get("mode") == "report"
@@ -104,6 +133,7 @@ def _build_screen_block(context: Optional[Dict[str, str]]) -> str:
     block = ""
     if topic:
         block = f"\n[선택한 분석 주제] — 사용자가 화면에서 고른 주제\n- 주제: {topic}\n"
+    block += _build_region_type_block(context)
     block += _build_persona_block(context)
     if _is_report(context):
         block += REPORT_INSTRUCTION

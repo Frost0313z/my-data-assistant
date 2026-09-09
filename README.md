@@ -245,7 +245,7 @@ cd frontend && python -m http.server 5500
 | `value` | 유한 실수만. `NaN`/`Inf` 거부(`allow_inf_nan=False`), 범위 `-1e12 ~ 1e12` |
 | `memo` | 최대 500자. ASCII 제어문자(0x00–0x1F, 0x7F) 제거 후 저장 |
 | `chat.message` | 1자 이상 2000자 이하. 제어문자 제거, 공백만 있으면 거부 |
-| `chat.context` | 허용 키 `topic`·`mode`만(`CONTEXT_KEYS`). `mode`는 값도 화이트리스트(`report`). 그 외는 무시 |
+| `chat.context` | 허용 키 `topic`·`mode`·`persona`·`regionType` 4개만(`CONTEXT_KEYS`). 뒤 3개는 **값도 화이트리스트** — `mode`=`report` / `persona` 3종 / `regionType` 5종. 프롬프트에 들어갈 문구는 전부 백엔드가 갖는다(프론트는 열쇠만 보낸다). 그 외는 무시 |
 | `conversation.title` | 최대 100자, 제어문자 제거 |
 | `chat message.content` | 최대 8000자, 제어문자 제거 |
 

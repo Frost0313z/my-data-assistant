@@ -75,7 +75,7 @@ cold: "백엔드가 잠들어 있어 깨우는 중입니다. 무료 플랜이라
 | 범위 초과 값 | 422 |
 | 잘못된 날짜 형식 | 422 |
 | 빈 메시지 | 422 |
-| `context`에 허용되지 않은 키 | 무시 또는 422 (`CONTEXT_KEYS = {"topic"}`) |
+| `context`에 허용되지 않은 키 | 무시 (`CONTEXT_KEYS = {"topic", "mode", "persona", "regionType"}`) |
 | `/api/data/summary` 정상 | 200 |
 
 ### C2 — CI

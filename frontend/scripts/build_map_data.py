@@ -55,6 +55,37 @@ def extract(raw):
     }
 
 
+def check_types(metrics):
+    """A26 지역 유형이 데이터 위에서 성립하는지 빌드 때 확인한다.
+
+    화면 판정은 `frontend/js/map.js`가 하고 이 함수는 같은 규칙을 다시 쓴다. 규칙이 세 줄
+    뿐이라 중복을 감수한다 — 대신 원본이 바뀌어 한 유형이 비거나 '따로 봐야 하는 곳'이
+    도시의 절반을 삼켜도 화면에서는 그냥 색이 좀 이상할 뿐이라 아무도 모른다.
+    """
+    latest = None
+    for period, rows in metrics.items():
+        dens = sorted(r["density"] for r in rows)
+        turn = sorted(r["turnover"] for r in rows if r["turnover"] is not None)
+        # int(x + 0.5)로 반올림한다. 파이썬 round는 짝수로 내림(40.5 -> 40)이라
+        # JS Math.round(40.5) -> 41과 어긋나고, 82개 짝수 배열에서 정확히 이 지점이 걸린다.
+        at = lambda v, p: v[min(len(v) - 1, int(p * (len(v) - 1) + 0.5))]  # noqa: E731
+        dmid, tmid, over = at(dens, 0.5), at(turn, 0.5), at(dens, 0.75) * 3
+
+        counts = [0] * 5
+        for r in rows:
+            if r["turnover"] is None or r["stores"] < 200 or r["density"] > over:
+                counts[4] += 1
+            else:
+                counts[(0 if r["density"] >= dmid else 2) + (1 if r["turnover"] >= tmid else 0)] += 1
+
+        assert sum(counts) == len(rows) == 82, f"{period}: 유형 배정이 82개가 아니다 ({counts})"
+        assert all(counts[:4]), f"{period}: 빈 유형이 있다 ({counts})"
+        # 유형에서 뺀 동이 많아지면 '4유형'이라는 화면의 약속이 무너진다.
+        assert counts[4] <= 12, f"{period}: 유형에 넣지 못한 동이 {counts[4]}개다"
+        latest = counts  # 화면 기본값이 마지막 시점이라 그 시점 수치를 보고한다
+    return latest
+
+
 def extract_points(raw):
     """A25: 업종별 점포 위치. 행정동 평균으로는 안 보이는 실제 상권 덩어리를 보여준다.
 
@@ -93,9 +124,14 @@ if __name__ == "__main__":
     base.mkdir(exist_ok=True)
 
     result = extract(raw)
+    counts = check_types(result["metrics"])
     target = base / "daejeon-map.json"
     target.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"대전 82개 행정동 × {len(result['periods'])}개 시점 저장: {target.name}")
+    print(
+        "  A26 지역 유형: 촘촘·자리 {0} / 촘촘·교체 {1} / 성김·자리 {2} / 성김·교체 {3}"
+        " / 따로 {4}".format(*counts)
+    )
 
     points = extract_points(raw)
     ptarget = base / "daejeon-points.json"
