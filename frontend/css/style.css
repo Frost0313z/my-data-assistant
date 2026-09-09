@@ -261,24 +261,44 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
 .data-manage[open] summary { margin-bottom: var(--sp-3); }
 
 /* 목적 칩은 빠른 진입 수단이며 주제 선택 상태와 색으로 경쟁하지 않는다. */
-.purpose-chips { display: grid; gap: var(--sp-2); }
-.purpose-chips-label {
-  margin: 0;
+/* A28: 목적 카드. 이전에는 보조 색 각주 + 중성 칩이라 진입점으로 읽히지 않았다.
+   화면에서 가장 먼저 답해야 하는 질문이므로 그만한 무게로 그린다. */
+.persona {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--primary-tint-line);
+  border-radius: var(--r-panel);
+  background: var(--primary-tint);
+}
+.persona-title { margin: 0; font-size: var(--fs-h3); font-weight: 600; color: var(--ink-900); }
+.persona-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--sp-2); }
+.persona-card {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  transition: border-color var(--motion-feedback);
+}
+.persona-card strong { font-size: var(--fs-body); font-weight: 600; color: var(--ink-900); }
+.persona-card span { font-size: var(--fs-caption); color: var(--ink-500); line-height: 1.5; }
+.persona-card:hover { border-color: var(--primary); }
+.persona-skip {
+  justify-self: start;
+  padding: 0;
+  background: none;
+  border: 0;
   color: var(--ink-500);
   font-size: var(--fs-caption);
-  font-weight: 500;
+  text-decoration: underline;
 }
-.purpose-chip-list { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-.purpose-chip {
-  background: var(--surface);
-  color: var(--ink-700);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-pill);
-  padding: var(--sp-2) var(--sp-3);
-  font-size: var(--fs-caption);
-  transition: color var(--motion-feedback), border-color var(--motion-feedback), background-color var(--motion-feedback);
-}
-.purpose-chip:hover { border-color: var(--primary); }
+/* 고른 뒤에는 한 줄로 접힌다 — 재방문자를 막지 않는다. */
+.persona-current { display: flex; align-items: center; gap: var(--sp-2); margin: 0; font-size: var(--fs-caption); color: var(--ink-500); }
+.link-button { padding: 0; background: none; border: 0; color: var(--primary); font-size: var(--fs-caption); text-decoration: underline; }
+
 
 /* ── 분석 주제 버튼 + 상세 ── */
 /* A27: 무대 전환 탭. 주제가 5개로 줄어(A23이 지도 변형 3종을 흡수) 한 줄에 들어간다.

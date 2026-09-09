@@ -287,8 +287,13 @@
       updateMap();
     }
     metricSelect.addEventListener("change", () => applyMetric(metricSelect.value));
-    // A9 목적 칩이 지도 지표를 바꿀 수 있게 연다(임베드 주제가 없어진 3종 대응).
+    // A9·A28: 목적 카드가 지도 지표를 바꿀 수 있게 연다.
     window.setMapMetric = applyMetric;
+    // topics.js가 이 파일보다 먼저 돌아 저장된 페르소나를 복원했을 수 있다.
+    if (window.pendingMapMetric) {
+      applyMetric(window.pendingMapMetric);
+      window.pendingMapMetric = null;
+    }
     period.addEventListener("change", updateMap);
     district.addEventListener("change", () => { selected = ""; updateDongOptions(); updateMap(); fit(visibleFeatures()); });
     dong.addEventListener("change", () => selectDong(dong.value, true));

@@ -186,42 +186,99 @@ window.screenContext = null;
   //
   // 벤치마크(서울시 골목상권)는 같은 문제를 3단계 마법사로 푼다. 우리는 AI가
   // 있으니 1클릭으로 압축한다 — 단계를 늘리면 후퇴다.
-  const PURPOSE_CHIPS = [
+  // A28: 목적을 고르면 그 선택이 남는다(페르소나). 한 번 쓰고 버리는 칩이 아니라
+  // 지도 기본 지표와 제안 질문이 그 사람 기준으로 맞춰진다.
+  //
+  // 고를 때는 질문형, 고른 뒤에는 정체형으로 보여준다. 처음 온 사람에게
+  // "당신은 창업준비형입니까"는 자기 분류를 요구하지만 "여기 창업해도 될까요"는
+  // 이미 갖고 온 질문이라 답하기 쉽다.
+  const PERSONAS = [
     {
+      id: "explore",
       label: "어디가 뜨고 있나요?",
+      desc: "관심 지역을 넓게 둘러봅니다",
+      short: "둘러보는 중",
+      mapMetric: "stores",
       topicId: "growth",
       question: "어디가 성장하고 있고 어디가 정체돼 있어? 근거 수치와 함께 알려줘",
     },
     {
-      label: "내 업종은 어떤가요?",
-      topicId: "industry",
-      question: "업종별로 늘어난 곳과 줄어든 곳을 근거 수치와 함께 알려줘",
-    },
-    {
-      // 공급밀도·교체율·잔존율은 A23 이후 우리 지도의 지표라 임베드 주제가 없다.
-      // 주제 대신 지도 지표를 바꿔 화면을 맞춘다.
+      id: "prepare",
       label: "여기 창업해도 될까요?",
+      desc: "후보지의 밀도·교체율·잔존율을 봅니다",
+      short: "창업 준비 중",
       mapMetric: "density",
       question:
         "공급 밀도와 점포 교체율, 잔존율을 함께 보면 이 지역 상권은 어떤 상태야? 이 데이터로 알 수 없는 것도 같이 알려줘",
     },
+    {
+      id: "running",
+      label: "내 업종은 어떤가요?",
+      desc: "업종 구성과 증감을 봅니다",
+      short: "운영 중",
+      mapMetric: "hhi",
+      topicId: "industry",
+      question: "업종별로 늘어난 곳과 줄어든 곳을 근거 수치와 함께 알려줘",
+    },
   ];
 
-  const chipList = document.getElementById("purpose-chip-list");
-  PURPOSE_CHIPS.forEach((chip) => {
-    const b = el("button", "purpose-chip", chip.label);
-    b.addEventListener("click", () => {
-      // select()는 같은 id를 다시 누르면 해제하는 라디오식이다. 목적 칩은
-      // 항상 켜는 동작이라 이미 선택돼 있으면 다시 부르지 않는다.
-      if (chip.mapMetric) {
-        if (window.setMapMetric) window.setMapMetric(chip.mapMetric);
-      } else if (activeId !== chip.topicId) {
-        select(chip.topicId);
-      }
-      if (window.sendMessage) window.sendMessage({ text: chip.question });
-    });
-    chipList.appendChild(b);
+  const PERSONA_KEY = "persona_v1";
+  const personaBox = document.getElementById("persona");
+  const personaCurrent = document.getElementById("persona-current");
+
+  function storePersona(id) {
+    try { window.localStorage.setItem(PERSONA_KEY, id || ""); } catch (e) { /* 사생활 보호 모드 */ }
+  }
+  function loadPersona() {
+    try { return window.localStorage.getItem(PERSONA_KEY) || ""; } catch (e) { return ""; }
+  }
+
+  // 고르기 전에는 카드가 지도 위에 크게, 고른 뒤에는 한 줄로 접힌다.
+  function showPersona(id) {
+    const chosen = PERSONAS.find((p) => p.id === id);
+    // id가 "skip"이면 고른 페르소나는 없지만 카드는 접는다 — 지도부터 보겠다는 뜻이다.
+    if (personaBox) personaBox.hidden = !!id;
+    if (personaCurrent) {
+      personaCurrent.hidden = !chosen;
+      const labelEl = document.getElementById("persona-current-label");
+      if (labelEl && chosen) labelEl.textContent = chosen.short;
+    }
+    window.activePersona = chosen ? chosen.id : null;
+  }
+
+  // 페르소나를 적용한다. ask=false면 화면만 맞추고 질문은 보내지 않는다(재방문 복원).
+  function applyPersona(persona, ask) {
+    storePersona(persona.id);
+    showPersona(persona.id);
+    // map.js는 이 파일보다 늦게 로드되고 데이터도 비동기로 받는다. 아직 준비 전이면
+    // 원하는 지표를 남겨두고 map.js가 초기화 끝에 집어가게 한다.
+    if (persona.mapMetric) {
+      if (window.setMapMetric) window.setMapMetric(persona.mapMetric);
+      else window.pendingMapMetric = persona.mapMetric;
+    }
+    if (window.renderSuggestions) window.renderSuggestions();
+    if (ask && window.sendMessage) window.sendMessage({ text: persona.question });
+  }
+
+  const personaList = document.getElementById("persona-list");
+  PERSONAS.forEach((persona) => {
+    const card = el("button", "persona-card");
+    card.append(el("strong", "", persona.label), el("span", "", persona.desc));
+    card.addEventListener("click", () => applyPersona(persona, true));
+    personaList.appendChild(card);
   });
+
+  const skip = document.getElementById("persona-skip");
+  if (skip) skip.addEventListener("click", () => { storePersona("skip"); showPersona("skip"); });
+
+  const resetPersona = document.getElementById("persona-reset");
+  if (resetPersona) resetPersona.addEventListener("click", () => { storePersona(""); showPersona(""); });
+
+  // 재방문 복원 — 화면만 맞추고 질문은 다시 보내지 않는다.
+  const saved = loadPersona();
+  showPersona(saved);
+  const savedPersona = PERSONAS.find((p) => p.id === saved);
+  if (savedPersona) applyPersona(savedPersona, false);
 
   // '지도' 탭 — 주제 선택을 풀고 지도 무대로 돌아온다.
   if (mapTab) {

@@ -65,7 +65,19 @@
       <p>2025-03 → 2026-06 · 대전 82개 행정동 · 등록 업소 수</p>
       <p>매출·유동인구 미포함 · 참고용</p>
     </div>
-    <section class="map-explorer" aria-label="대전 공급 밀도 지도">
+    <!-- A28: 목적/페르소나 진입. 처음 온 사람이 못 지나치게 지도 위에 카드로 두고,
+         고르면 한 줄로 접힌다. 별도 온보딩 화면을 만들지 않는 이유는 A9 참조. -->
+    <section class="persona" id="persona" aria-labelledby="persona-title">
+      <h3 class="persona-title" id="persona-title">무엇이 궁금하세요?</h3>
+      <div id="persona-list" class="persona-list" role="group" aria-label="목적 선택"></div>
+      <button id="persona-skip" class="persona-skip">바로 지도 보기 ↓</button>
+    </section>
+    <p class="persona-current" id="persona-current" hidden>
+      <span id="persona-current-label"></span>
+      <button id="persona-reset" class="link-button">바꾸기</button>
+    </p>
+
+    <section class="map-explorer" aria-label="대전 상권 지도">
       <div class="map-toolbar">
         <label>지표 <select id="map-metric" disabled aria-label="지도 지표"></select></label>
         <label>기준 시점 <select id="map-period" disabled aria-label="지도 기준 시점"></select></label>
@@ -96,11 +108,6 @@
     <!-- A27: 분석 패널은 지도와 같은 무대를 나눠 쓴다. 세로로 쌓지 않아 스크롤이 없다. -->
     <section id="topic-detail" class="panel topic-detail" aria-live="polite" hidden></section>
 
-    <!-- A9: 목적 기반 진입. 진입점이라 접지 않는다. 칩 목록은 topics.js가 채운다. -->
-    <div class="purpose-chips">
-      <p class="purpose-chips-label">무엇이 궁금하세요?</p>
-      <div id="purpose-chip-list" class="purpose-chip-list" role="group" aria-label="목적 선택"></div>
-    </div>
 
     <!-- A27: 무대 전환 탭. 주제 버튼은 topics.js가 #topic-list에 채운다. -->
     <nav class="analysis-tabs" aria-label="분석 무대 선택">
