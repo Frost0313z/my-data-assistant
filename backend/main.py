@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from app import config
 from app.routers import chat, conversations, data
 
-app = FastAPI(title="나만의 AI 비서 API")
+app = FastAPI(title="대전 상권분석 매니저 API")
 
 app.add_middleware(
     CORSMiddleware,
