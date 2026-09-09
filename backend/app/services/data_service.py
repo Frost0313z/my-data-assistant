@@ -56,9 +56,33 @@ def delete_record(record_id: str) -> bool:
     return True
 
 
-def get_summary() -> models.DataSummary:
-    """짧은 TTL 캐시. 쓰기 경로가 직접 비우므로 TTL은 다중 인스턴스 대비 안전망이다."""
+def matches(record, filters) -> bool:
+    """B3: 자치구·행정동·업종은 정확히, 기간은 범위로 거른다.
+
+    부분 일치를 쓰지 않는 이유: `중구`가 `유성구`를 잡거나 `동구`가 `대덕구`를 잡는다.
+    행정동 이름에도 `가양동`/`가양1동`처럼 겹치는 짝이 있다.
+    """
+    for key in ("district", "dong", "industry"):
+        wanted = filters.get(key)
+        if wanted and getattr(record, key, "") != wanted:
+            return False
+    if filters.get("date_from") and record.date < filters["date_from"]:
+        return False
+    if filters.get("date_to") and record.date > filters["date_to"]:
+        return False
+    return True
+
+
+def get_summary(filters: dict | None = None) -> models.DataSummary:
+    """짧은 TTL 캐시. 쓰기 경로가 직접 비우므로 TTL은 다중 인스턴스 대비 안전망이다.
+
+    필터가 붙으면 캐시를 쓰지 않는다. 조합이 많아 캐시가 메모리만 먹고 잘 안 맞는다 —
+    채팅이 매번 부르는 것은 필터 없는 전체 요약뿐이라 거기만 캐시하면 충분하다.
+    """
     global _summary_cache
+    if filters:
+        return _compute_summary(filters)
+
     with _summary_lock:
         if _summary_cache and time.monotonic() - _summary_cache[0] < config.SUMMARY_CACHE_TTL:
             return _summary_cache[1]
@@ -69,10 +93,15 @@ def get_summary() -> models.DataSummary:
     return summary
 
 
-def _compute_summary() -> models.DataSummary:
+def _compute_summary(filters: dict | None = None) -> models.DataSummary:
     records = sorted(list_records(), key=lambda r: r.date)
+    if filters:
+        records = [r for r in records if matches(r, filters)]
     if not records:
-        return models.DataSummary(period="데이터 없음", count=0, metrics={}, trend="데이터 없음")
+        # 필터가 아무것도 못 잡은 것과 데이터가 아예 없는 것은 다른 상황이다.
+        # 화면에서 "조건을 바꿔 보라"고 안내할 수 있어야 한다.
+        empty = "조건에 맞는 데이터 없음" if filters else "데이터 없음"
+        return models.DataSummary(period=empty, count=0, metrics={}, trend=empty)
 
     values = [r.value for r in records]
     metrics = {

@@ -66,8 +66,8 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 
 | ID | 크기 | 내용 |
 |---|---|---|
-| **B2** | **L+** | 실데이터 Firestore **전량** 적재 — 82 행정동 × 6 시점 × 업종. 스키마에 `district`/`dong`/`industry` 추가 |
-| **B3** | M | 요약 API 필터 — `?district=&dong=&industry=&from=&to=`. B2 이후 필수 |
+| ~~**B2**~~ | L+ | ✅ **완료(범위 정정)** — 82 행정동 × 6 시점 **492건은 이미 전량**이었다. 없던 것은 데이터가 아니라 **구조**였다(자치구·행정동·업종이 `memo` 한 줄에 뭉쳐 필터를 걸 수 없었다). 구조 필드로 분해하고 지도 데이터와 **불일치 0건** 교차검증. `업종 × 행정동` 교차 집계는 원본에 없어 불가([`specs/B-data.md`](docs/specs/B-data.md) §점 데이터의 한계) |
+| ~~**B3**~~ | M | ✅ **완료** — `/api/data/summary?district=&dong=&industry=&date_from=&date_to=` + `/api/data/dimensions`(고를 수 있는 값 목록). 정확 일치만 — 부분 일치면 `중구`가 `유성구`를 잡는다 |
 | **B1** | M | `insights.md` 자동 생성 스크립트 (`scripts/build_insights.py`). 지금은 수기 큐레이션 |
 | **C3** | M | 채팅 rate limit + 일일 토큰 상한 → 429 |
 | **C7** | S | Sentry 무료 티어 (백엔드·프론트) |
