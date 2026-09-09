@@ -361,6 +361,11 @@
       setView(view);
     });
     new ResizeObserver(() => { if (map && host.clientWidth) map.resize(); }).observe(host);
+    // A27: 무대가 바뀌어 다시 보일 때 캔버스 크기를 맞춘다. 숨어 있는 동안의
+    // 크기 변화는 ResizeObserver가 0으로 보고 흘려보내기 때문이다.
+    window.resizeDaejeonMap = () => {
+      if (map && host.clientWidth) requestAnimationFrame(() => { map.resize(); updateDongLabels(); });
+    };
   } catch (error) {
     status.hidden = false;
     status.textContent = "지도 데이터를 불러오지 못했습니다. 페이지를 새로고침하거나 아래 원본 지도를 이용해 주세요.";

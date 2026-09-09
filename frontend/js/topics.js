@@ -116,9 +116,24 @@ window.screenContext = null;
     chip.hidden = false;
   }
 
+  // A27: 지도와 분석 패널이 같은 무대를 나눠 쓴다. 세로로 쌓으면 둘 다 좁아지고
+  // 스크롤이 길어져서, 하단 탭으로 무엇을 띄울지 고르는 구조로 바꿨다.
+  const stageMap = document.querySelector(".map-explorer");
+  const mapTab = document.getElementById("stage-map-tab");
+
+  function setStage(which) {
+    const showMap = which === "map";
+    if (stageMap) stageMap.hidden = !showMap;
+    detail.hidden = showMap;
+    if (mapTab) mapTab.setAttribute("aria-pressed", String(showMap));
+    // 지도 무대로 돌아오면 MapLibre가 숨어 있던 동안의 크기 변화를 따라잡아야 한다.
+    if (showMap && window.resizeDaejeonMap) window.resizeDaejeonMap();
+  }
+
   function select(id) {
-    detail.hidden = false;
     activeId = id === activeId ? null : id; // 같은 버튼 다시 누르면 해제
+    // 주제를 고르면 분석 무대로, 해제하면 지도로 돌아간다.
+    setStage(activeId ? "topic" : "map");
     const topic = window.TOPICS.find((t) => t.id === activeId) || null;
     window.screenContext = topic ? { topic: topic.label } : null;
     // A10: 제안 질문이 주제를 따라가도록 id를 공개한다. 백엔드로 가는 screenContext는
@@ -150,7 +165,7 @@ window.screenContext = null;
       b.classList.remove("active");
       b.setAttribute("aria-pressed", "false");
     });
-    detail.hidden = true;
+    setStage("map");
     renderChip({ label });
     if (window.renderSuggestions) window.renderSuggestions();
     if (window.notifyTopicChange && document.querySelector("#chat-messages .bubble:not(.onboarding)")) {
@@ -208,5 +223,14 @@ window.screenContext = null;
     chipList.appendChild(b);
   });
 
+  // '지도' 탭 — 주제 선택을 풀고 지도 무대로 돌아온다.
+  if (mapTab) {
+    mapTab.addEventListener("click", () => {
+      if (activeId) select(activeId); // 같은 id를 넘기면 해제되고 setStage("map")까지 처리된다
+      else setStage("map");
+    });
+  }
+
   renderDetail(null);
+  setStage("map");
 })();

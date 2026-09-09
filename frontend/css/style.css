@@ -179,7 +179,8 @@ button { font-weight: 500; }
 .map-toolbar select { max-width: 100%; min-height: 36px; padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); color: var(--ink-900); }
 .map-view-toggle { display: flex; margin-left: auto; gap: var(--sp-1); }
 .map-view-toggle button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
-.map-stage { position: relative; height: clamp(360px, calc(100dvh - 340px), 680px); background: var(--map-canvas); }
+/* A27: 하단 탭(약 52px)이 생기고 접이식 주제 영역이 사라져 세로 예산을 다시 잡는다. */
+.map-stage { position: relative; height: clamp(360px, calc(100dvh - 400px), 680px); background: var(--map-canvas); }
 #daejeon-map { width: 100%; height: 100%; }
 #daejeon-map svg { display: block; width: 100%; height: 100%; }
 #daejeon-map svg path { cursor: pointer; }
@@ -280,11 +281,28 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
 .purpose-chip:hover { border-color: var(--primary); }
 
 /* ── 분석 주제 버튼 + 상세 ── */
+/* A27: 무대 전환 탭. 주제가 5개로 줄어(A23이 지도 변형 3종을 흡수) 한 줄에 들어간다.
+   스트립만 가로 스크롤을 갖고 페이지에는 가로 스크롤이 생기지 않는다. */
+.analysis-tabs {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: auto;
+  padding: var(--sp-2) 0;
+  overflow-x: auto;
+  background: var(--canvas);
+  border-top: 1px solid var(--line);
+}
+.analysis-tabs > .topic-btn { flex: 0 0 auto; }
+
 .topic-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  display: flex;
   gap: var(--sp-2);
 }
+.topic-list > .topic-btn { flex: 0 0 auto; }
 .topic-btn {
   background: var(--surface);
   color: var(--ink-900);

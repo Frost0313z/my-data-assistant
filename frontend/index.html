@@ -92,16 +92,21 @@
       </div>
       <p class="map-note">공급 밀도가 높다고 매출이나 수익성이 높은 것은 아닙니다. <a href="https://frost0313z.github.io/daejeon-commercial-analysis/interactive-dashboard.html?only=map&amp;metric=density" target="_blank" rel="noopener">원본 지도 확인 ↗</a></p>
     </section>
-    <details class="secondary-analysis">
-      <summary>다른 지표와 주제별 대시보드 보기</summary>
-    <!-- A9: 목적 기반 진입. 칩 목록은 topics.js가 채운다. -->
+
+    <!-- A27: 분석 패널은 지도와 같은 무대를 나눠 쓴다. 세로로 쌓지 않아 스크롤이 없다. -->
+    <section id="topic-detail" class="panel topic-detail" aria-live="polite" hidden></section>
+
+    <!-- A9: 목적 기반 진입. 진입점이라 접지 않는다. 칩 목록은 topics.js가 채운다. -->
     <div class="purpose-chips">
       <p class="purpose-chips-label">무엇이 궁금하세요?</p>
       <div id="purpose-chip-list" class="purpose-chip-list" role="group" aria-label="목적 선택"></div>
     </div>
-    <div id="topic-list" class="topic-list" role="group" aria-label="분석 주제 선택"></div>
-    <section id="topic-detail" class="panel topic-detail" aria-live="polite"></section>
-    </details>
+
+    <!-- A27: 무대 전환 탭. 주제 버튼은 topics.js가 #topic-list에 채운다. -->
+    <nav class="analysis-tabs" aria-label="분석 무대 선택">
+      <button id="stage-map-tab" class="topic-btn" aria-pressed="true">지도</button>
+      <div id="topic-list" class="topic-list" role="group" aria-label="분석 주제 선택"></div>
+    </nav>
   </main>
 
   <!-- 우: 채팅 -->
