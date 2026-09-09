@@ -81,6 +81,7 @@
       <div class="map-toolbar">
         <label>지표 <select id="map-metric" disabled aria-label="지도 지표"></select></label>
         <label>기준 시점 <select id="map-period" disabled aria-label="지도 기준 시점"></select></label>
+        <label>업종 점 <select id="map-category" disabled aria-label="업종 점 표시"><option value="">표시 안 함</option></select></label>
         <label>자치구 <select id="map-district" disabled aria-label="지도 자치구"><option value="">대전 전체</option></select></label>
         <label>행정동 <select id="map-dong" disabled aria-label="지도 행정동"><option value="">지도에서 선택</option></select></label>
         <div class="map-view-toggle" role="group" aria-label="지도 표현 방식">
@@ -97,6 +98,7 @@
       <div class="map-legend" id="map-legend" aria-label="지표 범례"></div>
       <!-- A23·A27: 선택한 지표의 해설. 지도 주제 3종을 임베드에서 여기로 옮겼다. -->
       <p class="map-note" id="map-insight"></p>
+      <p class="map-note" id="map-points-note" hidden></p>
       <p class="map-note" id="map-view-note">3D 높이는 공급 밀도를 표현합니다. 실제 건물 높이가 아닙니다.</p>
       <div class="map-selection" aria-live="polite">
         <div><h3 id="map-selection-name">어느 동이 궁금하세요?</h3><p id="map-selection-value">지도나 행정동 목록에서 지역을 선택해 주세요.</p></div>

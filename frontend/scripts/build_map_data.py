@@ -55,9 +55,52 @@ def extract(raw):
     }
 
 
+def extract_points(raw):
+    """A25: 업종별 점포 위치. 행정동 평균으로는 안 보이는 실제 상권 덩어리를 보여준다.
+
+    최신 1시점만 담는다. 6시점 전부면 1.2MB라 지도 데이터가 1.5MB가 되는데,
+    roadmap 리스크 표에 이미 "대시보드 1.8MB 단일 파일"이 올라 있다. 같은 실수를
+    반복하지 않는다. 시점별 점 이동을 보여줄 근거도 아직 없다.
+
+    별도 파일로 뺀 이유는 지연 로드다. 첫 화면은 코로플레스만으로 성립하고,
+    점 레이어는 사용자가 켤 때 받으면 된다.
+    """
+    data, _ = json.JSONDecoder().raw_decode(raw.decode("utf-8").split("const data=", 1)[1])
+    period = data["mapPeriods"][-1]
+    points = data["mapPoints"][period]
+    total = sum(p["count"] for p in points)
+    assert total > 0 and all(p["count"] > 0 for p in points)
+    categories = sorted({p["category"] for p in points})
+    # 좌표는 5자리(약 1m)까지 필요 없다. 4자리(약 11m)면 점 분포를 읽는 데 충분하다.
+    rows = [
+        [round(p["lon"], 4), round(p["lat"], 4), categories.index(p["category"]), p["count"]]
+        for p in points
+    ]
+    return {
+        "source": SOURCE,
+        "sourceSha256": hashlib.sha256(raw).hexdigest(),
+        "period": period,
+        "categories": categories,
+        "total": total,
+        # [lon, lat, 업종 인덱스, 점포 수] — 키 이름을 반복하지 않아 파일이 절반이 된다.
+        "points": rows,
+    }
+
+
 if __name__ == "__main__":
-    result = extract(urlopen(SOURCE, timeout=30).read())
-    target = Path(__file__).resolve().parents[1] / "data" / "daejeon-map.json"
-    target.parent.mkdir(exist_ok=True)
+    raw = urlopen(SOURCE, timeout=30).read()
+    base = Path(__file__).resolve().parents[1] / "data"
+    base.mkdir(exist_ok=True)
+
+    result = extract(raw)
+    target = base / "daejeon-map.json"
     target.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"대전 82개 행정동 × {len(result['periods'])}개 시점 저장: {target.name}")
+
+    points = extract_points(raw)
+    ptarget = base / "daejeon-points.json"
+    ptarget.write_text(json.dumps(points, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(
+        f"업종 {len(points['categories'])}종 × {len(points['points'])}점 "
+        f"(합계 {points['total']:,}개, {points['period'][:7]}) 저장: {ptarget.name}"
+    )

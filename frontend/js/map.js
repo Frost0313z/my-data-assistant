@@ -47,7 +47,8 @@
   };
   const METRIC_KEYS = Object.keys(METRICS);
 
-  let map, data, selected = "", view = "3d", ready = false, fallback = false;
+  const categorySelect = $("map-category");
+  let map, data, points = null, selected = "", view = "3d", ready = false, fallback = false;
   let metric = "density";
   let breaks = METRICS.density.fixed;
 
@@ -124,6 +125,38 @@
       const isSelected = label.code === selected;
       label.el.hidden = !(inDistrict && (roomy || isSelected));
       label.el.classList.toggle("is-selected", isSelected);
+    }
+  }
+
+  // A25: 업종별 점포 위치. 코로플레스는 '행정동 평균'이라 상권 덩어리가 안 보인다.
+  // 상권은 행정동 경계를 따라 생기지 않으므로 실제 좌표를 겹쳐 보여준다.
+  function pointFeatures() {
+    if (!points) return { type: "FeatureCollection", features: [] };
+    return {
+      type: "FeatureCollection",
+      features: points.points.map(([lon, lat, category, count]) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [lon, lat] },
+        properties: { category, count },
+      })),
+    };
+  }
+
+  function updatePoints() {
+    if (!ready || !points) return;
+    const value = categorySelect.value;
+    const on = value !== "";
+    map.setLayoutProperty("category-points", "visibility", on ? "visible" : "none");
+    // "all"이면 전 업종, 아니면 해당 업종 인덱스만
+    map.setFilter("category-points", on && value !== "all" ? ["==", ["get", "category"], Number(value)] : null);
+
+    // 점은 최신 1시점만 담았다. 기준 시점을 바꿔도 점이 안 움직이는 걸 숨기지 않는다.
+    const note = $("map-points-note");
+    if (note) {
+      note.hidden = !on;
+      note.textContent = on
+        ? `업종 점은 ${points.period.slice(0, 7)} 기준입니다. 기준 시점을 바꿔도 점 위치는 그대로입니다. 점 크기는 그 자리의 점포 수입니다.`
+        : "";
     }
   }
 
@@ -267,16 +300,30 @@
   }
 
   try {
-    const response = await fetch("data/daejeon-map.json");
+    // A25 점 데이터는 54KB뿐이라 따로 지연 로드하지 않고 같이 받는다. 비용은 다운로드가
+    // 아니라 렌더인데, 레이어를 숨겨두면 그것도 들지 않는다.
+    const [response, pointsResponse] = await Promise.all([
+      fetch("data/daejeon-map.json"),
+      fetch("data/daejeon-points.json").catch(() => null),
+    ]);
     if (!response.ok) throw new Error("지도 데이터 응답 실패");
     data = await response.json();
+    points = pointsResponse && pointsResponse.ok ? await pointsResponse.json() : null;
     data.periods.forEach((p) => period.add(new Option(p.slice(0, 7), p)));
     period.value = data.periods.at(-1);
     METRIC_KEYS.forEach((k) => metricSelect.add(new Option(METRICS[k].label, k)));
     metricSelect.value = metric;
+    if (points) {
+      categorySelect.add(new Option(`전체 (${points.total.toLocaleString("ko-KR")}개)`, "all"));
+      points.categories.forEach((name, i) => categorySelect.add(new Option(name, String(i))));
+      categorySelect.addEventListener("change", updatePoints);
+    } else {
+      categorySelect.disabled = true;
+    }
     [...new Set(rows().map((r) => r.district))].sort().forEach((d) => district.add(new Option(d, d)));
     updateDongOptions();
     [metricSelect, period, district, dong, $("map-reset"), ...viewButtons].forEach((e) => { e.disabled = false; });
+    if (points) categorySelect.disabled = false;
     function applyMetric(next) {
       if (!METRICS[next]) return;
       metric = next;
@@ -346,6 +393,22 @@
       } });
       map.addLayer({ id: "dong-lines", type: "line", source: "dongs", paint: { "line-color": color("--surface"), "line-width": .7 } });
       map.addLayer({ id: "district-lines", type: "line", source: "districts", paint: { "line-color": color("--primary"), "line-width": 1.2 } });
+      // A25: 점은 코로플레스 위에 얹는다. 색은 --caution(앰버)을 쓴다 — 밀도 램프가
+      // 파란 계열이라 파란 점은 배경에 묻히고, 새 색을 만들지 않아도 된다.
+      if (points) {
+        map.addSource("points", { type: "geojson", data: pointFeatures() });
+        map.addLayer({
+          id: "category-points", type: "circle", source: "points",
+          layout: { visibility: "none" },
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["get", "count"], 1, 2.5, 20, 5, 100, 9, 400, 15],
+            "circle-color": color("--caution"),
+            "circle-opacity": .7,
+            "circle-stroke-width": .6,
+            "circle-stroke-color": color("--surface"),
+          },
+        });
+      }
       map.addLayer({ id: "selected-dong", type: "line", source: "dongs", filter: ["==", ["get", "dong_code"], ""], paint: {
         "line-color": color("--caution"), "line-width": 3,
       } });
@@ -363,6 +426,7 @@
       ready = true;
       status.hidden = true;
       updateMap();
+      updatePoints();
       setView(view);
     });
     new ResizeObserver(() => { if (map && host.clientWidth) map.resize(); }).observe(host);
