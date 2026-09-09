@@ -33,6 +33,10 @@ jobs:
         env:
           OPENAI_API_KEY: ""
           FIREBASE_SERVICE_ACCOUNT_JSON: ""
+      # B1: 사전 분석 리포트가 데이터와 어긋나면 AI가 틀린 근거를 댄다.
+      # 근거를 대는 것이 이 서비스의 약속이라 그게 제일 나쁜 고장이다.
+      - name: 사전 분석 리포트 수치 대조
+        run: python scripts/build_insights.py
 
   frontend:
     runs-on: ubuntu-latest
