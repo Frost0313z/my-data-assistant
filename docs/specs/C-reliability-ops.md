@@ -63,3 +63,24 @@
 캐시에서 빠지는데 **응답은 멀쩡해서 아무도 모른다.** `backend/tests/test_chat.py`가
 프리픽스 길이를 검사한다.
 
+## 로깅 (C4, 구현됨 2026-09-09)
+
+무료 티어 Render의 로그는 텍스트 스트림 하나다. 한 요청을 되짚으려면 줄마다 같은
+식별자가 있어야 하고, 기계로 걸러야 하니 JSON이어야 한다. 표준 `logging`·`json`만
+쓴다 — 의존성을 늘리지 않았다.
+
+| | |
+|---|---|
+| 요청 ID | `X-Request-Id` 헤더로 받고, 없으면 만든다. **응답 헤더로도 돌려준다** — 이상한 답을 본 사람이 그 값을 가져오면 로그에서 바로 찾는다 |
+| 요청 로그 | `method` `path` `status` `ms`. **`GET /`는 제외** — 10분마다 들어오는 콜드스타트 핑으로 로그가 채워지면 아무것도 못 찾는다 |
+| 채팅 로그 | `model` `prompt_tokens` `cached_tokens` `completion_tokens` `usd` `truncated` `topic` `persona` `history_messages` |
+| 배포본 | `GET /`가 `build`(커밋 SHA 12자)를 돌려준다. Render의 `RENDER_GIT_COMMIT`을 쓴다 |
+
+**`cached_tokens`가 0으로 굳으면 프롬프트 캐시 프리픽스가 깨진 것이다.** 응답은
+멀쩡하고 비용만 조용히 두 배가 되므로 이 로그가 유일한 단서다.
+
+**`truncated`는 답변이 상한에 걸렸다는 뜻이다.** 화면에서는 "문장이 좀 어색한" 것으로만
+보인다 — 실제로 `CHAT_MAX_TOKENS=500`일 때 그렇게 잘리고 있었고 아무도 몰랐다.
+
+비용 단가는 `observability.PRICE_PER_1M`에 있다. **모델을 바꾸면 여기도 바꿔야 한다** —
+안 바꾸면 로그의 비용이 조용히 틀린다. 그래서 모델 이름을 함께 남긴다.

@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from openai import OpenAI
 
-from .. import config
+from .. import config, observability
 from . import conversation_service, data_service
 
 # 사전 분석 리포트(고정 스냅샷). 없으면 빈 문자열로 두고 실시간 요약만 주입한다.
@@ -198,6 +198,27 @@ def ask(
         if raw
         else None
     )
+
+    # C4: 비용을 남긴다. `cached`가 0으로 굳어지면 프롬프트 캐시 프리픽스가 깨진
+    # 것이다 — 응답은 멀쩡하고 비용만 조용히 두 배가 되므로 로그가 유일한 단서다.
+    if raw:
+        details = getattr(raw, "prompt_tokens_details", None)
+        cached = getattr(details, "cached_tokens", 0) or 0
+        observability.log(
+            "chat.completed",
+            model=config.OPENAI_MODEL,
+            prompt_tokens=raw.prompt_tokens,
+            cached_tokens=cached,
+            completion_tokens=raw.completion_tokens,
+            max_tokens=max_tokens,
+            truncated=raw.completion_tokens >= max_tokens,
+            usd=observability.estimate_cost(
+                config.OPENAI_MODEL, raw.prompt_tokens, cached, raw.completion_tokens
+            ),
+            topic=(context or {}).get("topic"),
+            persona=(context or {}).get("persona"),
+            history_messages=len(history),
+        )
 
     # A13: 선택 주제를 제목에 반영한다. 기록 목록에서 대화를 구분하는 유일한 단서다.
     saved_id = conversation_service.append_turn(

@@ -36,7 +36,7 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 - [x] **C5 · 요약 결과 캐시** (S, P1) — TTL 30초 + 쓰기 경로에서 즉시 무효화. 채팅 3회에 읽기 1회로 실측
   `/api/data/summary`를 매 채팅마다 Firestore 492건 전량 읽어 재계산 중. 짧은 TTL(30초) 인메모리 캐시 + 데이터 변경 시 무효화. 코드 리뷰에서도 지적된 항목.
 
-- [ ] **C4 · 구조적 로깅 + 요청 ID** (S, P1)
+- [x] **C4 · 구조적 로깅 + 요청 ID** (S, P1) — JSON 로그 + `X-Request-Id` 왕복 + 토큰·비용·`cached_tokens`·`truncated`. `GET /`에 배포본 식별자(`build`)도 추가
   요청마다 UUID, JSON 로그. `/api/chat`은 모델·프롬프트 토큰·완료 토큰·추정 비용 기록.
   **곁들일 것**: 프롬프트 캐시 적중(`prompt_tokens_details.cached_tokens`)을 함께 남기면 캐시 프리픽스가 깨졌을 때 알 수 있다. 지금은 응답이 멀쩡해서 비용만 조용히 오른다.
 

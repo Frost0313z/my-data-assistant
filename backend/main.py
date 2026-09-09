@@ -6,11 +6,14 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app import config
+from app import config, observability
 from app.routers import chat, conversations, data
+
+observability.configure_logging()
 
 app = FastAPI(title="대전 상권분석 매니저 API")
 
+app.add_middleware(observability.RequestLogMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS,
@@ -44,4 +47,10 @@ app.include_router(chat.router)
 
 @app.get("/")
 def health():
-    return {"status": "ok"}
+    """콜드스타트 핑(C6)과 배포본 확인용.
+
+    `build`는 배포 브랜치와 실제 배포본이 어긋났을 때 원인을 오진하지 않게 해 준다 —
+    전에 브랜치 설정이 안 먹은 사례가 있었는데, 스키마만 봐서는 구분이 안 됐다.
+    Render는 커밋 SHA를 `RENDER_GIT_COMMIT`으로 넣어 준다.
+    """
+    return {"status": "ok", "build": config.BUILD_REV}

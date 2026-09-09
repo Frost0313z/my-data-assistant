@@ -17,6 +17,10 @@ HISTORY_MAX_MESSAGES = int(os.environ.get("HISTORY_MAX_MESSAGES", "8"))
 # 쓰기 경로가 캐시를 직접 비우므로 이 값은 "다른 인스턴스가 고쳤을 때" 대비용이다.
 # 0으로 두면 캐시가 꺼진다.
 SUMMARY_CACHE_TTL = float(os.environ.get("SUMMARY_CACHE_TTL", "30"))
+
+# 배포된 것이 어느 커밋인지. Render가 `RENDER_GIT_COMMIT`을 넣어 준다.
+# 배포 브랜치와 실제 배포본이 어긋난 사례가 있었는데 스키마만으로는 구분이 안 됐다.
+BUILD_REV = (os.environ.get("RENDER_GIT_COMMIT") or os.environ.get("BUILD_REV") or "dev")[:12]
 # 주제 리포트(A14)는 4블록 구조를 채워야 해서 일반 답변보다 상한이 커야 한다.
 # 500으로는 [한계] 블록이 잘려 나가는데, 그 블록이 이 서비스의 차별점이라 잘리면 안 된다.
 REPORT_MAX_TOKENS = int(os.environ.get("REPORT_MAX_TOKENS", "1200"))
