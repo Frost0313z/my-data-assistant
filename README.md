@@ -249,7 +249,7 @@ cd frontend && python -m http.server 5500
 | `conversation.title` | 최대 100자, 제어문자 제거 |
 | `chat message.content` | 최대 8000자, 제어문자 제거 |
 
-위반 시 FastAPI가 `422 Unprocessable Entity`와 위반 필드를 반환합니다. 규칙은 `backend/test_models.py`(`python test_models.py`)로 검증합니다.
+위반 시 FastAPI가 `422 Unprocessable Entity`와 위반 필드를 반환합니다. 규칙은 `backend/tests/`(`pytest`)로 검증합니다. 테스트는 Firestore·OpenAI를 메모리 대역으로 갈아 끼워 **외부를 한 번도 부르지 않습니다.**
 
 ### 출력 이스케이프 (프론트엔드)
 

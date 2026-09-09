@@ -8,7 +8,7 @@
 
 ## 0. 지금 막힌 것 — 브랜치
 
-- [ ] **`main`에 `--no-ff` 머지 + 푸시**
+- [x] **`main`에 `--no-ff` 머지 + 푸시** — `db4d7b5`, origin 반영
 
 Phase 1-b(사용자 여정) · Phase 1-c(지도 중심 진입) 전체와 오늘 고친 결함 6건이 **로컬 한 브랜치에만** 있다. 검증은 끝났는데 머지가 안 돼 이 작업 전부가 디스크 하나에 존재한다.
 
@@ -18,7 +18,7 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 
 - [ ] Render `Branch` 설정이 `feat/portfolio-phase1`로 남아 있으면 `main`으로 원복
 - [ ] 배포 후 `openapi.json` 스키마로 실제 배포본 확인 (브랜치 설정이 안 먹은 전례 있음)
-- [ ] R2 워크트리(`Frost0313z/R2`) 최신화 — 안 하면 코덱스가 `665751f` 시점의 낡은 브리핑을 읽는다
+- [x] R2 워크트리(`Frost0313z/R2`) 최신화 — `db4d7b5`로 fast-forward — 안 하면 코덱스가 `665751f` 시점의 낡은 브리핑을 읽는다
 
 ---
 
@@ -26,7 +26,7 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 
 **순서**: `C1 → C2` 먼저. 테스트와 CI가 있어야 나머지를 안심하고 건드린다.
 
-- [ ] **C1 · pytest 통합 테스트** (M, P0)
+- [x] **C1 · pytest 통합 테스트** (M, P0) — `backend/tests/` 59개 통과. `append_turn` 트랜잭션 + 회귀 테스트 포함
   `test_models.py` 단일 assert 파일 → pytest. 라우터별 `TestClient` 통합 테스트, **Firestore·OpenAI는 반드시 페이크/모킹**(실제 호출 금지 — 비용 + 쓰레기 데이터).
   **여기에 물려 있는 것**: `conversation_service.append_turn`의 read-modify-write 경합. 프론트 전송 잠금은 현실적인 트리거를 없앴을 뿐 **탭 두 개면 여전히 재현**된다. Firestore 트랜잭션으로 바꾸고 회귀 테스트를 같이 남긴다.
 

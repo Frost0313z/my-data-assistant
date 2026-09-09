@@ -65,7 +65,7 @@ cold: "백엔드가 잠들어 있어 깨우는 중입니다. 무료 플랜이라
 
 ### C1 — pytest 스위트
 
-현재는 `test_models.py` 단일 assert 파일이다. `pytest` 기반으로 옮기고 라우터별 통합 테스트(`TestClient`)를 추가한다. **Firestore·OpenAI는 페이크/모킹** — 실제 호출 금지(비용·쓰레기 데이터).
+현재는 `backend/tests/` pytest 스위트다(C1 완료). `pytest` 기반으로 옮기고 라우터별 통합 테스트(`TestClient`)를 추가한다. **Firestore·OpenAI는 페이크/모킹** — 실제 호출 금지(비용·쓰레기 데이터).
 
 **반드시 덮을 회귀 케이스** (실제로 검증했던 것):
 
