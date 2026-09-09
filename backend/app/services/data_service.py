@@ -56,6 +56,50 @@ def delete_record(record_id: str) -> bool:
     return True
 
 
+def _trend(records):
+    """B4: 앞뒤 절반 평균 비교 -> 시점별 합계의 선형회귀 기울기.
+
+    앞뒤 절반 비교는 시점이 6개뿐일 때 가운데 한 시점의 튐에 그대로 흔들린다.
+    최소제곱 기울기는 모든 시점을 쓴다.
+
+    한 시점에 82개 행정동 레코드가 들어 있으므로 **시점별로 합쳐서** 회귀한다.
+    레코드 하나하나를 점으로 쓰면 같은 날짜가 82번 반복돼 기울기가 뜻을 잃는다.
+
+    판정 문구는 그대로 세 가지다 — 화면과 프롬프트가 이미 그 값을 쓴다.
+
+    한계: 최소제곱은 이상치에 강하지 않다. 한 시점이 크게 튀면 방향이 뒤집힐 수 있다
+    (`tests/test_trend.py`에 그 경우를 남겨 뒀다). 이 데이터에서는 2024년 4개 시점이
+    자료 수집범위 단절로 급증했는데, 그건 분석 단계에서 이미 제외됐다.
+    """
+    totals = {}
+    for r in records:
+        totals[r.date] = totals.get(r.date, 0) + r.value
+    points = [totals[d] for d in sorted(totals)]
+    n = len(points)
+    if n < 2:
+        return "판단 보류", 0.0, 0.0
+
+    mean_x = (n - 1) / 2
+    mean_y = sum(points) / n
+    denominator = sum((i - mean_x) ** 2 for i in range(n))
+    slope = sum((i - mean_x) * (y - mean_y) for i, y in enumerate(points)) / denominator
+
+    # 기울기의 단위는 "시점당 값"이라 규모에 따라 크기가 제각각이다.
+    # 평균 대비 몇 %인지로 바꿔야 시점 수가 달라도 같은 기준으로 읽힌다.
+    per_period_pct = slope / mean_y * 100 if mean_y else 0.0
+    total_change = (points[-1] - points[0]) / points[0] * 100 if points[0] else 0.0
+
+    # 0.5%는 임의의 선이 아니다. 시점당 0.5%면 6시점에 약 3%로, 이 데이터의
+    # 실제 성장률(+3.59%)이 "상승"으로 읽히는 경계다.
+    if per_period_pct > 0.5:
+        trend = "상승"
+    elif per_period_pct < -0.5:
+        trend = "하락"
+    else:
+        trend = "유지"
+    return trend, round(slope, 2), round(total_change, 2)
+
+
 def matches(record, filters) -> bool:
     """B3: 자치구·행정동·업종은 정확히, 기간은 범위로 거른다.
 
@@ -104,23 +148,16 @@ def _compute_summary(filters: dict | None = None) -> models.DataSummary:
         return models.DataSummary(period=empty, count=0, metrics={}, trend=empty)
 
     values = [r.value for r in records]
+    trend, slope, change = _trend(records)
     metrics = {
         "total": sum(values),
         "average": round(sum(values) / len(values), 2),
         "max": max(values),
         "min": min(values),
+        # B4: 판정만 주면 AI가 근거 없이 "상승세입니다"라고 말한다. 수치를 함께 준다.
+        "slope_per_period": slope,
+        "change_pct": change,
     }
-
-    # 날짜순 정렬 후 앞/뒤 절반 평균을 비교해 추세를 판단한다.
-    half = max(len(records) // 2, 1)
-    first_half_avg = sum(r.value for r in records[:half]) / half
-    second_half_avg = sum(r.value for r in records[-half:]) / half
-    if second_half_avg > first_half_avg * 1.02:
-        trend = "상승"
-    elif second_half_avg < first_half_avg * 0.98:
-        trend = "하락"
-    else:
-        trend = "유지"
 
     return models.DataSummary(
         period=f"{records[0].date} ~ {records[-1].date}",

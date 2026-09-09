@@ -76,7 +76,8 @@ git checkout main && git merge --no-ff feat/portfolio-phase1b && git push
 | ~~**E2**~~ | S | ✅ **완료** — [`docs/adr/`](docs/adr/README.md) 5건. 각각 맥락·결정·**대신 잃은 것**·언제 뒤집나 |
 | **E3** | M | 🟡 **대본만** — [`docs/DEMO.md`](docs/DEMO.md) 60초 대본 + 녹화 주의. **녹화는 사람이 해야 한다** |
 | ~~**E4**~~ | S | ✅ **완료** — [`docs/RETROSPECTIVE.md`](docs/RETROSPECTIVE.md) |
-| B4·B5 | S·L | (선택) 트렌드 판정 고도화 · `insights` RAG |
+| ~~**B4**~~ | S | ✅ **완료** — 앞뒤 절반 비교 → 시점별 합계의 최소제곱 기울기. 판정과 함께 `slope_per_period`·`change_pct`를 준다. 이상치에 강하지 않다는 한계는 테스트에 남겼다 |
+| **B5** | L | ⛔ **안 함(근거 기록)** — 지금 하면 손해다. 캐시 프리픽스가 2,460자 → 650자로 줄어 임계 미달, 순이득 약 180토큰. **리포트가 4,000자를 넘으면 다시 본다** |
 
 ---
 
