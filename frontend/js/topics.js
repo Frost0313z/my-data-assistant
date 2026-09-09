@@ -239,9 +239,13 @@ window.screenContext = null;
     // id가 "skip"이면 고른 페르소나는 없지만 카드는 접는다 — 지도부터 보겠다는 뜻이다.
     if (personaBox) personaBox.hidden = !!id;
     if (personaCurrent) {
-      personaCurrent.hidden = !chosen;
+      // 카드가 접혀 있으면 어떤 상태든 돌아갈 줄을 남긴다. 건너뛴 사람에게 이 줄이
+      // 없으면 localStorage를 지우기 전에는 카드를 다시 볼 방법이 없다.
+      personaCurrent.hidden = !id;
       const labelEl = document.getElementById("persona-current-label");
-      if (labelEl && chosen) labelEl.textContent = chosen.short;
+      const resetEl = document.getElementById("persona-reset");
+      if (labelEl) labelEl.textContent = chosen ? chosen.short : "목적을 고르면 화면이 맞춰집니다";
+      if (resetEl) resetEl.textContent = chosen ? "바꾸기" : "고르기";
     }
     window.activePersona = chosen ? chosen.id : null;
   }
@@ -272,7 +276,23 @@ window.screenContext = null;
   if (skip) skip.addEventListener("click", () => { storePersona("skip"); showPersona("skip"); });
 
   const resetPersona = document.getElementById("persona-reset");
-  if (resetPersona) resetPersona.addEventListener("click", () => { storePersona(""); showPersona(""); });
+  if (resetPersona) {
+    resetPersona.addEventListener("click", () => {
+      storePersona("");
+      showPersona("");
+      // 카드는 지도 위에 있어 아래로 스크롤한 상태면 화면 밖이다. 눌렀는데 아무 일도
+      // 안 일어난 것처럼 보이지 않게 데려온다.
+      if (personaBox) {
+        personaBox.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+        const first = personaBox.querySelector(".persona-card");
+        if (first) first.focus();
+      }
+    });
+  }
+
+  function reducedMotion() {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
 
   // 재방문 복원 — 화면만 맞추고 질문은 다시 보내지 않는다.
   const saved = loadPersona();
