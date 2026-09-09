@@ -179,8 +179,28 @@ button { font-weight: 500; }
 .map-toolbar select { max-width: 100%; min-height: 36px; padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); color: var(--ink-900); }
 .map-view-toggle { display: flex; margin-left: auto; gap: var(--sp-1); }
 .map-view-toggle button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
-/* A27: 하단 탭(약 52px)이 생기고 접이식 주제 영역이 사라져 세로 예산을 다시 잡는다. */
+/* A27: 하단 탭(약 52px)이 생기고 접이식 주제 영역이 사라져 세로 예산을 다시 잡는다.
+   좁은 화면에서만 이 고정 높이를 쓴다. 넓은 화면은 아래 min-width:901px 규칙에서
+   지도가 남는 높이를 먹는 방식으로 바꾼다 — 400px을 빼는 계산은 실측과 250px 어긋나
+   범례·선택 결과·질문 버튼이 접힘선 아래로 밀렸다. */
 .map-stage { position: relative; height: clamp(360px, calc(100dvh - 400px), 680px); background: var(--map-canvas); }
+
+/* 넓은 화면: 주제 창을 뷰포트에 가두고 지도가 남는 높이를 가져간다.
+   그래야 무엇을 더하고 빼도 범례·선택 결과·질문 버튼이 항상 첫 화면에 남는다. */
+@media (min-width: 901px) {
+  /* overflow는 auto다. hidden이면 창이 아주 낮을 때(페르소나 카드까지 펼친 800px 등)
+     질문 버튼이 잘려 나가 아예 누를 수 없다. 잘리느니 스크롤이 낫다. */
+  .topics-pane { height: calc(100dvh - var(--workspace-header-height)); overflow-y: auto; }
+  /* min-content라야 지도만 줄어들고 범례·해설·선택 결과는 안 줄어든다.
+     min-height:0이면 .map-explorer의 overflow:hidden이 그 아래를 잘라 버린다. */
+  .map-explorer { display: flex; flex-direction: column; flex: 1 1 auto; min-height: min-content; }
+  .map-stage { flex: 1 1 auto; height: auto; min-height: 220px; }
+  /* 늘어나고 줄어드는 건 무대뿐이다. 기준 배지·목적 카드·전환 탭까지 눌리면
+     탭 높이가 61px에서 17px로 찌그러져 글자가 잘린다. */
+  .topics-pane > :not(.map-explorer):not(.topic-detail) { flex: 0 0 auto; }
+  /* 임베드 무대는 스스로 스크롤한다. 창이 짧아도 페이지가 밀리지 않는다. */
+  .topic-detail { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+}
 #daejeon-map { width: 100%; height: 100%; }
 #daejeon-map svg { display: block; width: 100%; height: 100%; }
 #daejeon-map svg path { cursor: pointer; }
@@ -573,6 +593,9 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .workspace-header h1 { font-size: var(--fs-h2); }
   .map-selection { flex-direction: column; align-items: stretch; }
   .map-toolbar label { flex: 1 1 120px; min-width: 0; }
+  /* sticky bottom은 .layout의 padding-bottom이 아니라 뷰포트 기준이라
+     그대로 두면 무대 전환 탭이 하단 탭바(z:40) 아래로 들어가 눌리지 않는다. */
+  .analysis-tabs { bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px)); }
   .tabbar {
     height: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px));
     padding-bottom: env(safe-area-inset-bottom, 0px);

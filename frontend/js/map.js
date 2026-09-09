@@ -246,12 +246,19 @@
     if (fallback) renderFallback();
     showSelection();
   }
+  // 지표 이름이 5종이라 "을(를)"이 화면에 그대로 노출된다. 받침으로 골라 준다.
+  function withObjectParticle(word) {
+    const code = word.charCodeAt(word.length - 1) - 0xac00;
+    const hasFinal = code >= 0 && code <= 11171 && code % 28 !== 0;
+    return word + (hasFinal ? "을" : "를");
+  }
   function setView(mode) {
     view = mode;
     viewButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === mode)));
+    const metricLabel = withObjectParticle(spec().label);
     $("map-view-note").textContent = mode === "3d"
-      ? `3D 높이는 ${spec().label}을(를) 표현합니다. 실제 건물 높이가 아닙니다.`
-      : `2D 색은 ${spec().label}을(를) 표현합니다. 3D와 같은 데이터·구간을 사용합니다.`;
+      ? `3D 높이는 ${metricLabel} 표현합니다. 실제 건물 높이가 아닙니다.`
+      : `2D 색은 ${metricLabel} 표현합니다. 3D와 같은 데이터·구간을 사용합니다.`;
     if (!ready) return;
     map.setLayoutProperty("density-2d", "visibility", mode === "2d" ? "visible" : "none");
     map.setLayoutProperty("density-3d", "visibility", mode === "3d" ? "visible" : "none");

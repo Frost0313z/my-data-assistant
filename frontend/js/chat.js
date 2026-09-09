@@ -294,6 +294,9 @@ async function sendMessage(options) {
     // 성공·실패 어느 쪽이든 반드시 멈춘다. 안 그러면 답변이 도착한 뒤에도
     // 타이머가 버블 내용을 경과 초로 덮어쓴다.
     stopWaitTimer();
+    // 전송할 때 비운 제안 질문을 되돌린다. 안 되돌리면 첫 질문 뒤로는
+    // 주제를 바꾸기 전까지 다음 질문 경로가 사라진다.
+    renderSuggestions();
   }
 }
 
