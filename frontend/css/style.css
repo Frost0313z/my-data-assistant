@@ -185,7 +185,12 @@ button { font-weight: 500; }
 #daejeon-map svg path { cursor: pointer; }
 .map-status { position: absolute; top: var(--sp-3); left: var(--sp-3); right: 56px; margin: 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-control); background: var(--surface); color: var(--ink-700); font-size: var(--fs-caption); pointer-events: none; }
 .map-district-label { color: var(--primary); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-control); padding: var(--sp-1) var(--sp-2); font-family: inherit; font-size: var(--fs-caption); pointer-events: none; }
+/* A24: 행정동 이름. 자치구 라벨보다 한 단계 약하게 둬서 위계가 뒤집히지 않게 한다. */
+.map-dong-label { color: var(--ink-700); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-control); padding: 1px var(--sp-1); font-family: inherit; font-size: 11px; line-height: 1.4; white-space: nowrap; pointer-events: none; }
+.map-dong-label.is-selected { color: var(--caution); border-color: var(--caution); font-weight: 600; }
+
 .map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3); font-size: var(--fs-caption); }
+.map-legend-note { color: var(--ink-500); }
 .map-legend span { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .map-swatch { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--line-strong); }
 .map-level-1 { background: var(--map-level-1); }

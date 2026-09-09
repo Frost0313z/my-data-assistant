@@ -83,6 +83,47 @@
     }));
   }
 
+  // A24: 행정동 이름 라벨.
+  //
+  // symbol 레이어를 쓰지 않는 이유: text-field는 glyphs URL을 요구하는데, 이 지도는
+  // 스타일에 외부 소스를 하나도 두지 않아(네트워크 0) 글리프를 받아올 곳이 없다.
+  // 자치구 라벨이 이미 Marker로 동작하고 있으므로 같은 방식을 쓴다.
+  //
+  // 대신 충돌 회피를 직접 해야 한다. 82개를 한꺼번에 띄우면 서로 겹쳐 못 읽으므로,
+  // 폴리곤이 화면에서 충분히 클 때만 이름을 보인다 — 줌아웃하면 자연히 솎아진다.
+  const dongLabels = [];
+  const LABEL_MIN_PX = 46;
+
+  function buildDongLabels() {
+    for (const f of data.boundaries.features) {
+      const el = document.createElement("span");
+      el.className = "map-dong-label";
+      el.textContent = f.properties.dong;
+      el.hidden = true;
+      const box = bounds([f]);
+      new maplibregl.Marker({ element: el })
+        .setLngLat([(box[0][0] + box[1][0]) / 2, (box[0][1] + box[1][1]) / 2])
+        .addTo(map);
+      dongLabels.push({ code: f.properties.dong_code, district: f.properties.district, box, el });
+    }
+    map.on("moveend", updateDongLabels);
+    updateDongLabels();
+  }
+
+  function updateDongLabels() {
+    if (!ready) return;
+    for (const label of dongLabels) {
+      const inDistrict = !district.value || label.district === district.value;
+      const a = map.project(label.box[0]);
+      const b = map.project(label.box[1]);
+      const roomy = Math.min(Math.abs(b.x - a.x), Math.abs(b.y - a.y)) >= LABEL_MIN_PX;
+      // 선택한 동은 작아도 항상 보인다 — 지금 보고 있는 곳의 이름이 사라지면 안 된다.
+      const isSelected = label.code === selected;
+      label.el.hidden = !(inDistrict && (roomy || isSelected));
+      label.el.classList.toggle("is-selected", isSelected);
+    }
+  }
+
   function renderLegend() {
     const box = $("map-legend");
     if (!box) return;
@@ -129,7 +170,10 @@
       : "지도나 행정동 목록에서 지역을 선택해 주세요.";
     $("map-ask").disabled = !row;
     dong.value = selected;
-    if (ready) map.setFilter("selected-dong", ["==", ["get", "dong_code"], selected]);
+    if (ready) {
+      map.setFilter("selected-dong", ["==", ["get", "dong_code"], selected]);
+      updateDongLabels();
+    }
     if (fallback) renderFallback();
     syncContext();
   }
@@ -300,6 +344,7 @@
         map.on("mouseenter", id, () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", id, () => { map.getCanvas().style.cursor = ""; });
       }
+      buildDongLabels();
       for (const f of data.districts.features) {
         const b = bounds([f]);
         const label = document.createElement("span"); label.className = "map-district-label"; label.textContent = f.properties.district;
