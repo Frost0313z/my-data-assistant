@@ -23,6 +23,16 @@
   --primary-hover: #2F5FA8;
   --primary-tint: #EEF3FB;
   --primary-tint-line: #D8E4F5;
+  /* 전체 조작은 네이비, 분석 전환은 청록으로 구분한다. */
+  --header-bg: #163E65;
+  --header-ink: #FFFFFF;
+  --header-muted: #D7E7F0;
+  --header-hover: #24537C;
+  --header-line: #729AB8;
+  --nav-bg: #E6F1F0;
+  --nav-accent: #176B68;
+  --nav-selected-ink: #FFFFFF;
+  --nav-line: #AACCC9;
 
   /* 따뜻함 — 채팅 칸 전용 */
   --warm-050: #FBF7F1;
@@ -119,6 +129,10 @@
    쿼리로는 그걸 못 덮는다. OS 설정은 <head> 인라인 스크립트가 읽어 이 속성으로
    옮겨 준다 — 덕분에 토큰을 두 벌로 중복 정의하지 않는다. */
 :root[data-theme="dark"] {
+    --nav-bg: #183331;
+    --nav-accent: #8DD8CE;
+    --nav-selected-ink: #102C29;
+    --nav-line: #4C817B;
     /* 잉크 — 라이트의 명암을 뒤집되 순수 흑백은 쓰지 않는다(눈부심·번짐) */
     --ink-900: #E8EBEF;
     --ink-700: #C2C8D0;
@@ -234,6 +248,21 @@ button { font-weight: 500; }
 }
 .workspace-header h1 { margin: 0; }
 
+.workspace-header {
+  background: var(--header-bg);
+  border-bottom-color: var(--header-line);
+}
+.workspace-header .brand-lockup { color: var(--header-ink); }
+.workspace-header .brand-subtitle { color: var(--header-muted); }
+.workspace-header .brand-mark { background: var(--header-ink); border-radius: var(--r-control); }
+.header-actions button {
+  background: transparent;
+  color: var(--header-ink);
+  border-color: var(--header-line);
+}
+.header-actions button:hover { background: var(--header-hover); border-color: var(--header-ink); }
+.header-actions button:focus-visible { outline-color: var(--header-ink); }
+
 /* 도시 블록 사이를 잇는 선은 동네별 데이터를 하나의 상권 흐름으로 읽는다는 뜻이다.
    별도 이미지 대신 SVG로 그려 테마·고해상도·파비콘까지 같은 정체성을 유지한다. */
 .brand-lockup {
@@ -276,15 +305,15 @@ button { font-weight: 500; }
   width: 1px;
   height: 20px;
   margin: 0 var(--sp-1);
-  background: var(--line-strong);
+  background: var(--header-line);
 }
 /* 열려 있는 패널은 버튼도 눌린 상태로 보인다.
    aria-expanded는 전부터 맞게 들어가 있었지만 화면에는 아무 표시가 없었다 —
    보조기술 사용자만 알고, 눈으로 보는 사람은 무엇이 열려 있는지 몰랐다. */
 .header-actions button[aria-expanded="true"] {
-  background: var(--primary-tint);
-  border-color: var(--primary);
-  color: var(--primary);
+  background: var(--header-ink);
+  border-color: var(--header-ink);
+  color: var(--header-bg);
 }
 /* A22: 채팅을 접어 지도에 전체 폭을 준다.
    넓은 화면에만 건다 — 좁은 화면은 탭 전환(.pane-active)이라 여기서 숨기면 채팅 탭이 죽는다. */
@@ -524,10 +553,10 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
   align-items: center;
   gap: var(--sp-2);
   margin-top: auto;
-  padding: var(--sp-2) 0;
+  padding: var(--sp-2);
   overflow: hidden;
-  background: var(--canvas);
-  border-top: 1px solid var(--line);
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-line);
 }
 .analysis-tabs > .topic-btn { flex: 0 0 auto; }
 
@@ -544,17 +573,18 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
   flex: 0 0 auto;
   margin-left: auto;
   padding: var(--sp-3);
-  border: 1px solid var(--primary);
+  border: 1px solid var(--nav-accent);
+  background: var(--surface);
   border-radius: var(--r-control);
-  color: var(--primary);
+  color: var(--nav-accent);
   font-size: var(--fs-body);
   font-weight: 600;
   line-height: 1.25;
   text-decoration: none;
   white-space: nowrap;
 }
-.dashboard-open:hover { background: var(--primary-tint); }
-.dashboard-open:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.dashboard-open:hover { background: var(--nav-bg); }
+.dashboard-open:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: -3px; }
 .topic-btn {
   background: var(--surface);
   color: var(--ink-900);
@@ -565,13 +595,15 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
   text-align: left;
   transition: color var(--motion-feedback), border-color var(--motion-feedback), background-color var(--motion-feedback);
 }
-.topic-btn:hover { border-color: var(--primary); }
+.topic-btn:hover { border-color: var(--nav-accent); }
+.topic-btn:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: -3px; }
 .topic-btn.active {
-  background: var(--primary);
-  color: var(--surface);
-  border-color: var(--primary);
+  background: var(--nav-accent);
+  color: var(--nav-selected-ink);
+  border-color: var(--nav-accent);
   font-weight: 600;
 }
+.topic-btn.active:focus-visible { outline-color: var(--nav-selected-ink); }
 
 .topic-detail { margin-bottom: 0; }
 .topic-detail > :not(.topic-frame-wrap) { animation: content-fade var(--motion-fade); }
@@ -748,19 +780,20 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   position: fixed;
   bottom: 0; left: 0; right: 0;
   display: flex;
-  background: var(--surface);
-  border-top: 1px solid var(--line);
+  background: var(--nav-bg);
+  border-top: 1px solid var(--nav-line);
   z-index: 40;
 }
 .tabbar button {
   flex: 1;
   background: none;
-  color: var(--ink-500);
+  color: var(--ink-700);
   border-radius: 0;
   padding: var(--sp-3);
   font-size: var(--fs-body);
 }
-.tabbar button.active { color: var(--primary); font-weight: 600; box-shadow: inset 0 -2px 0 var(--primary); }
+.tabbar button.active { background: var(--surface); color: var(--nav-accent); font-weight: 600; box-shadow: inset 0 -3px 0 var(--nav-accent); }
+.tabbar button:focus-visible { outline-color: var(--nav-accent); outline-offset: -3px; }
 
 .topic-divider { animation: content-fade var(--motion-fade); }
 
