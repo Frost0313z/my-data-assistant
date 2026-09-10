@@ -97,7 +97,12 @@ window.screenContext = null;
       if (window.switchToChatPane) window.switchToChatPane();
       input.focus();
     });
-    const link = el("a", "ghost-link", "전체 대시보드에서 보기 ↗");
+    // ↗는 "새 창에서 열린다"는 정보다. 낭독기가 "북동쪽 화살표"로 읽지 않게
+    // 기호는 감추고 말로 대신한다(index.html의 두 링크와 같은 처리).
+    const link = el("a", "ghost-link", "전체 대시보드에서 보기 ");
+    const arrow = el("span", "", "↗");
+    arrow.setAttribute("aria-hidden", "true");
+    link.append(arrow, el("span", "sr-only", "(새 창에서 열림)"));
     link.href = window.DASHBOARD_URL + (topic.anchor || "");
     link.target = "_blank";
     link.rel = "noopener";
@@ -224,8 +229,7 @@ window.screenContext = null;
   ];
 
   const PERSONA_KEY = "persona_v1";
-  const personaBox = document.getElementById("persona");
-  const personaCurrent = document.getElementById("persona-current");
+  const personaToggle = document.getElementById("persona-panel-toggle");
 
   function storePersona(id) {
     try { window.localStorage.setItem(PERSONA_KEY, id || ""); } catch (e) { /* 사생활 보호 모드 */ }
@@ -234,20 +238,11 @@ window.screenContext = null;
     try { return window.localStorage.getItem(PERSONA_KEY) || ""; } catch (e) { return ""; }
   }
 
-  // 고르기 전에는 카드가 지도 위에 크게, 고른 뒤에는 한 줄로 접힌다.
+  // A30: 접히는 한 줄 대신 헤더 버튼 라벨이 현재 목적을 진다.
+  // 어떤 상태에서도 그 버튼이 돌아갈 길이다 — 건너뛴 사람도 포함해서.
   function showPersona(id) {
     const chosen = PERSONAS.find((p) => p.id === id);
-    // id가 "skip"이면 고른 페르소나는 없지만 카드는 접는다 — 지도부터 보겠다는 뜻이다.
-    if (personaBox) personaBox.hidden = !!id;
-    if (personaCurrent) {
-      // 카드가 접혀 있으면 어떤 상태든 돌아갈 줄을 남긴다. 건너뛴 사람에게 이 줄이
-      // 없으면 localStorage를 지우기 전에는 카드를 다시 볼 방법이 없다.
-      personaCurrent.hidden = !id;
-      const labelEl = document.getElementById("persona-current-label");
-      const resetEl = document.getElementById("persona-reset");
-      if (labelEl) labelEl.textContent = chosen ? chosen.short : "목적을 고르면 화면이 맞춰집니다";
-      if (resetEl) resetEl.textContent = chosen ? "바꾸기" : "고르기";
-    }
+    if (personaToggle) personaToggle.textContent = chosen ? `목적: ${chosen.short}` : "목적 고르기";
     window.activePersona = chosen ? chosen.id : null;
   }
 
@@ -255,6 +250,8 @@ window.screenContext = null;
   function applyPersona(persona, ask) {
     storePersona(persona.id);
     showPersona(persona.id);
+    // 고르는 순간 패널은 할 일을 마쳤다. 닫아야 바뀐 지도가 보인다.
+    if (ask && window.closePersonaPanel) window.closePersonaPanel();
     // map.js는 이 파일보다 늦게 로드되고 데이터도 비동기로 받는다. 아직 준비 전이면
     // 원하는 지표를 남겨두고 map.js가 초기화 끝에 집어가게 한다.
     if (persona.mapMetric) {
@@ -274,25 +271,15 @@ window.screenContext = null;
   });
 
   const skip = document.getElementById("persona-skip");
-  if (skip) skip.addEventListener("click", () => { storePersona("skip"); showPersona("skip"); });
-
-  const resetPersona = document.getElementById("persona-reset");
-  if (resetPersona) {
-    resetPersona.addEventListener("click", () => {
-      storePersona("");
-      showPersona("");
-      // 카드는 지도 위에 있어 아래로 스크롤한 상태면 화면 밖이다. 눌렀는데 아무 일도
-      // 안 일어난 것처럼 보이지 않게 데려온다.
-      if (personaBox) {
-        personaBox.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
-        const first = personaBox.querySelector(".persona-card");
-        if (first) first.focus();
-      }
+  if (skip) {
+    skip.addEventListener("click", () => {
+      // "skip"을 저장해야 다음 방문에 다시 열리지 않는다. 고른 목적은 없지만
+      // 지도부터 보겠다는 것도 하나의 답이다.
+      storePersona("skip");
+      showPersona("skip");
+      if (window.closePersonaPanel) window.closePersonaPanel();
+      if (personaToggle) personaToggle.focus();
     });
-  }
-
-  function reducedMotion() {
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
   // 재방문 복원 — 화면만 맞추고 질문은 다시 보내지 않는다.
@@ -300,6 +287,24 @@ window.screenContext = null;
   showPersona(saved);
   const savedPersona = PERSONAS.find((p) => p.id === saved);
   if (savedPersona) applyPersona(savedPersona, false);
+
+  // A30: 첫 방문에만 자동으로 연다.
+  //
+  // 기준을 persona_v1 미설정으로 잡았다. 스펙에는 onboarded_v1이라고 적었지만
+  // 그건 인사말(A11)의 열쇠라 두 기능이 엮인다. "아직 고르지도 건너뛰지도
+  // 않았다"가 이 패널이 물어야 할 조건이고, 그건 예전에 카드를 띄우던 조건과
+  // 정확히 같다 — 동작이 바뀌지 않는다.
+  //
+  // 열지 않으면 A28이 죽는다. 눈에 안 띄어서 칩을 카드로 승격한 것인데
+  // 버튼 뒤에만 두면 원위치다.
+  //
+  // DOMContentLoaded까지 미루는 이유: 이 파일이 tabs.js보다 먼저 로드돼서
+  // 지금은 window.openPersonaPanel이 아직 없다.
+  if (!saved) {
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.openPersonaPanel) window.openPersonaPanel();
+    });
+  }
 
   // '지도' 탭 — 주제 선택을 풀고 지도 무대로 돌아온다.
   if (mapTab) {

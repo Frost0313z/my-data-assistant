@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="대전 상권분석 매니저">
+  <!-- 지도 범례의 밀도 5구간을 그대로 쓴다. 이 서비스가 화면에서 하는 일이
+       "농도를 색으로 보여주는 것"이라, 아이콘도 같은 말을 한다.
+       색은 --map-level-1..5와 동일하다(디자인 시스템 §1). -->
+  <rect width="32" height="32" rx="6" fill="#F6F7F9"/>
+  <rect x="5"  y="17" width="6" height="10" rx="1" fill="#D7E7F0"/>
+  <rect x="13" y="12" width="6" height="15" rx="1" fill="#5698B9"/>
+  <rect x="21" y="5"  width="6" height="22" rx="1" fill="#163E65"/>
+</svg>
