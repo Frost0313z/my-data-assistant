@@ -106,15 +106,15 @@ body {
   background: var(--canvas);
   color: var(--ink-900);
   font-size: var(--fs-body);
+  /* A16·A31: 디자인 시스템 §2가 "전역"이라고 적었는데 선택자 세 개에만 걸려 있었다.
+     지도 범례처럼 숫자가 세로로 나란히 서는 곳이 빠져 자릿수가 흔들렸다. */
+  font-variant-numeric: tabular-nums;
 }
 
 button, input, select, textarea { font-family: inherit; font-weight: 400; }
 h1, h2, h3, h4, h5, h6, strong, b, th { font-weight: 600; }
 button { font-weight: 500; }
 
-.topic-headline, .summary-box, .data-table {
-  font-variant-numeric: tabular-nums;
-}
 .summary-row > :last-child { text-align: right; }
 
 /* ── 3분할 레이아웃: 좌 사이드바 · 중앙 분석 · 우 채팅 ──
@@ -258,9 +258,18 @@ button { font-weight: 500; }
 .map-change-5 { background: var(--map-change-5); }
 .map-note { margin: 0; padding: 0 var(--sp-3) var(--sp-2); color: var(--ink-700); font-size: var(--fs-caption); line-height: 1.6; }
 .map-note a { color: var(--primary); }
-.map-selection { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); margin: 0 var(--sp-3) var(--sp-2); background: var(--surface-sunken); border-radius: var(--r-control); font-variant-numeric: tabular-nums; }
-.map-selection h3 { margin: 0 0 var(--sp-1); }
+.map-selection { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); margin: 0 var(--sp-3) var(--sp-2); background: var(--surface-sunken); border-radius: var(--r-control); }
+/* A31: 이름은 맥락, 값이 답이다. 이름을 캡션으로 내리고 값을 Display로 올린다.
+   h3를 유지하는 것은 보조기술이 이 블록의 제목을 잃지 않게 하기 위해서다 —
+   크기만 낮추고 요소는 바꾸지 않는다. */
+.map-selection h3 { margin: 0; font-size: var(--fs-caption); font-weight: 500; color: var(--ink-700); }
+/* 아래 두 규칙은 반드시 .map-selection으로 한 번 더 감싼다. `.map-selection p`가
+   0-1-1이라 클래스 하나(0-1-0)로는 진다 — 실제로 그렇게 써서 28px이 안 먹었다. */
 .map-selection p { margin: 0; font-size: var(--fs-caption); line-height: 1.6; }
+.map-selection .map-selection-value { font-size: var(--fs-display); font-weight: 600; line-height: 1.15; color: var(--ink-900); overflow-wrap: anywhere; }
+.map-selection .map-selection-basis { color: var(--ink-700); }
+/* 아무것도 안 고른 상태에서까지 28px로 외치지 않는다. 값이 있을 때만 큰 소리를 낸다. */
+.map-selection:not(.has-selection) p.map-selection-value { font-size: var(--fs-body); font-weight: 400; color: var(--ink-500); }
 .map-selection button { flex-shrink: 0; }
 .map-toolbar button:disabled, .map-selection button:disabled { opacity: .55; cursor: not-allowed; }
 select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }

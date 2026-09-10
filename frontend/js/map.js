@@ -293,18 +293,27 @@
       ` · 교체율 ${row.turnover === null ? "-" : num(row.turnover, 1) + "%"} (중앙 ${num(cuts.turnover, 1)}%)` +
       ` · 등록 업소 ${num(row.stores, 0)}개`;
     const reason = idx === ASIDE ? ` ${asideReason(row, cuts) || "교체율 값이 없습니다."}` : "";
-    return `${when} · ${TYPES[idx].label} — ${TYPES[idx].hint}${reason} ${basis}`;
+    return { value: TYPES[idx].label, basis: `${when} · ${TYPES[idx].hint}${reason} ${basis}` };
   }
   function showSelection() {
     const row = rows().find((r) => r.dong_code === selected);
     const when = spec().allPeriods ? data.turnoverRange.map((p) => p.slice(0, 7)).join(" → ") : period.value.slice(0, 7);
-    $("map-selection-name").textContent = row ? `${row.district} ${row.dong}` : "어느 동이 궁금하세요?";
-    $("map-selection-value").textContent = row
-      ? spec().categorical ? describeType(row, when)
+    // A31: 값이 이 무대의 Display 자리다. 지금까지 한 문장에 뭉쳐 있어서
+    // 상권 수치를 파는 화면인데 수치가 캡션 크기로 그려졌다.
+    // 값만 크게 세우고 근거(시점·지표 이름·기준선·업소 수)는 그 아래 캡션으로 내린다.
+    // A26이 요구하는 "판정에 쓴 두 값과 기준선"은 basis에 그대로 남는다.
+    const shown = !row ? null
+      : spec().categorical ? describeType(row, when)
         // 밀도만 볼 때 원도심이 과대해 보이는 문제가 있어 업소 수를 항상 함께 적는다.
-        : `${when} · ${spec().legend} ${fmt(valueOf(row))}` +
-          (metric === "stores" ? "" : ` · 등록 업소 ${row.stores.toLocaleString("ko-KR")}개`)
-      : "지도나 행정동 목록에서 지역을 선택해 주세요.";
+        : {
+          value: fmt(valueOf(row)),
+          basis: `${when} · ${spec().legend}` +
+            (metric === "stores" ? "" : ` · 등록 업소 ${row.stores.toLocaleString("ko-KR")}개`),
+        };
+    $("map-selection-name").textContent = row ? `${row.district} ${row.dong}` : "어느 동이 궁금하세요?";
+    $("map-selection-value").textContent = shown ? shown.value : "지도에서 지역을 선택해 주세요";
+    $("map-selection-basis").textContent = shown ? shown.basis : "";
+    document.querySelector(".map-selection").classList.toggle("has-selection", !!shown);
     $("map-ask").disabled = !row;
     dong.value = selected;
     if (ready) {
