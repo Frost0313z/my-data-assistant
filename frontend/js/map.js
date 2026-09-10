@@ -371,6 +371,31 @@
     if (fallback) renderFallback();
     showSelection();
   }
+
+  // A32: 램프를 시작할 때 한 번만 읽는 구조라(위의 const colors = ramp("level"))
+  // OS 테마가 도중에 바뀌면 CSS는 즉시 따라오지만 **지도만 옛 색으로 남는다.**
+  // 값을 다시 읽고 레이어를 다시 칠한다. CSS 변수로 칠한 레이어가 램프 말고도
+  // 넷 더 있어서 함께 갱신한다.
+  function applyTheme() {
+    RAMPS.level = ramp("level");
+    RAMPS.type = ramp("type");
+    RAMPS.change = ramp("change");
+    if (ready) {
+      // 경계 밖(바다·여백)을 칠하는 배경 레이어. 이걸 빼먹으면 페이지만 밝아지고
+      // 지도 둘레는 어두운 채로 남는다 — 실제로 그렇게 만들었다가 잡았다.
+      map.setPaintProperty("background", "background-color", color("--map-canvas"));
+      map.setPaintProperty("dong-lines", "line-color", color("--surface"));
+      map.setPaintProperty("district-lines", "line-color", color("--primary"));
+      map.setPaintProperty("selected-dong", "line-color", color("--caution"));
+      if (map.getLayer("category-points")) {
+        map.setPaintProperty("category-points", "circle-color", color("--caution"));
+        map.setPaintProperty("category-points", "circle-stroke-color", color("--surface"));
+      }
+    }
+    updateMap();
+  }
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
+  window.__applyMapTheme = applyTheme; // 검증용 — 테마 전환을 강제로 돌려본다
   // 지표 이름이 5종이라 "을(를)"이 화면에 그대로 노출된다. 받침으로 골라 준다.
   function setView(mode) {
     view = mode;
