@@ -110,7 +110,8 @@ gh api -X PUT repos/<owner>/<repo>/branches/main/protection --input prot.json
 - 테스트는 Firestore·OpenAI를 모킹한다 — **실제 외부 호출 금지**
 - 화면에 나가는 모든 문구는 한국어
 - 검증 전에는 roadmap에서 완료로 올리지 않는다
-- 수동 점검 뒤 기준 상태 복구: **conversations 0 / data 492**
+- 수동 점검 뒤 기준 상태 복구: **내가 만든 대화만 지운다 / data 492**. 2026-09-10에 사용자가 직접 써 본 대화 2건이 남아 있었다 — *"conversations 0"* 을 기계적으로 지키면 **남의 데이터를 지운다.** 지우기 전에 `updated_at`과 제목을 본다
+- **머지 직전에 `origin/main`을 다시 본다** — 리뷰 지적을 적용해 놓고 올리려는 사이 main에 그 코드를 쓰는 새 작업이 들어와 지적의 전제가 사라진 적이 있다(2026-09-10, A33 래퍼). **리뷰 결과에도 유통기한이 있다**
 - **읽기도 비용이다** — 2026-09-10 소진이 그 증거다. 목록을 통째로 읽는 코드를 새로 넣지 않는다
 - **화면에서 잰다** — 스크린샷이 아니라 `getBoundingClientRect`·CSSOM 전수 조회로. 그리고 **`ignoreCache`로 새로고침한다** — 캐시된 옛 스크립트를 보고 "코드가 안 먹는다"고 오진한 적이 있다
 - **규칙은 무대를 옮길 때 따라오지 않는다** — A15·A16이 그랬다. 새 무대를 만들면 [`design-system.md`](docs/design/design-system.md) §2의 "Display가 앉을 자리" 표에 줄을 추가한다
