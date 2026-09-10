@@ -59,6 +59,36 @@
     p.toggle.addEventListener("click", () => setFloating(p.cls, !layout.classList.contains(p.cls)));
   });
 
+  // A32: 라이트/다크 전환.
+  //
+  // 초기 상태는 <head> 인라인 스크립트가 이미 정해 뒀다(깜빡임 방지). 여기서는
+  // 그 값을 읽어 버튼만 맞추고, 이후 전환을 맡는다.
+  //
+  // 한 번도 안 누른 사람에게는 예전과 똑같이 OS 설정을 따라간다 — 저장된 선택이
+  // 있을 때만 OS 변경을 무시한다. "고른 적 없음"과 "라이트를 골랐음"은 다르다.
+  const THEME_KEY = "theme_v1";
+  const root = document.documentElement;
+  const themeToggle = document.getElementById("theme-toggle");
+  const darkMedia = window.matchMedia("(prefers-color-scheme: dark)");
+  const savedTheme = () => { try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; } };
+
+  function setTheme(dark, persist) {
+    root.dataset.theme = dark ? "dark" : "light";
+    // 라벨은 지금 상태가 아니라 **누르면 일어날 일**이다.
+    themeToggle.textContent = dark ? "라이트" : "다크";
+    themeToggle.setAttribute("aria-label", dark ? "라이트 모드로 전환" : "다크 모드로 전환");
+    themeToggle.setAttribute("aria-pressed", String(dark));
+    if (persist) { try { localStorage.setItem(THEME_KEY, dark ? "dark" : "light"); } catch (e) { /* 사생활 보호 모드 */ } }
+    // 지도는 CSS가 아니라 WebGL이라 스스로 따라오지 않는다. 다시 칠하라고 알린다.
+    if (window.__applyMapTheme) window.__applyMapTheme();
+  }
+
+  setTheme(root.dataset.theme === "dark", false);
+  themeToggle.addEventListener("click", () => setTheme(root.dataset.theme !== "dark", true));
+  darkMedia.addEventListener("change", (event) => {
+    if (!savedTheme()) setTheme(event.matches, false);
+  });
+
   // A22: 지도를 넓게 보려고 채팅 칸을 접는다. CSS 규칙이 넓은 화면에만 걸려 있어
   // 좁은 화면(탭 모드)에서는 이 클래스가 남아 있어도 채팅 탭이 정상 동작한다.
   const chatToggle = document.getElementById("chat-panel-toggle");

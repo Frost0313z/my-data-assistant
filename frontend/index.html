@@ -17,6 +17,21 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" crossorigin />
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" />
+<script>
+  // A32: 그리기 전에 테마를 정한다. 바디 끝 스크립트에서 하면 라이트로 한 번
+  // 그려졌다가 어두워지는 깜빡임이 보인다. 그래서 여기 인라인으로 둔다.
+  //
+  // 저장된 선택이 있으면 그걸 쓰고, 없으면 OS 설정을 따른다. 즉 버튼을 한 번도
+  // 안 누른 사람에게는 예전(자동)과 똑같이 동작한다.
+  (function () {
+    var dark = false;
+    try {
+      var saved = localStorage.getItem("theme_v1");
+      dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch (e) { /* 사생활 보호 모드 */ }
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+  })();
+</script>
 </head>
 <body>
 <!-- F1: 키보드 사용자는 지도 툴바(셀렉트 5개 + 버튼 4개)를 전부 지나야 채팅에 닿는다.
@@ -26,6 +41,9 @@
   <h1>대전 상권분석 매니저</h1>
   <!-- A30: 목적 선택은 지도 위 상시 노출에서 이 버튼이 여는 플로팅 패널로 옮겼다.
        현재 고른 목적이 라벨에 실린다 — 예전의 '둘러보는 중 · 바꾸기' 한 줄을 대신한다. -->
+  <!-- A32: 라벨은 "지금 상태"가 아니라 "누르면 일어날 일"이다(디자인 시스템 §글쓰기).
+       텍스트는 tabs.js가 채운다 — 초기값을 HTML에 박으면 저장된 선택과 어긋난다. -->
+  <button id="theme-toggle" class="theme-toggle" aria-pressed="false"></button>
   <button id="persona-panel-toggle" aria-controls="pane-persona" aria-expanded="false">목적 고르기</button>
   <button id="data-panel-toggle" aria-controls="pane-side" aria-expanded="false">데이터·대화 기록</button>
   <button id="chat-panel-toggle" aria-controls="pane-chat" aria-expanded="true">AI 채팅</button>

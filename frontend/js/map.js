@@ -394,8 +394,9 @@
     }
     updateMap();
   }
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
-  window.__applyMapTheme = applyTheme; // 검증용 — 테마 전환을 강제로 돌려본다
+  // 테마 전환의 주인은 tabs.js다(토글 버튼 + OS 변경 감지). 여기서 따로 듣지 않는다 —
+  // 둘 다 들으면 OS가 바뀔 때마다 두 번 칠한다.
+  window.__applyMapTheme = applyTheme;
   // 지표 이름이 5종이라 "을(를)"이 화면에 그대로 노출된다. 받침으로 골라 준다.
   function setView(mode) {
     view = mode;
