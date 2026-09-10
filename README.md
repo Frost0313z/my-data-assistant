@@ -233,7 +233,7 @@ cd frontend && python -m http.server 5500
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | 백엔드 | ✅ | 서비스 계정 키 — **로컬은 파일 경로**, **Render는 JSON 문자열 전체** |
 | `ALLOWED_ORIGINS` | 백엔드 | ✅ | CORS 허용 오리진(콤마 구분). 프론트 배포 URL 포함 |
 | `OPENAI_MODEL` | 백엔드 |  | 기본값 `gpt-4o-mini` |
-| `CHAT_MAX_TOKENS` | 백엔드 |  | 일반 답변 토큰 상한 (기본 `500`, 과금 방지) |
+| `CHAT_MAX_TOKENS` | 백엔드 |  | 일반 답변 토큰 상한 (기본 `900`). 500이던 것을 올렸다 — 답이 문장 중간에서 잘렸다. 입력 비용은 프롬프트 캐시 프리픽스를 키워 줄였다([`decisions.md`](docs/decisions.md)) |
 | `REPORT_MAX_TOKENS` | 백엔드 |  | 주제 리포트 토큰 상한 (기본 `1200`) — 4블록을 채워야 해 상한이 다르다 |
 | `API_BASE_URL` | 프론트엔드(Vercel) | ✅ | 백엔드 배포 URL. 빌드 시 `build.js`가 `js/config.js`에 주입 |
 
