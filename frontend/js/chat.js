@@ -282,8 +282,12 @@ async function loadConversationIntoChat(conversationId) {
 
 // A14: 답변 뒤에 붙는 리포트 CTA. 여정의 종착점(산출물)을 만드는 버튼이라
 // 이 서비스의 Primary Goal이다. 주제가 선택돼 있을 때만 의미가 있다.
-function appendReportCta() {
-  const topic = window.screenContext && window.screenContext.topic;
+//
+// 주제를 **요청을 보낸 시점**의 것으로 받는다. 예전에는 여기서 window.screenContext를
+// 직접 읽었는데, 답이 오는 동안 지도나 주제를 바꾸면 A 주제 답변 아래에 B 주제
+// 리포트 버튼이 붙었다. 버튼은 바로 위 답변에 딸린 것이므로 그때의 주제를 따라야 한다.
+function appendReportCta(askedTopic) {
+  const topic = askedTopic;
   if (!topic) return;
 
   const list = document.getElementById("chat-messages");
@@ -402,8 +406,10 @@ async function sendMessage(options) {
     currentConversationId = result.conversation_id;
     appendUsage(result.usage);
     refreshHistory();
-    // 리포트 답변 뒤에 또 리포트를 권하지 않는다
-    if (!opts.isReport) appendReportCta();
+    // 리포트 답변 뒤에 또 리포트를 권하지 않는다.
+    // 주제는 **보낼 때** 잡아 둔 것을 넘긴다 — 답을 기다리는 동안 주제를 바꿔도
+    // 이 버튼은 바로 위 답변의 주제를 가리켜야 한다.
+    if (!opts.isReport) appendReportCta(context && context.topic);
   } catch (err) {
     loadingBubble.remove();
     const kind = classifyError(err);

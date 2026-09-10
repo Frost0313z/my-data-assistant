@@ -442,8 +442,14 @@
     if (map) { map.remove(); map = null; }
     fallback = true;
     status.hidden = false;
-    status.textContent = "이 환경에서는 2D 지도를 제공합니다. 3D는 WebGL 지원 브라우저에서 사용할 수 있습니다.";
+    status.textContent = "이 환경에서는 2D 지도를 제공합니다. 3D와 업종 점 표시는 WebGL 지원 브라우저에서 사용할 수 있습니다.";
     viewButtons.find((b) => b.dataset.mapView === "3d").disabled = true;
+    // 업종 점은 WebGL 레이어라 SVG 폴백에서 그릴 수 없다. 셀렉트를 열어 두면
+    // 골라도 아무 일이 안 일어나 고장으로 보인다 — updatePoints가 !ready에서
+    // 조용히 끝나기 때문이다. 고를 수 없게 하고 이유를 위 안내에 적는다.
+    categorySelect.value = "";
+    categorySelect.disabled = true;
+    categorySelect.title = "업종 점 표시는 WebGL 지원 브라우저에서만 가능합니다";
     setView("2d");
     renderFallback();
   }
@@ -472,7 +478,9 @@
     [...new Set(rows().map((r) => r.district))].sort().forEach((d) => district.add(new Option(d, d)));
     updateDongOptions();
     [metricSelect, period, district, dong, $("map-reset"), ...viewButtons].forEach((e) => { e.disabled = false; });
-    if (points) categorySelect.disabled = false;
+    // !fallback을 함께 본다. 지금은 이 줄이 지도 생성보다 먼저라 폴백이 나중에
+    // 걸리지만, 순서에 기대지 않고 명시한다 — 폴백에서 다시 열리면 안 된다.
+    if (points && !fallback) categorySelect.disabled = false;
     function applyMetric(next) {
       if (!METRICS[next]) return;
       metric = next;
