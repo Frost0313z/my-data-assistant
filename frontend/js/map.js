@@ -371,6 +371,32 @@
     if (fallback) renderFallback();
     showSelection();
   }
+
+  // A32: 램프를 시작할 때 한 번만 읽는 구조라(위의 const colors = ramp("level"))
+  // OS 테마가 도중에 바뀌면 CSS는 즉시 따라오지만 **지도만 옛 색으로 남는다.**
+  // 값을 다시 읽고 레이어를 다시 칠한다. CSS 변수로 칠한 레이어가 램프 말고도
+  // 넷 더 있어서 함께 갱신한다.
+  function applyTheme() {
+    RAMPS.level = ramp("level");
+    RAMPS.type = ramp("type");
+    RAMPS.change = ramp("change");
+    if (ready) {
+      // 경계 밖(바다·여백)을 칠하는 배경 레이어. 이걸 빼먹으면 페이지만 밝아지고
+      // 지도 둘레는 어두운 채로 남는다 — 실제로 그렇게 만들었다가 잡았다.
+      map.setPaintProperty("background", "background-color", color("--map-canvas"));
+      map.setPaintProperty("dong-lines", "line-color", color("--surface"));
+      map.setPaintProperty("district-lines", "line-color", color("--primary"));
+      map.setPaintProperty("selected-dong", "line-color", color("--caution"));
+      if (map.getLayer("category-points")) {
+        map.setPaintProperty("category-points", "circle-color", color("--caution"));
+        map.setPaintProperty("category-points", "circle-stroke-color", color("--surface"));
+      }
+    }
+    updateMap();
+  }
+  // 테마 전환의 주인은 tabs.js다(토글 버튼 + OS 변경 감지). 여기서 따로 듣지 않는다 —
+  // 둘 다 들으면 OS가 바뀔 때마다 두 번 칠한다.
+  window.__applyMapTheme = applyTheme;
   // 지표 이름이 5종이라 "을(를)"이 화면에 그대로 노출된다. 받침으로 골라 준다.
   function setView(mode) {
     view = mode;
