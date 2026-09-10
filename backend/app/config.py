@@ -38,6 +38,9 @@ SENTRY_ENV = os.environ.get("SENTRY_ENVIRONMENT", "production" if os.environ.get
 
 CHAT_RATE_PER_MINUTE = int(os.environ.get("CHAT_RATE_PER_MINUTE", "10"))
 DAILY_TOKEN_BUDGET = int(os.environ.get("DAILY_TOKEN_BUDGET", "300000"))
+# OpenAI usage는 완료 뒤에만 알 수 있다. 동시 요청이 예산을 넘지 않도록
+# 입력 추정치와 출력 상한을 먼저 예약하고, 완료 후 실제 사용량으로 정산한다.
+CHAT_INPUT_TOKEN_RESERVE = int(os.environ.get("CHAT_INPUT_TOKEN_RESERVE", "2500"))
 
 FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "")
 

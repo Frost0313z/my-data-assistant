@@ -86,6 +86,31 @@ def test_실제_사용량이_총량에_쌓인다(client, db, openai):
     before = ratelimit.snapshot()["used"]
     client.post("/api/chat", json={"message": "질문"})
     assert ratelimit.snapshot()["used"] == before + 120  # 스텁 usage
+    assert ratelimit.snapshot()["reserved"] == 0
+
+
+def test_예약한_토큰까지_합쳐_상한을_넘기면_막는다(monkeypatch):
+    monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 0)
+    monkeypatch.setattr(config, "DAILY_TOKEN_BUDGET", 100)
+
+    ratelimit.check("1.1.1.1", reservation=60, now=1000)
+    with pytest.raises(ratelimit.RateLimited):
+        ratelimit.check("2.2.2.2", reservation=50, now=1000)
+
+    assert ratelimit.snapshot()["reserved"] == 60
+    ratelimit.settle(60, 40, now=1000)
+    assert ratelimit.snapshot()["used"] == 40
+    assert ratelimit.snapshot()["reserved"] == 0
+    ratelimit.check("2.2.2.2", reservation=60, now=1000)
+
+
+def test_실패한_요청의_예약은_반납한다(monkeypatch):
+    monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 0)
+    monkeypatch.setattr(config, "DAILY_TOKEN_BUDGET", 100)
+
+    ratelimit.check("1.1.1.1", reservation=100, now=1000)
+    ratelimit.settle(100, 0, now=1000)
+    ratelimit.check("2.2.2.2", reservation=100, now=1000)
 
 
 def test_스트리밍도_총량에_쌓인다(client, db, streaming):

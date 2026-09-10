@@ -18,7 +18,7 @@ from . import config, observability
 
 _lock = threading.Lock()
 _hits: dict[str, deque] = defaultdict(deque)
-_tokens_today = {"day": None, "used": 0}
+_tokens_today = {"day": None, "used": 0, "reserved": 0}
 
 
 class RateLimited(Exception):
@@ -34,7 +34,7 @@ def _today(now: float) -> int:
     return int(now // 86400)
 
 
-def check(client: str, now: float | None = None) -> None:
+def check(client: str, reservation: int = 0, now: float | None = None) -> None:
     """요청을 받아도 되는지 본다. 안 되면 RateLimited를 던진다."""
     now = time.time() if now is None else now
     with _lock:
@@ -53,32 +53,46 @@ def check(client: str, now: float | None = None) -> None:
         if config.DAILY_TOKEN_BUDGET > 0:
             day = _today(now)
             if _tokens_today["day"] != day:
-                _tokens_today.update(day=day, used=0)
-            if _tokens_today["used"] >= config.DAILY_TOKEN_BUDGET:
-                observability.log("ratelimit.daily", used=_tokens_today["used"])
+                _tokens_today.update(day=day, used=0, reserved=0)
+            reserve = max(0, reservation)
+            projected = _tokens_today["used"] + _tokens_today["reserved"] + reserve
+            if projected > config.DAILY_TOKEN_BUDGET:
+                observability.log(
+                    "ratelimit.daily",
+                    used=_tokens_today["used"],
+                    reserved=_tokens_today["reserved"],
+                    requested=reserve,
+                )
                 raise RateLimited(
                     "오늘 사용할 수 있는 분량을 모두 썼습니다. 내일 다시 시도해 주세요.", 3600
                 )
+            _tokens_today["reserved"] += reserve
 
 
-def record_tokens(total: int, now: float | None = None) -> None:
+def settle(reservation: int, total: int, now: float | None = None) -> None:
     """실제로 쓴 토큰을 더한다. 요청 전에는 얼마나 쓸지 알 수 없으므로 사후 기록이다 —
     상한을 살짝 넘길 수 있지만, 넘긴 만큼은 이미 응답으로 나간 뒤다."""
     now = time.time() if now is None else now
     with _lock:
         day = _today(now)
         if _tokens_today["day"] != day:
-            _tokens_today.update(day=day, used=0)
+            _tokens_today.update(day=day, used=0, reserved=0)
+        _tokens_today["reserved"] = max(0, _tokens_today["reserved"] - max(0, reservation))
         _tokens_today["used"] += max(0, total)
+
+
+def record_tokens(total: int, now: float | None = None) -> None:
+    """예약하지 않은 기존 호출의 사후 기록 호환용."""
+    settle(0, total, now)
 
 
 def snapshot() -> dict:
     with _lock:
-        return {"day": _tokens_today["day"], "used": _tokens_today["used"]}
+        return dict(_tokens_today)
 
 
 def reset() -> None:
     """테스트 전용."""
     with _lock:
         _hits.clear()
-        _tokens_today.update(day=None, used=0)
+        _tokens_today.update(day=None, used=0, reserved=0)

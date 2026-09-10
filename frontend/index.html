@@ -95,12 +95,6 @@
 
   <!-- 중앙: 분석 주제 버튼 + 상세 (사전 분석 리포트 스냅샷) -->
   <main class="topics-pane" id="pane-dashboard">
-    <div class="pane-header">
-      <h2>대전 상권 지도</h2>
-      <!-- ↗는 장식이 아니라 "새 창에서 열린다"는 정보다. 다만 낭독기는 이걸
-           "북동쪽 화살표"로 읽어 소음이 된다. 기호는 감추고 말로 대신한다. -->
-      <a id="dashboard-open" href="#" target="_blank" rel="noopener">전체 대시보드 <span aria-hidden="true">↗</span><span class="sr-only">(새 창에서 열림)</span></a>
-    </div>
     <section class="map-explorer" aria-label="대전 상권 지도">
       <div class="map-toolbar">
         <label>지표 <select id="map-metric" disabled aria-label="지도 지표"></select></label>
@@ -148,6 +142,7 @@
     <nav class="analysis-tabs" aria-label="분석 무대 선택">
       <button id="stage-map-tab" class="topic-btn" aria-pressed="true">지도</button>
       <div id="topic-list" class="topic-list" role="group" aria-label="분석 주제 선택"></div>
+      <a id="dashboard-open" class="dashboard-open" href="#" target="_blank" rel="noopener">전체 대시보드 보기 <span aria-hidden="true">↗</span><span class="sr-only">(새 창에서 열림)</span></a>
     </nav>
   </main>
 
