@@ -97,7 +97,12 @@ window.screenContext = null;
       if (window.switchToChatPane) window.switchToChatPane();
       input.focus();
     });
-    const link = el("a", "ghost-link", "전체 대시보드에서 보기 ↗");
+    // ↗는 "새 창에서 열린다"는 정보다. 낭독기가 "북동쪽 화살표"로 읽지 않게
+    // 기호는 감추고 말로 대신한다(index.html의 두 링크와 같은 처리).
+    const link = el("a", "ghost-link", "전체 대시보드에서 보기 ");
+    const arrow = el("span", "", "↗");
+    arrow.setAttribute("aria-hidden", "true");
+    link.append(arrow, el("span", "sr-only", "(새 창에서 열림)"));
     link.href = window.DASHBOARD_URL + (topic.anchor || "");
     link.target = "_blank";
     link.rel = "noopener";
