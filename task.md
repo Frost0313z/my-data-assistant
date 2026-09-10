@@ -17,10 +17,11 @@
 
 ---
 
-## 1. 남은 것 (2건)
+## 1. 남은 것 (1건)
 
-- [ ] **F2 배포본 성능 재측정** — 로컬만 쟀다(LCP 713ms / CLS 0.00). **쿼터가 풀린 뒤에 재야 의미가 있다** — 지금 재면 실패하는 API 요청이 값을 오염시킨다
 - [ ] **`main` 브랜치 보호 규칙** — CI를 필수 체크로 지정. ⛔ **대시보드 작업이라 코드로 못 넣는다 — 사람이 해야 한다**
+
+  `Settings → Branches → Add rule → main` 에서 `Require status checks to pass` 를 켜고 `frontend`·`backend` 를 지정한다.
 
 ---
 
