@@ -96,15 +96,11 @@
         </div>
         <button id="map-reset" disabled>대전 전체 보기</button>
       </div>
-      <div class="map-stage">
-        <div id="daejeon-map" role="region" aria-label="대전 82개 행정동 공급 밀도, 행정동 선택은 위 선택 상자에서도 가능합니다"></div>
-        <p id="map-status" class="map-status" role="status">대전 지도를 불러오는 중입니다.</p>
-      </div>
-      <!-- A23: 지표마다 구간·단위가 달라 map.js가 채운다. -->
-      <div class="map-legend" id="map-legend" aria-label="지표 범례"></div>
-      <!-- 업종 점을 켠 동안에만 나온다. 상시 노출되는 해설 두 줄(지표 해설·2D/3D 안내)은
-           지도 높이를 벌기 위해 걷어냈다. -->
-      <p class="map-note" id="map-points-note" hidden></p>
+      <!-- 지도 위에 둔다. 아래에 있으면 지도를 다 본 뒤에야 결과가 눈에 들어와
+           확인이 늦다. 무대 순서 자체는 비용이 0이다 — .map-stage만 flex:1 1 auto라
+           형제들의 순서를 바꿔도 높이 배분이 그대로다.
+           고르기 전에는 "어느 동이 궁금하세요?"가 지도를 누르라는 안내가 되고,
+           고른 뒤에는 같은 자리가 답(A31의 Display)이 된다. -->
       <div class="map-selection" aria-live="polite">
         <!-- A31: 이 무대의 Display 자리는 '선택한 동의 값'이다. 이름 → 값 → 근거 순서로
              읽히게 세 줄로 나눈다. 지금까지 한 문장에 뭉쳐 있어 수치가 캡션 크기였다. -->
@@ -115,6 +111,15 @@
         </div>
         <button id="map-ask" disabled>이 동을 AI에게 질문</button>
       </div>
+      <div class="map-stage">
+        <div id="daejeon-map" role="region" aria-label="대전 82개 행정동 공급 밀도, 행정동 선택은 위 선택 상자에서도 가능합니다"></div>
+        <p id="map-status" class="map-status" role="status">대전 지도를 불러오는 중입니다.</p>
+      </div>
+      <!-- A23: 지표마다 구간·단위가 달라 map.js가 채운다. -->
+      <div class="map-legend" id="map-legend" aria-label="지표 범례"></div>
+      <!-- 업종 점을 켠 동안에만 나온다. 상시 노출되는 해설 두 줄(지표 해설·2D/3D 안내)은
+           지도 높이를 벌기 위해 걷어냈다. -->
+      <p class="map-note" id="map-points-note" hidden></p>
     </section>
 
     <!-- A27: 분석 패널은 지도와 같은 무대를 나눠 쓴다. 세로로 쌓지 않아 스크롤이 없다. -->
