@@ -117,12 +117,21 @@
         <label>업종 점 <select id="map-category" disabled aria-label="업종 점 표시"><option value="">표시 안 함</option></select></label>
         <label>자치구 <select id="map-district" disabled aria-label="지도 자치구"><option value="">대전 전체</option></select></label>
         <label>행정동 <select id="map-dong" disabled aria-label="지도 행정동"><option value="">지도에서 선택</option></select></label>
+        <form id="map-search-form" class="map-search" role="search" aria-label="지도 지역 검색">
+          <label for="map-search-input">지역 검색</label>
+          <div class="map-search-controls">
+            <input id="map-search-input" type="search" list="map-search-options" placeholder="자치구·동 이름" autocomplete="off" enterkeyhint="search" aria-describedby="map-search-feedback" disabled />
+            <button id="map-search-submit" type="submit" disabled>검색</button>
+          </div>
+          <datalist id="map-search-options"></datalist>
+        </form>
         <div class="map-view-toggle" role="group" aria-label="지도 표현 방식">
           <button data-map-view="2d" aria-pressed="false" disabled>2D</button>
           <button data-map-view="3d" aria-pressed="true" disabled>3D</button>
         </div>
         <button id="map-reset" disabled>대전 전체 보기</button>
       </div>
+      <p id="map-search-feedback" class="map-search-feedback sr-only" role="status"></p>
       <!-- 지도 위에 둔다. 아래에 있으면 지도를 다 본 뒤에야 결과가 눈에 들어와
            확인이 늦다. 무대 순서 자체는 비용이 0이다 — .map-stage만 flex:1 1 auto라
            형제들의 순서를 바꿔도 높이 배분이 그대로다.

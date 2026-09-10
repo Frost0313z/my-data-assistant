@@ -3,6 +3,8 @@
   const $ = (id) => document.getElementById(id);
   const period = $("map-period"), district = $("map-district"), dong = $("map-dong");
   const metricSelect = $("map-metric");
+  const regionSearch = $("map-search-input"), searchSubmit = $("map-search-submit");
+  const searchFeedback = $("map-search-feedback");
   const status = $("map-status"), host = $("daejeon-map");
   const viewButtons = [...document.querySelectorAll("[data-map-view]")];
   const css = getComputedStyle(document.documentElement);
@@ -302,7 +304,8 @@
   function syncContext() {
     const row = rows().find((r) => r.dong_code === selected);
     const when = spec().allPeriods ? data.turnoverRange.map((p) => p.slice(0, 7)).join(" → ") : period.value.slice(0, 7);
-    const label = `${spec().label} · ${when}${row ? ` · ${row.district} ${row.dong}` : " · 대전 전체"}`;
+    const region = row ? `${row.district} ${row.dong}` : district.value ? `${district.value} 전체` : "대전 전체";
+    const label = `${spec().label} · ${when} · ${region}`;
     const regionType = row && spec().categorical ? TYPES[typeIndex(row, typeCuts())].key : "";
     if (window.focusMapAnalysis) window.focusMapAnalysis(label, metric, regionType);
   }
@@ -334,15 +337,21 @@
           basis: `${when} · ${spec().legend}` +
             (metric === "stores" ? "" : ` · 등록 업소 ${row.stores.toLocaleString("ko-KR")}개`),
         };
-    $("map-selection-name").textContent = row ? `${row.district} ${row.dong}` : "어느 동이 궁금하세요?";
+    $("map-selection-name").textContent = row ? `${row.district} ${row.dong}` : district.value ? `${district.value} 전체` : "어느 동이 궁금하세요?";
     $("map-selection-value").textContent = shown ? shown.value : "지도에서 지역을 선택해 주세요";
     $("map-selection-basis").textContent = shown ? shown.basis : "";
     document.querySelector(".map-selection").classList.toggle("has-selection", !!shown);
     $("map-ask").disabled = !row;
     dong.value = selected;
+    if (document.activeElement !== regionSearch) {
+      regionSearch.value = row ? `${row.district} ${row.dong}` : district.value;
+    }
+    regionSearch.setAttribute("aria-invalid", "false");
+    searchFeedback.textContent = "";
+    searchFeedback.classList.add("sr-only");
     if (ready) {
-        map.setFilter("selected-dong", ["==", ["get", "dong_code"], selected]);
-        paint();
+      map.setFilter("selected-dong", ["==", ["get", "dong_code"], selected]);
+      paint();
       updateDongLabels();
     }
     if (fallback) renderFallback();
@@ -361,6 +370,65 @@
     dong.replaceChildren(new Option("지도에서 선택", ""));
     visibleFeatures().sort((a, b) => `${a.properties.district} ${a.properties.dong}`.localeCompare(`${b.properties.district} ${b.properties.dong}`, "ko"))
       .forEach((f) => dong.add(new Option(`${f.properties.district} ${f.properties.dong}`, f.properties.dong_code)));
+  }
+  function initRegionSearch() {
+    // 검색은 선택한 구에 제한하지 않는다. 후보는 이미 받은 경계 데이터만 사용한다.
+    const normalize = (text) => {
+      const compact = text.normalize("NFC").replace(/\s+/g, "");
+      if (["대전", "대전시", "대전광역시"].includes(compact)) return "전체";
+      return compact.replace(/^(대전광역시|대전시|대전)/, "");
+    };
+    const regions = [
+      { label: "대전 전체", district: "", code: "", names: ["대전 전체", "전체"] },
+      ...data.districts.features.map(({ properties: p }) => ({
+        label: p.district, district: p.district, code: "", names: [p.district],
+      })),
+      ...data.boundaries.features.map(({ properties: p }) => ({
+        label: `${p.district} ${p.dong}`, district: p.district, code: p.dong_code,
+        names: [p.dong, `${p.district} ${p.dong}`],
+      })).sort((a, b) => a.label.localeCompare(b.label, "ko")),
+    ];
+    regions.forEach((region) => $("map-search-options").append(new Option(region.label, region.label)));
+    function report(message, invalid = false) {
+      searchFeedback.textContent = message;
+      searchFeedback.classList.toggle("sr-only", !invalid);
+      regionSearch.setAttribute("aria-invalid", String(invalid));
+    }
+    function searchRegion() {
+      const query = normalize(regionSearch.value);
+      if (!query) { report("자치구 또는 행정동 이름을 입력해 주세요.", true); return; }
+      const exact = regions.filter((r) => r.names.some((name) => normalize(name) === query));
+      const matches = exact.length ? exact : regions.filter((r) => r.names.some((name) => normalize(name).includes(query)));
+      if (matches.length !== 1) {
+        report(matches.length
+          ? `${matches.length}개 지역이 일치합니다. ${matches.slice(0, 4).map((r) => r.label).join(", ")}${matches.length > 4 ? " 등" : ""} 중 이름을 더 입력하거나 목록에서 선택해 주세요.`
+          : "일치하는 지역이 없습니다. 대전의 자치구 또는 행정동 이름을 확인해 주세요.", true);
+        return;
+      }
+      const match = matches[0];
+      district.value = match.district;
+      selected = match.code;
+      updateDongOptions();
+      updateMap();
+      fit(match.code ? data.boundaries.features.filter((f) => f.properties.dong_code === match.code) : visibleFeatures());
+      regionSearch.value = match.label;
+      report(`${match.label}${!match.code && match.district ? " 전체" : ""} 선택 완료`);
+    }
+    let composing = false;
+    regionSearch.addEventListener("compositionstart", () => { composing = true; });
+    regionSearch.addEventListener("compositionend", () => { composing = false; });
+    regionSearch.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (event.isComposing || composing)) event.preventDefault();
+    });
+    regionSearch.addEventListener("input", () => report(""));
+    // 기본 자동완성 목록에서 고르면 별도 검색 클릭 없이 바로 이동한다.
+    regionSearch.addEventListener("change", () => {
+      if (!composing && regions.some((r) => r.label === regionSearch.value)) searchRegion();
+    });
+    $("map-search-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!composing) searchRegion();
+    });
   }
   // 색·높이 표현식을 현재 지표 구간으로 다시 만든다. 지표마다 값의 크기가 달라
   // (HHI 0.15~0.44 vs 업소 수 135~3,444) 3D 높이는 최대값 기준으로 정규화한다.
@@ -480,6 +548,7 @@
     categorySelect.title = "업종 점 표시는 WebGL 지원 브라우저에서만 가능합니다";
     setView("2d");
     renderFallback();
+    regionSearch.disabled = searchSubmit.disabled = false;
   }
 
   try {
@@ -505,6 +574,7 @@
     }
     [...new Set(rows().map((r) => r.district))].sort().forEach((d) => district.add(new Option(d, d)));
     updateDongOptions();
+    initRegionSearch();
     [metricSelect, period, district, dong, $("map-reset"), ...viewButtons].forEach((e) => { e.disabled = false; });
     // !fallback을 함께 본다. 지금은 이 줄이 지도 생성보다 먼저라 폴백이 나중에
     // 걸리지만, 순서에 기대지 않고 명시한다 — 폴백에서 다시 열리면 안 된다.
@@ -532,6 +602,10 @@
     viewButtons.forEach((b) => b.addEventListener("click", () => setView(b.dataset.mapView)));
     $("map-reset").addEventListener("click", () => {
       district.value = ""; selected = ""; updateDongOptions(); updateMap(); fit(visibleFeatures());
+      regionSearch.value = "";
+      regionSearch.setAttribute("aria-invalid", "false");
+      searchFeedback.textContent = "";
+      searchFeedback.classList.add("sr-only");
     });
     $("map-ask").addEventListener("click", () => {
       const row = rows().find((r) => r.dong_code === selected);
@@ -627,6 +701,7 @@
         new maplibregl.Marker({ element: label }).setLngLat([(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]).addTo(map);
       }
       ready = true;
+      regionSearch.disabled = searchSubmit.disabled = false;
       status.hidden = true;
       updateMap();
       updatePoints();

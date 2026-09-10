@@ -372,6 +372,13 @@ button { font-weight: 500; }
 .map-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
 .map-toolbar label { display: grid; gap: var(--sp-1); font-size: var(--fs-caption); color: var(--ink-700); }
 .map-toolbar select { max-width: 100%; min-height: 36px; padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); color: var(--ink-900); }
+.map-search { display: grid; gap: var(--sp-1); flex: 0 1 220px; min-width: 0; margin: 0; }
+.map-search-controls { display: flex; gap: var(--sp-1); }
+.map-search input { width: 100%; min-width: 0; min-height: 36px; padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); color: var(--ink-900); }
+.map-search input::placeholder { color: var(--ink-500); }
+.map-search button { flex: 0 0 auto; padding: var(--sp-2); }
+.map-search-feedback { margin: 0; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-caption); color: var(--ink-700); }
+.map-search input[aria-invalid="true"] { border-color: var(--error); }
 .map-view-toggle { display: flex; margin-left: auto; gap: var(--sp-1); }
 .map-view-toggle button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
 /* A27: 하단 탭(약 52px)이 생기고 접이식 주제 영역이 사라져 세로 예산을 다시 잡는다.
@@ -893,6 +900,7 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .workspace-header button { flex: 0 0 auto; }
   .map-selection { flex-direction: column; align-items: stretch; }
   .map-toolbar label { flex: 1 1 120px; min-width: 0; }
+  .map-search { flex: 1 1 220px; }
   /* sticky bottom은 .layout의 padding-bottom이 아니라 뷰포트 기준이라
      그대로 두면 무대 전환 탭이 하단 탭바(z:40) 아래로 들어가 눌리지 않는다. */
   .analysis-tabs { bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px)); }
