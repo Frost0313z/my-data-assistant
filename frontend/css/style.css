@@ -400,8 +400,7 @@ button { font-weight: 500; }
   /* 늘어나고 줄어드는 건 무대뿐이다. 기준 배지·목적 카드·전환 탭까지 눌리면
      탭 높이가 61px에서 17px로 찌그러져 글자가 잘린다. */
   .topics-pane > :not(.map-explorer):not(.topic-detail) { flex: 0 0 auto; }
-  /* 임베드 무대는 스스로 스크롤한다. 창이 짧아도 페이지가 밀리지 않는다. */
-  .topic-detail { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+  .topic-detail { flex: 1 1 auto; min-height: 0; }
 }
 #daejeon-map { width: 100%; height: 100%; }
 #daejeon-map svg { display: block; width: 100%; height: 100%; }
@@ -597,13 +596,13 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
 }
 .topic-btn:hover { border-color: var(--nav-accent); }
 .topic-btn:focus-visible { outline: 2px solid var(--nav-accent); outline-offset: -3px; }
-.topic-btn.active {
+.topic-btn[aria-pressed="true"] {
   background: var(--nav-accent);
   color: var(--nav-selected-ink);
   border-color: var(--nav-accent);
   font-weight: 600;
 }
-.topic-btn.active:focus-visible { outline-color: var(--nav-selected-ink); }
+.topic-btn[aria-pressed="true"]:focus-visible { outline-color: var(--nav-selected-ink); }
 
 .topic-detail { margin-bottom: 0; }
 .topic-detail > :not(.topic-frame-wrap) { animation: content-fade var(--motion-fade); }
@@ -622,17 +621,38 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
   line-height: 1.55;
 }
 
-/* 실제 대시보드 패널 임베드 (섹션만 보기 모드) */
-/* 패널이 잘리지 않게 넉넉히. 넘치면 페이지가 스크롤된다. */
+/* 분석 화면의 세로 스크롤은 iframe 내부 한 곳에서만 맡는다.
+   바깥 무대는 헤더·분석 탭 사이에 맞추고 차트가 남는 높이를 가져간다. */
+.layout.analysis-open {
+  height: calc(100dvh - var(--workspace-header-height));
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+.layout.analysis-open > .topics-pane { height: 100%; min-height: 0; overflow: hidden; }
+.analysis-open .topic-detail {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--sp-3);
+  gap: var(--sp-2);
+}
+.analysis-open .topic-headline { flex: 0 0 auto; font-size: var(--fs-h1); margin: 0; }
+.analysis-open .analysis-tabs { position: static; flex: 0 0 auto; }
 .topic-frame-wrap {
   position: relative;
-  height: 760px;
+  flex: 1 1 0;
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
   overflow: hidden;
   background: var(--viewport-bg);
 }
 .topic-frame { width: 100%; height: 100%; border: 0; display: block; }
+.frame-exit { display: none; }
+.topic-frame-wrap:fullscreen { display: flex; flex-direction: column; border: 0; border-radius: 0; }
+.topic-frame-wrap:fullscreen .frame-exit { position: relative; z-index: 1; display: block; flex: 0 0 auto; align-self: flex-end; margin: var(--sp-2); }
+.topic-frame-wrap:fullscreen .topic-frame { flex: 1 1 0; min-height: 0; height: auto; }
 .frame-status {
   position: absolute;
   inset: 0;
@@ -651,7 +671,26 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
 .frame-status.error { color: var(--viewport-error); }
 .frame-status button { background: var(--viewport-bg); border: 1px solid var(--viewport-muted); color: var(--viewport-link); }
 
-.topic-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); align-items: center; }
+.topic-actions { position: relative; display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.topic-actions > button { font-size: var(--fs-caption); padding: var(--sp-2); }
+.topic-help { font-size: var(--fs-caption); }
+.topic-help > summary { cursor: pointer; padding: var(--sp-2); color: var(--ink-700); }
+.topic-help[open] > summary { color: var(--primary); }
+.topic-help-content {
+  position: absolute;
+  top: calc(100% + var(--sp-1));
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: min(45dvh, 320px);
+  overflow-y: auto;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-control);
+  box-shadow: var(--shadow-float);
+}
+.topic-help-content .topic-desc { margin: 0; }
 .ghost-link { font-size: var(--fs-caption); color: var(--primary); text-decoration: none; padding: var(--sp-2) var(--sp-1); }
 .ghost-link:hover { text-decoration: underline; }
 
@@ -829,6 +868,8 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .layout > [id^="pane-"] { display: none; }
   .layout > [id^="pane-"].pane-active { display: flex; }
   .layout > .sidebar.pane-active { display: block; }
+  .analysis-open .topic-headline { font-size: var(--fs-h2); }
+  .layout.analysis-open > .topics-pane { padding: var(--sp-2); gap: var(--sp-2); }
   .layout > [id^="pane-"].pane-active { animation: pane-fade var(--motion-pane); }
 
   .layout > .chat-pane {

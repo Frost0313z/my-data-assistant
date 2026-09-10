@@ -5,6 +5,11 @@
   const MQ = window.matchMedia("(max-width: 900px)");
   const tabbar = document.getElementById("tabbar");
   const layout = document.querySelector(".layout");
+  // 헤더의 실제 높이로 무대를 계산해 폰트 로드·확대 때 바깥 스크롤이 생기지 않게 한다.
+  const header = document.querySelector(".workspace-header");
+  new ResizeObserver(() => {
+    document.documentElement.style.setProperty("--workspace-header-height", header.getBoundingClientRect().height + "px");
+  }).observe(header);
   const dataToggle = document.getElementById("data-panel-toggle");
   const personaToggle = document.getElementById("persona-panel-toggle");
   const buttons = Array.from(tabbar.querySelectorAll("button"));

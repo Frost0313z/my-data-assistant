@@ -177,6 +177,26 @@
   // 대신 충돌 회피를 직접 해야 한다. 82개를 한꺼번에 띄우면 서로 겹쳐 못 읽으므로,
   // 폴리곤이 화면에서 충분히 클 때만 이름을 보인다 — 줌아웃하면 자연히 솎아진다.
   const dongLabels = [];
+  const districtLabels = [];
+  const DONG_ZOOM = 11.5;
+  const showDongDetail = () => !!district.value || (ready && map.getZoom() >= DONG_ZOOM);
+
+  function updateDetailLevel() {
+    if (!ready) return;
+    const detail = showDongDetail();
+    map.setLayoutProperty("district-overview", "visibility", detail ? "none" : "visible");
+    map.setLayoutProperty("density-2d", "visibility", detail && view === "2d" ? "visible" : "none");
+    map.setLayoutProperty("density-3d", "visibility", detail && view === "3d" ? "visible" : "none");
+    // 입체 도형 뒤로 비치는 평면 경계선은 2D에서만 그린다.
+    for (const id of ["dong-lines", "selected-dong"]) {
+      map.setLayoutProperty(id, "visibility", detail && view === "2d" ? "visible" : "none");
+    }
+    map.setLayoutProperty("district-lines", "visibility", !detail || view === "2d" ? "visible" : "none");
+    for (const label of districtLabels) label.hidden = detail;
+    updateDongLabels();
+    updatePoints();
+    renderLegend();
+  }
   const LABEL_MIN_PX = 46;
 
   function buildDongLabels() {
@@ -204,7 +224,7 @@
       const roomy = Math.min(Math.abs(b.x - a.x), Math.abs(b.y - a.y)) >= LABEL_MIN_PX;
       // 선택한 동은 작아도 항상 보인다 — 지금 보고 있는 곳의 이름이 사라지면 안 된다.
       const isSelected = label.code === selected;
-      label.el.hidden = !(inDistrict && (roomy || isSelected));
+      label.el.hidden = !(showDongDetail() && inDistrict && (roomy || isSelected));
       label.el.classList.toggle("is-selected", isSelected);
     }
   }
@@ -226,7 +246,7 @@
   function updatePoints() {
     if (!ready || !points) return;
     const value = categorySelect.value;
-    const on = value !== "";
+    const on = value !== "" && showDongDetail();
     map.setLayoutProperty("category-points", "visibility", on ? "visible" : "none");
     // "all"이면 전 업종, 아니면 해당 업종 인덱스만
     map.setFilter("category-points", on && value !== "all" ? ["==", ["get", "category"], Number(value)] : null);
@@ -246,6 +266,10 @@
     if (!box) return;
     const s = spec();
     box.replaceChildren();
+    if (ready && !showDongDetail()) {
+      box.textContent = "자치구 경계 보기 · 확대하거나 자치구를 선택하면 행정동별 지표가 표시됩니다.";
+      return;
+    }
     const title = document.createElement("strong");
     title.textContent = s.legend;
     box.append(title);
@@ -317,7 +341,8 @@
     $("map-ask").disabled = !row;
     dong.value = selected;
     if (ready) {
-      map.setFilter("selected-dong", ["==", ["get", "dong_code"], selected]);
+        map.setFilter("selected-dong", ["==", ["get", "dong_code"], selected]);
+        paint();
       updateDongLabels();
     }
     if (fallback) renderFallback();
@@ -344,7 +369,9 @@
     const ramp = palette();
     const fill = ["step", ["get", "value"], ramp[0], ...breaks.flatMap((b, i) => [b, ramp[i + 1]])];
     map.setPaintProperty("density-2d", "fill-color", fill);
-    map.setPaintProperty("density-3d", "fill-extrusion-color", fill);
+    // 3D 선택은 바닥 윤곽 대신 선택한 도형 자체를 강조한다.
+    map.setPaintProperty("density-3d", "fill-extrusion-color",
+      ["case", ["==", ["get", "dong_code"], selected], color("--caution"), fill]);
     // 범주형은 높이가 뜻을 가질 수 없다. 유형 번호를 높이로 세우면 4번이 1번보다
     // 큰 값이라는 거짓말이 된다. 전부 같은 높이로 눕히고 색만 읽게 한다.
     if (spec().categorical) {
@@ -367,6 +394,7 @@
       const filter = district.value ? ["==", ["get", "district"], district.value] : null;
       ["density-2d", "density-3d", "dong-lines"].forEach((id) => map.setFilter(id, filter));
       paint();
+      updateDetailLevel();
     }
     if (fallback) renderFallback();
     showSelection();
@@ -386,6 +414,7 @@
       map.setPaintProperty("background", "background-color", color("--map-canvas"));
       map.setPaintProperty("dong-lines", "line-color", color("--surface"));
       map.setPaintProperty("district-lines", "line-color", color("--primary"));
+      map.setPaintProperty("district-overview", "fill-color", color("--map-level-2"));
       map.setPaintProperty("selected-dong", "line-color", color("--caution"));
       if (map.getLayer("category-points")) {
         map.setPaintProperty("category-points", "circle-color", color("--caution"));
@@ -402,10 +431,9 @@
     view = mode;
     viewButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === mode)));
     if (!ready) return;
-    map.setLayoutProperty("density-2d", "visibility", mode === "2d" ? "visible" : "none");
-    map.setLayoutProperty("density-3d", "visibility", mode === "3d" ? "visible" : "none");
-    map.easeTo({ pitch: mode === "3d" ? 50 : 0, bearing: mode === "3d" ? -15 : 0,
-      duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 200 });
+    updateDetailLevel();
+    // 자동 회전·기울기 애니메이션 없이 안정된 북쪽 기준 시점으로 전환한다.
+    map.jumpTo({ pitch: mode === "3d" ? 35 : 0, bearing: 0 });
   }
 
   // WebGL/CDN을 사용할 수 없어도 동일한 실제 경계로 2D 탐색을 제공한다.
@@ -519,7 +547,7 @@
       map = new maplibregl.Map({ container: host, style: { version: 8, sources: {}, layers: [
         { id: "background", type: "background", paint: { "background-color": color("--map-canvas") } },
       ] }, bounds: bounds(data.boundaries.features), fitBoundsOptions: { padding: 44 },
-      maxBounds: bounds(data.boundaries.features), maxZoom: 15, pitch: 50, bearing: -15,
+      maxBounds: bounds(data.boundaries.features), maxZoom: 15, pitch: 35, bearing: 0,
       renderWorldCopies: false, attributionControl: false, cooperativeGestures: true,
       locale: {
         "Map.Title": "대전 상권 지도", "Marker.Title": "자치구 이름",
@@ -552,9 +580,11 @@
       const fill = ["step", ["get", "value"], colors[0], ...breaks.flatMap((b, i) => [b, colors[i + 1]])];
       map.addSource("dongs", { type: "geojson", data: { type: "FeatureCollection", features: features() } });
       map.addSource("districts", { type: "geojson", data: data.districts });
+      map.addLayer({ id: "district-overview", type: "fill", source: "districts",
+        paint: { "fill-color": color("--map-level-2") } });
       map.addLayer({ id: "density-2d", type: "fill", source: "dongs", layout: { visibility: "none" }, paint: { "fill-color": fill } });
       map.addLayer({ id: "density-3d", type: "fill-extrusion", source: "dongs", paint: {
-        "fill-extrusion-color": fill, "fill-extrusion-height": ["*", ["coalesce", ["get", "value"], 0], 6], "fill-extrusion-opacity": .96,
+        "fill-extrusion-color": fill, "fill-extrusion-height": ["*", ["coalesce", ["get", "value"], 0], 6], "fill-extrusion-opacity": 1,
       } });
       map.addLayer({ id: "dong-lines", type: "line", source: "dongs", paint: { "line-color": color("--surface"), "line-width": .7 } });
       map.addLayer({ id: "district-lines", type: "line", source: "districts", paint: { "line-color": color("--primary"), "line-width": 1.2 } });
@@ -583,9 +613,17 @@
         map.on("mouseleave", id, () => { map.getCanvas().style.cursor = ""; });
       }
       buildDongLabels();
+      map.on("zoomend", updateDetailLevel);
+      map.on("click", "district-overview", (event) => {
+        district.value = event.features[0].properties.district;
+        district.dispatchEvent(new Event("change"));
+      });
+      map.on("mouseenter", "district-overview", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "district-overview", () => { map.getCanvas().style.cursor = ""; });
       for (const f of data.districts.features) {
         const b = bounds([f]);
         const label = document.createElement("span"); label.className = "map-district-label"; label.textContent = f.properties.district;
+        districtLabels.push(label);
         new maplibregl.Marker({ element: label }).setLngLat([(b[0][0] + b[1][0]) / 2, (b[0][1] + b[1][1]) / 2]).addTo(map);
       }
       ready = true;

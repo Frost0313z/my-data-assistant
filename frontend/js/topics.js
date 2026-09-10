@@ -29,7 +29,11 @@ window.screenContext = null;
     frame.className = "topic-frame";
     frame.title = `${topic.label} — 대전 상권 대시보드 패널`;
     frame.loading = "lazy";
-    wrap.append(status, frame);
+    const exit = el("button", "frame-exit", "원래 크기로");
+    exit.addEventListener("click", () => {
+      if (document.fullscreenElement === wrap) document.exitFullscreen();
+    });
+    wrap.append(exit, status, frame);
 
     let loaded = false;
     function load() {
@@ -85,10 +89,6 @@ window.screenContext = null;
       return;
     }
     detail.appendChild(renderHeadline(topic.headline));
-    detail.appendChild(el("p", "topic-desc", topic.desc));
-    detail.appendChild(renderEmbed(topic));
-    if (topic.note) detail.appendChild(el("p", "topic-note", topic.note));
-
     const actions = el("div", "topic-actions");
     const ask = el("button", "", "이 주제로 AI에게 질문");
     ask.addEventListener("click", () => {
@@ -97,17 +97,31 @@ window.screenContext = null;
       if (window.switchToChatPane) window.switchToChatPane();
       input.focus();
     });
-    // ↗는 "새 창에서 열린다"는 정보다. 낭독기가 "북동쪽 화살표"로 읽지 않게
-    // 기호는 감추고 말로 대신한다(index.html의 두 링크와 같은 처리).
-    const link = el("a", "ghost-link", "전체 대시보드에서 보기 ");
-    const arrow = el("span", "", "↗");
-    arrow.setAttribute("aria-hidden", "true");
-    link.append(arrow, el("span", "sr-only", "(새 창에서 열림)"));
-    link.href = window.DASHBOARD_URL + (topic.anchor || "");
-    link.target = "_blank";
-    link.rel = "noopener";
-    actions.append(ask, link);
+    // 해설은 요청할 때 펼친다. 열어도 차트 높이와 스크롤 위치가 바뀌지 않는다.
+    const help = el("details", "topic-help");
+    const helpToggle = el("summary", "", "해석·주의사항");
+    const helpContent = el("div", "topic-help-content");
+    helpContent.appendChild(el("p", "topic-desc", topic.desc));
+    if (topic.note) helpContent.appendChild(el("p", "topic-note", topic.note));
+    help.append(helpToggle, helpContent);
+    help.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") { help.open = false; helpToggle.focus(); }
+    });
+    actions.append(ask, help);
+    const embed = renderEmbed(topic);
+    if (document.fullscreenEnabled) {
+      const expand = el("button", "", "차트 확대");
+      expand.addEventListener("click", async () => {
+        try { await embed.requestFullscreen(); }
+        catch { expand.textContent = "다시 확대"; }
+      });
+      embed.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement && expand.isConnected) expand.focus();
+      });
+      actions.appendChild(expand);
+    }
     detail.appendChild(actions);
+    detail.appendChild(embed);
   }
 
   function renderChip(topic) {
@@ -130,6 +144,7 @@ window.screenContext = null;
     const showMap = which === "map";
     if (stageMap) stageMap.hidden = !showMap;
     detail.hidden = showMap;
+    document.querySelector(".layout").classList.toggle("analysis-open", !showMap);
     if (mapTab) mapTab.setAttribute("aria-pressed", String(showMap));
     // 지도 무대로 돌아오면 MapLibre가 숨어 있던 동안의 크기 변화를 따라잡아야 한다.
     if (showMap && window.resizeDaejeonMap) window.resizeDaejeonMap();
