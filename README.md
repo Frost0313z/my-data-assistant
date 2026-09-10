@@ -16,7 +16,12 @@
 
 <br />
 
-![대화와 데이터 요약 화면](assets/screenshot-1-chat-summary.png)
+![대전 82개 행정동 지도와 근거를 곁들인 AI 답변](assets/screenshot-1-map-chat.png)
+
+<div align="center">
+<sub>동을 하나 고르면 그 지역의 수치가 화면에서 가장 크게 섭니다 — <b>서구 둔산1동, 인구 1,000명당 131.4개.</b><br />
+오른쪽 AI는 그 숫자만 되풀이하지 않고 <b>어떻게 읽어야 하는지와 무엇을 알 수 없는지</b>를 함께 답합니다.</sub>
+</div>
 
 > [!NOTE]
 > Render 무료 인스턴스는 15분 유휴 후 첫 요청에 30~50초가 걸릴 수 있습니다. 요청은 자동으로 완료되며, 화면이 경과 시간과 상태를 안내합니다.
@@ -48,14 +53,18 @@
 | 04 | **스트리밍 답변** | 토큰이 도착하는 대로 보여 주고, SSE가 막힌 환경에서는 일반 응답으로 안전하게 전환합니다. |
 | 05 | **4단 리포트** | `요약 → 핵심 수치 → 해석 → 한계` 형식의 가져갈 수 있는 산출물을 만듭니다. |
 | 06 | **데이터와 대화 관리** | 데이터 CRUD, 요약 갱신, 대화 자동 저장·불러오기·삭제를 제공합니다. |
+| 07 | **지역 검색** | 자치구·행정동 이름으로 찾아 지도와 지표를 그 지역으로 옮깁니다. |
+| 08 | **라이트 · 다크** | OS 설정을 따르되 버튼으로 덮어쓸 수 있고, 지도 색 램프도 어두운 배경에 맞춰 방향을 다시 잡습니다. |
 
 <details>
 <summary><b>화면 더 보기</b></summary>
 <br />
 
-| 데이터 관리 | 대화 기록 불러오기 | 모바일 |
-|---|---|---|
-| ![데이터 CRUD](assets/screenshot-2-data-crud.png) | ![대화 기록](assets/screenshot-3-history-load.png) | ![모바일 채팅](assets/screenshot-4-mobile-chat.png) |
+| 처음 오면 목적부터 고릅니다 | 라이트 · 다크 |
+|---|---|
+| ![목적 선택 패널](assets/screenshot-2-onboarding.png) | ![다크 모드 화면](assets/screenshot-3-dark.png) |
+| **데이터와 대화 기록** | **모바일** |
+| ![데이터 요약·대화 기록·데이터 관리 패널](assets/screenshot-5-data-history.png) | ![모바일 채팅 화면](assets/screenshot-4-mobile-chat.png) |
 
 </details>
 
