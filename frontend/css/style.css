@@ -233,6 +233,32 @@ button { font-weight: 500; }
   border-bottom: 1px solid var(--line);
 }
 .workspace-header h1 { margin: 0; }
+
+/* A33: 헤더 조작부.
+   자식이 둘(제목 · 액션)이 되어서야 space-between이 의도대로 좌/우로 민다.
+   버튼끼리는 sp-2로 붙여 "한 묶음"으로 보이게 하고, 성격이 다른 테마 버튼만
+   가는 선으로 떼어 놓는다 — 붙여 두면 이것도 패널을 여는 버튼으로 읽힌다. */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+}
+.header-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 20px;
+  margin: 0 var(--sp-1);
+  background: var(--line-strong);
+}
+/* 열려 있는 패널은 버튼도 눌린 상태로 보인다.
+   aria-expanded는 전부터 맞게 들어가 있었지만 화면에는 아무 표시가 없었다 —
+   보조기술 사용자만 알고, 눈으로 보는 사람은 무엇이 열려 있는지 몰랐다. */
+.header-actions button[aria-expanded="true"] {
+  background: var(--primary-tint);
+  border-color: var(--primary);
+  color: var(--primary);
+}
 /* A22: 채팅을 접어 지도에 전체 폭을 준다.
    넓은 화면에만 건다 — 좁은 화면은 탭 전환(.pane-active)이라 여기서 숨기면 채팅 탭이 죽는다. */
 @media (min-width: 901px) {
@@ -751,6 +777,9 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   }
   .sidebar { min-height: calc(100vh - var(--workspace-header-height) - var(--tabbar-height)); }
   #data-panel-toggle { display: none; }
+  /* 390px에서는 1px 선 하나도 제목 글자 몇 자다. 버튼이 셋에서 둘로 줄어
+     굳이 갈라 두지 않아도 묶음이 헷갈리지 않는다. */
+  .header-divider { display: none; }
   .workspace-header { padding: var(--sp-3) var(--sp-4); }
   /* A30으로 헤더 버튼이 하나 늘었다. 390px에서 제목 + 버튼 2개가 약 394px으로
      간신히 넘친다. 줄바꿈을 허용하면 헤더가 높아져 --workspace-header-height를
