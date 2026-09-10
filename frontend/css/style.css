@@ -234,6 +234,33 @@ button { font-weight: 500; }
 }
 .workspace-header h1 { margin: 0; }
 
+/* 도시 블록 사이를 잇는 선은 동네별 데이터를 하나의 상권 흐름으로 읽는다는 뜻이다.
+   별도 이미지 대신 SVG로 그려 테마·고해상도·파비콘까지 같은 정체성을 유지한다. */
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--ink-900);
+}
+.brand-mark { flex: 0 0 auto; width: 34px; height: 34px; }
+.brand-copy { display: grid; min-width: 0; line-height: 1; }
+.brand-title {
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 760;
+  letter-spacing: -0.045em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.brand-subtitle {
+  margin-top: 4px;
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
 /* A33: 헤더 조작부.
    자식이 둘(제목 · 액션)이 되어서야 space-between이 의도대로 좌/우로 민다.
    버튼끼리는 sp-2로 붙여 "한 묶음"으로 보이게 하고, 성격이 다른 테마 버튼만
@@ -785,7 +812,10 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
      간신히 넘친다. 줄바꿈을 허용하면 헤더가 높아져 --workspace-header-height를
      쓰는 레이아웃 계산이 전부 어긋나므로, 대신 제목을 줄인다.
      min-width:0이 없으면 flex 항목이 내용 폭 아래로 줄지 않아 말줄임이 안 걸린다. */
-  .workspace-header h1 { font-size: var(--fs-h2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .workspace-header h1 { min-width: 0; }
+  .brand-mark { width: 30px; height: 30px; }
+  .brand-title { font-size: var(--fs-h2); }
+  .brand-subtitle { display: none; }
   .workspace-header button { flex: 0 0 auto; }
   .map-selection { flex-direction: column; align-items: stretch; }
   .map-toolbar label { flex: 1 1 120px; min-width: 0; }
