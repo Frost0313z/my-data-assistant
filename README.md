@@ -16,11 +16,11 @@
 
 <br />
 
-![대전 82개 행정동 지도와 근거를 곁들인 AI 답변](assets/screenshot-1-map-chat.png)
+![대전 82개 행정동의 등록 업소 수를 3D로 표현한 첫 화면](assets/screenshot-1-map-dark.png)
 
 <div align="center">
-<sub>동을 하나 고르면 그 지역의 수치가 화면에서 가장 크게 섭니다 — <b>서구 둔산1동, 인구 1,000명당 131.4개.</b><br />
-오른쪽 AI는 그 숫자만 되풀이하지 않고 <b>어떻게 읽어야 하는지와 무엇을 알 수 없는지</b>를 함께 답합니다.</sub>
+<sub>첫 화면입니다. 대전 <b>82개 행정동</b>의 등록 업소 수를 높이와 밝기로 한 번에 보여 줍니다 — 밝고 높을수록 업소가 많은 동입니다.<br />
+지표를 바꾸면 같은 지도가 밀도 · 잔존율 · 교체율 · 업종 집중도 · 지역 유형으로 다시 그려집니다.</sub>
 </div>
 
 > [!NOTE]
@@ -43,6 +43,13 @@
 목적을 고른다 → 지도·주제를 살핀다 → AI에게 맥락 있는 질문을 한다 → 리포트로 정리한다
 ```
 
+![동을 선택하고 질문했을 때의 화면](assets/screenshot-2-map-chat.png)
+
+<div align="center">
+<sub>동을 하나 고르면 그 수치가 화면에서 가장 크게 섭니다 — <b>서구 둔산1동, 인구 1,000명당 131.4개.</b><br />
+오른쪽 AI는 숫자를 되풀이하지 않고 <b>어떻게 읽어야 하는지</b>와 <b>이 데이터로는 무엇을 알 수 없는지</b>를 함께 답합니다.</sub>
+</div>
+
 ## 주요 기능
 
 | | 기능 | 설명 |
@@ -60,11 +67,15 @@
 <summary><b>화면 더 보기</b></summary>
 <br />
 
-| 처음 오면 목적부터 고릅니다 | 라이트 · 다크 |
+| 처음 오면 목적부터 고릅니다 | 데이터와 대화 기록 |
 |---|---|
-| ![목적 선택 패널](assets/screenshot-2-onboarding.png) | ![다크 모드 화면](assets/screenshot-3-dark.png) |
-| **데이터와 대화 기록** | **모바일** |
-| ![데이터 요약·대화 기록·데이터 관리 패널](assets/screenshot-5-data-history.png) | ![모바일 채팅 화면](assets/screenshot-4-mobile-chat.png) |
+| ![목적 선택 패널](assets/screenshot-3-onboarding.png) | ![데이터 요약·대화 기록·데이터 관리 패널](assets/screenshot-4-data-history.png) |
+
+<p align="center">
+<img src="assets/screenshot-5-mobile-chat.png" width="320" alt="모바일 채팅 화면" />
+<br />
+<sub>모바일에서는 지도 · 채팅 · 데이터를 하단 탭으로 오갑니다.</sub>
+</p>
 
 </details>
 
