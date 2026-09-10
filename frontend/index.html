@@ -64,10 +64,6 @@
       <h2>대전 상권 지도</h2>
       <a id="dashboard-open" href="#" target="_blank" rel="noopener">전체 대시보드 ↗</a>
     </div>
-    <div class="topic-basis" role="note" aria-label="데이터 기준과 한계">
-      <p>2025-03 → 2026-06 · 대전 82개 행정동 · 등록 업소 수</p>
-      <p>매출·유동인구 미포함 · 참고용</p>
-    </div>
     <!-- A28: 목적/페르소나 진입. 처음 온 사람이 못 지나치게 지도 위에 카드로 두고,
          고르면 한 줄로 접힌다. 별도 온보딩 화면을 만들지 않는 이유는 A9 참조. -->
     <section class="persona" id="persona" aria-labelledby="persona-title">
@@ -99,10 +95,9 @@
       </div>
       <!-- A23: 지표마다 구간·단위가 달라 map.js가 채운다. -->
       <div class="map-legend" id="map-legend" aria-label="지표 범례"></div>
-      <!-- A23·A27: 선택한 지표의 해설. 지도 주제 3종을 임베드에서 여기로 옮겼다. -->
-      <p class="map-note" id="map-insight"></p>
+      <!-- 업종 점을 켠 동안에만 나온다. 상시 노출되는 해설 두 줄(지표 해설·2D/3D 안내)은
+           지도 높이를 벌기 위해 걷어냈다. -->
       <p class="map-note" id="map-points-note" hidden></p>
-      <p class="map-note" id="map-view-note">3D 높이는 공급 밀도를 표현합니다. 실제 건물 높이가 아닙니다.</p>
       <div class="map-selection" aria-live="polite">
         <div><h3 id="map-selection-name">어느 동이 궁금하세요?</h3><p id="map-selection-value">지도나 행정동 목록에서 지역을 선택해 주세요.</p></div>
         <button id="map-ask" disabled>이 동을 AI에게 질문</button>

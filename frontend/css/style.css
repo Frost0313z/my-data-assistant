@@ -194,7 +194,9 @@ button { font-weight: 500; }
 }
 
 .map-explorer { border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--surface); overflow: hidden; }
-.map-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-2); padding: var(--sp-3); }
+/* 지도 둘레의 세로 여백은 sp-3(12px)이 아니라 sp-2(8px)다. 가로는 그대로 둔다 —
+   줄인 만큼 전부 무대가 가져간다. */
+.map-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); }
 .map-toolbar label { display: grid; gap: var(--sp-1); font-size: var(--fs-caption); color: var(--ink-700); }
 .map-toolbar select { max-width: 100%; min-height: 36px; padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); background: var(--surface); color: var(--ink-900); }
 .map-view-toggle { display: flex; margin-left: auto; gap: var(--sp-1); }
@@ -202,8 +204,13 @@ button { font-weight: 500; }
 /* A27: 하단 탭(약 52px)이 생기고 접이식 주제 영역이 사라져 세로 예산을 다시 잡는다.
    좁은 화면에서만 이 고정 높이를 쓴다. 넓은 화면은 아래 min-width:901px 규칙에서
    지도가 남는 높이를 먹는 방식으로 바꾼다 — 400px을 빼는 계산은 실측과 250px 어긋나
-   범례·선택 결과·질문 버튼이 접힘선 아래로 밀렸다. */
-.map-stage { position: relative; height: clamp(360px, calc(100dvh - 400px), 680px); background: var(--map-canvas); }
+   범례·선택 결과·질문 버튼이 접힘선 아래로 밀렸다.
+
+   빼는 값이 400 → 320 → 222로 줄어온 이유는 같다 — 지도 아래위에서 무언가를 걷어낼
+   때마다 그만큼 무대가 가져가야 한다. 320 → 222는 상시 해설 두 줄(33px씩)과
+   둘레 여백 32px을 합한 98px이다. 넓은 화면은 flex라 자동으로 따라오지만
+   여기는 고정 계산식이라 같이 고쳐야 한다(실측 데스크톱 484 → 582px). */
+.map-stage { position: relative; height: clamp(360px, calc(100dvh - 222px), 680px); background: var(--map-canvas); }
 
 /* 넓은 화면: 주제 창을 뷰포트에 가두고 지도가 남는 높이를 가져간다.
    그래야 무엇을 더하고 빼도 범례·선택 결과·질문 버튼이 항상 첫 화면에 남는다. */
@@ -230,7 +237,7 @@ button { font-weight: 500; }
 .map-dong-label { color: var(--ink-700); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-control); padding: 1px var(--sp-1); font-family: inherit; font-size: 11px; line-height: 1.4; white-space: nowrap; pointer-events: none; }
 .map-dong-label.is-selected { color: var(--caution); border-color: var(--caution); font-weight: 600; }
 
-.map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-3); font-size: var(--fs-caption); }
+.map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding: var(--sp-2) var(--sp-3); font-size: var(--fs-caption); }
 .map-legend-note { color: var(--ink-500); }
 .map-legend span { display: inline-flex; align-items: center; gap: var(--sp-1); }
 .map-swatch { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--line-strong); }
@@ -249,9 +256,9 @@ button { font-weight: 500; }
 .map-change-3 { background: var(--map-change-3); }
 .map-change-4 { background: var(--map-change-4); }
 .map-change-5 { background: var(--map-change-5); }
-.map-note { margin: 0; padding: 0 var(--sp-3) var(--sp-3); color: var(--ink-700); font-size: var(--fs-caption); line-height: 1.6; }
+.map-note { margin: 0; padding: 0 var(--sp-3) var(--sp-2); color: var(--ink-700); font-size: var(--fs-caption); line-height: 1.6; }
 .map-note a { color: var(--primary); }
-.map-selection { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-3); margin: 0 var(--sp-3) var(--sp-3); background: var(--surface-sunken); border-radius: var(--r-control); font-variant-numeric: tabular-nums; }
+.map-selection { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); margin: 0 var(--sp-3) var(--sp-2); background: var(--surface-sunken); border-radius: var(--r-control); font-variant-numeric: tabular-nums; }
 .map-selection h3 { margin: 0 0 var(--sp-1); }
 .map-selection p { margin: 0; font-size: var(--fs-caption); line-height: 1.6; }
 .map-selection button { flex-shrink: 0; }
@@ -281,21 +288,6 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
 .pane-header h2 { margin: 0; }
 .pane-header a { font-size: var(--fs-caption); color: var(--primary); text-decoration: none; }
 
-.topic-basis {
-  color: var(--caution);
-  background: var(--caution-bg);
-  border-left: 3px solid var(--caution);
-  border-radius: var(--r-control);
-  padding: var(--sp-3);
-  font-size: var(--fs-caption);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.6;
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-}
-.topic-basis p { margin: 0; }
-.topic-basis p + p { margin-top: var(--sp-1); font-weight: 600; }
 
 .summary-box { font-size: var(--fs-caption); }
 .summary-row { display: flex; justify-content: space-between; padding: var(--sp-1) 0; }

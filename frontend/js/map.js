@@ -47,38 +47,31 @@
     density: {
       label: "공급 밀도", legend: "인구 1,000명당 등록 업소 수",
       unit: "개", digits: 1, fixed: [40, 60, 100, 200],
-      note: "생활권 행정동은 대체로 20~40개 수준입니다(효동 40.3 · 판암1동 34.1 · 판암2동 21.1). 원도심은 방문 수요를 상주인구로 나눠 높게 나오므로 과밀이나 성공으로 단정할 수 없습니다.",
     },
     stores: {
       label: "등록 업소 수", legend: "행정동별 등록 업소 수",
       unit: "개", digits: 0,
-      note: "밀도와 함께 보십시오. 밀도는 상주인구로 나눈 값이라 원도심에서 커집니다. 중앙동은 밀도 1위지만 실제 개수로는 전체의 2.4%입니다.",
     },
     survival: {
       label: "점포 잔존율", legend: "고정 코호트 잔존율",
       unit: "%", digits: 1,
-      note: "2025-03 점포가 그 시점까지 남은 비율입니다. 같은 코호트라 시점이 뒤로 갈수록 전체가 낮아집니다 — 2026-06 중앙값 84.5%, 최저 목동 73.7%, 최고 기성동 90.3%. 공급 밀도 1·2위(중앙동 87.9% · 대흥동 82.1%)가 평균에 가깝거나 위입니다 — 밀도가 높다고 불안정한 것은 아닙니다.",
     },
     turnover: {
       label: "점포 교체율", legend: "교체율 (이탈 + 진입) ÷ 시작 업소 수",
       unit: "%", digits: 1, allPeriods: true,
-      note: "전 기간 누적이라 기준 시점을 바꿔도 값이 같습니다. 업소 수가 적은 동은 분모가 작아 크게 흔들립니다(월평3동 141.6%, 업소 184개).",
     },
     hhi: {
       label: "업종 집중도", legend: "업종 집중도 HHI (낮을수록 다양)",
       unit: "", digits: 3,
-      note: "입지계수(LQ)와는 다른 지표입니다. 기성동 숙박업은 LQ 19.2지만 35개뿐이고, 중앙동 음식점업은 LQ 0.73(평균 이하)인데 1,000명당 125개로 최다입니다. 비율만으로 시장 크기를 판단하면 안 됩니다.",
     },
     change: {
       label: "업소 수 증감", legend: "등록 업소 수 증감률",
       unit: "%", digits: 1, allPeriods: true, ramp: "change", signed: true,
       fixed: [0, 1.4, 3.4, 5.7],
-      note: "82개 동 중 9곳이 줄었고 중앙값은 +3.4%입니다. 분모가 작으면 크게 흔들립니다 — 월평3동 +82.2%는 101개에서 184개가 된 것입니다. 늘었다고 좋고 줄었다고 나쁜 것이 아닙니다(목동은 잔존율 최저인데 늘었고, 대흥동은 밀도 2위인데 멈췄습니다).",
     },
     type: {
       label: "지역 유형", legend: "밀도 × 교체율 4유형",
       unit: "", digits: 0, categorical: true, ramp: "type",
-      note: "점수가 아니라 유형입니다 — 어느 칸도 다른 칸보다 낫지 않습니다. 두 축 모두 그 시점 82개 동의 중앙값에서 자릅니다. 업소가 200개 미만이면 교체율이 분모 때문에 크게 흔들리고, 밀도가 75분위의 3배를 넘으면 상주인구 나눗셈이 만든 값이라 어느 쪽도 유형에 넣지 않습니다.",
     },
   };
   const METRIC_KEYS = Object.keys(METRICS);
@@ -278,9 +271,6 @@
         box.append(span);
       });
     }
-    // 해설은 범례가 아니라 지도 아래 별도 줄에 둔다. 범례에 섞으면 색 읽기를 방해한다.
-    const insight = $("map-insight");
-    if (insight) insight.textContent = s.note || "";
   }
   function visibleFeatures() {
     return data.boundaries.features.filter((f) => !district.value || f.properties.district === district.value);
@@ -373,20 +363,9 @@
     showSelection();
   }
   // 지표 이름이 5종이라 "을(를)"이 화면에 그대로 노출된다. 받침으로 골라 준다.
-  function withObjectParticle(word) {
-    const code = word.charCodeAt(word.length - 1) - 0xac00;
-    const hasFinal = code >= 0 && code <= 11171 && code % 28 !== 0;
-    return word + (hasFinal ? "을" : "를");
-  }
   function setView(mode) {
     view = mode;
     viewButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mapView === mode)));
-    const metricLabel = withObjectParticle(spec().label);
-    $("map-view-note").textContent = spec().categorical
-      ? "지역 유형은 색으로만 구분합니다. 유형에는 순서가 없어 3D 높이를 쓰지 않습니다."
-      : mode === "3d"
-        ? `3D 높이는 ${metricLabel} 표현합니다. 실제 건물 높이가 아닙니다.`
-        : `2D 색은 ${metricLabel} 표현합니다. 3D와 같은 데이터·구간을 사용합니다.`;
     if (!ready) return;
     map.setLayoutProperty("density-2d", "visibility", mode === "2d" ? "visible" : "none");
     map.setLayoutProperty("density-3d", "visibility", mode === "3d" ? "visible" : "none");
