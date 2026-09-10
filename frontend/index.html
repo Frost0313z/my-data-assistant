@@ -41,18 +41,14 @@
   <h1>대전 상권분석 매니저</h1>
   <!-- A30: 목적 선택은 지도 위 상시 노출에서 이 버튼이 여는 플로팅 패널로 옮겼다.
        현재 고른 목적이 라벨에 실린다 — 예전의 '둘러보는 중 · 바꾸기' 한 줄을 대신한다. -->
-  <!-- A33: 조작 버튼은 오른쪽 한 덩어리로 모은다. 전에는 제목과 버튼 넷이 모두
-       space-between의 직접 자식이라 폭 전체에 흩어져, 무엇이 한 묶음인지 읽히지 않았다.
-       덩어리 안은 다시 둘로 나눈다 — 패널을 여는 버튼 셋 / 구분선 / 화면 설정 하나. -->
-  <div class="header-actions">
-    <button id="persona-panel-toggle" aria-controls="pane-persona" aria-expanded="false">목적 고르기</button>
-    <button id="data-panel-toggle" aria-controls="pane-side" aria-expanded="false">데이터·대화 기록</button>
-    <button id="chat-panel-toggle" aria-controls="pane-chat" aria-expanded="true">AI 채팅</button>
-    <span class="header-divider" aria-hidden="true"></span>
-    <!-- A32: 라벨은 "지금 상태"가 아니라 "누르면 일어날 일"이다(디자인 시스템 §글쓰기).
-         텍스트는 tabs.js가 채운다 — 초기값을 HTML에 박으면 저장된 선택과 어긋난다. -->
-    <button id="theme-toggle" class="theme-toggle" aria-pressed="false"></button>
-  </div>
+  <!-- A33: 조작 버튼은 오른쪽 한 덩어리로 모인다(정렬은 CSS가 한다 — 래퍼 없음).
+       순서가 곧 묶음이다 — 패널을 여는 버튼 셋, 그다음 화면 설정 하나. -->
+  <button id="persona-panel-toggle" aria-controls="pane-persona" aria-expanded="false">목적 고르기</button>
+  <button id="data-panel-toggle" aria-controls="pane-side" aria-expanded="false">데이터·대화 기록</button>
+  <button id="chat-panel-toggle" aria-controls="pane-chat" aria-expanded="true">AI 채팅</button>
+  <!-- A32: 라벨은 "지금 상태"가 아니라 "누르면 일어날 일"이다(디자인 시스템 §글쓰기).
+       텍스트는 tabs.js가 채운다 — 초기값을 HTML에 박으면 저장된 선택과 어긋난다. -->
+  <button id="theme-toggle" class="theme-toggle" aria-pressed="false"></button>
 </header>
 <div class="layout">
   <!-- 좌: 요약 · 대화 기록 · 데이터 관리 -->

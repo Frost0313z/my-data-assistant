@@ -227,34 +227,20 @@ button { font-weight: 500; }
   padding: var(--sp-3) var(--sp-6);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--sp-3);
   background: var(--surface);
   border-bottom: 1px solid var(--line);
 }
-.workspace-header h1 { margin: 0; }
-
-/* A33: 헤더 조작부.
-   자식이 둘(제목 · 액션)이 되어서야 space-between이 의도대로 좌/우로 민다.
-   버튼끼리는 sp-2로 붙여 "한 묶음"으로 보이게 하고, 성격이 다른 테마 버튼만
-   가는 선으로 떼어 놓는다 — 붙여 두면 이것도 패널을 여는 버튼으로 읽힌다. */
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  flex: 0 0 auto;
-}
-.header-divider {
-  flex: 0 0 auto;
-  width: 1px;
-  height: 20px;
-  margin: 0 var(--sp-1);
-  background: var(--line-strong);
-}
+/* A33: 조작 버튼을 오른쪽 한 덩어리로 모은다.
+   래퍼 요소를 만들지 않는다 — flex-end로 전부 오른쪽에 몰고 제목에만
+   margin-right:auto를 주면 제목이 왼쪽에 남는다. 요소도 클래스도 늘지 않는다.
+   (space-between이었을 때는 제목과 버튼 넷이 폭 전체에 균등하게 흩어졌다.) */
+.workspace-header h1 { margin: 0 auto 0 0; }
 /* 열려 있는 패널은 버튼도 눌린 상태로 보인다.
    aria-expanded는 전부터 맞게 들어가 있었지만 화면에는 아무 표시가 없었다 —
    보조기술 사용자만 알고, 눈으로 보는 사람은 무엇이 열려 있는지 몰랐다. */
-.header-actions button[aria-expanded="true"] {
+.workspace-header button[aria-expanded="true"] {
   background: var(--primary-tint);
   border-color: var(--primary);
   color: var(--primary);
@@ -666,8 +652,10 @@ button {
 }
 button:hover { border-color: var(--primary); }
 /* A32: 헤더에 넷째 버튼이다. 390px에서 제목이 이미 말줄임 중이라 좌우 여백을
-   줄여 폭을 아낀다 — 글자는 두 자('다크'/'라이트')로 짧게 쓴다. */
-.theme-toggle { padding: var(--sp-2) var(--sp-3); }
+   줄여 폭을 아낀다 — 글자는 두 자('다크'/'라이트')로 짧게 쓴다.
+   A33: 앞의 셋은 패널을 여는 버튼이고 이것은 화면 설정이라 하는 일이 다르다.
+   간격을 두 배로 벌려 갈라 둔다 — 구분선을 그리지 않아도 근접성이 묶음을 나눈다. */
+.theme-toggle { padding: var(--sp-2) var(--sp-3); margin-left: var(--sp-3); }
 button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -757,9 +745,6 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   }
   .sidebar { min-height: calc(100vh - var(--workspace-header-height) - var(--tabbar-height)); }
   #data-panel-toggle { display: none; }
-  /* 390px에서는 1px 선 하나도 제목 글자 몇 자다. 버튼이 셋에서 둘로 줄어
-     굳이 갈라 두지 않아도 묶음이 헷갈리지 않는다. */
-  .header-divider { display: none; }
   .workspace-header { padding: var(--sp-3) var(--sp-4); }
   /* A30으로 헤더 버튼이 하나 늘었다. 390px에서 제목 + 버튼 2개가 약 394px으로
      간신히 넘친다. 줄바꿈을 허용하면 헤더가 높아져 --workspace-header-height를
@@ -767,6 +752,9 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
      min-width:0이 없으면 flex 항목이 내용 폭 아래로 줄지 않아 말줄임이 안 걸린다. */
   .workspace-header h1 { font-size: var(--fs-h2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .workspace-header button { flex: 0 0 auto; }
+  /* 갈라 둘 이유가 없다 — 이 폭에서는 앞 버튼이 하나뿐이라 묶음이 헷갈리지 않는다.
+     대신 그 12px이 말줄임 중인 제목 두 글자다(94 → 106px). */
+  .theme-toggle { margin-left: 0; }
   .map-selection { flex-direction: column; align-items: stretch; }
   .map-toolbar label { flex: 1 1 120px; min-width: 0; }
   /* sticky bottom은 .layout의 padding-bottom이 아니라 뷰포트 기준이라
