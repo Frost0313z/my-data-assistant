@@ -17,11 +17,24 @@
 
 ---
 
-## 1. 남은 것 (1건)
+## 1. 남은 것
 
-- [ ] **`main` 브랜치 보호 규칙** — CI를 필수 체크로 지정. ⛔ **대시보드 작업이라 코드로 못 넣는다 — 사람이 해야 한다**
+없다. 아래는 참고용 기록이다.
 
-  `Settings → Branches → Add rule → main` 에서 `Require status checks to pass` 를 켜고 `frontend`·`backend` 를 지정한다.
+### `main` 브랜치 보호 — ✅ 적용 (2026-09-10)
+
+**"대시보드 작업이라 코드로 못 넣는다"는 틀린 메모였다.** 검증 없이 오래 옮겨 적혀 있었다 —
+공개 저장소 + ADMIN + `repo` 스코프면 API로 된다.
+
+```bash
+gh api -X PUT repos/<owner>/<repo>/branches/main/protection --input prot.json
+```
+
+| 설정 | 값 | 왜 |
+|---|---|---|
+| `required_status_checks.contexts` | `frontend` · `backend` | 이 작업이 요구한 것 |
+| `strict` | `false` | 1인 저장소에서 "머지 전 최신화 강제"는 마찰만 는다 |
+| `enforce_admins` | **`false`** | **켜면 우리 배포 경로가 막힌다** — 로컬에서 머지해 `main`에 직접 푸시하는데, 그 SHA에는 체크가 아직 안 돌았다. 관리자는 통과시키고 PR 경로만 게이트한다 |
 
 ---
 
