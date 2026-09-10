@@ -29,7 +29,25 @@ function setTableMessage(tbody, text) {
   tbody.appendChild(tr);
 }
 
+// 표를 실제로 펼쳤을 때만 읽는다.
+//
+// 2026-09-10에 Firestore 하루 읽기 한도(5만)를 태웠다. 계기는 시드 리셋이었지만
+// 구조가 따로 있었다 — 이 표는 접힌 <details> 안에, 그 <details>는 기본
+// display:none인 사이드 패널 안에 있는데, 부팅마다 492건을 통째로 읽고 있었다.
+// 방문자 한 명당 약 500 reads라 100명이면 하루치가 끝난다.
+//
+// 쓰기 경로(추가·수정·삭제)는 refreshDataTable()을 그대로 부른다. 그때는 표가
+// 열려 있고 내용이 바뀐 것이 확실하므로 무조건 다시 읽는 것이 맞다.
+let dataTableLoaded = false;
+
+async function ensureDataTable() {
+  const panel = document.querySelector(".data-manage");
+  if (!panel || !panel.open || dataTableLoaded) return;
+  await refreshDataTable();
+}
+
 async function refreshDataTable() {
+  dataTableLoaded = true;
   const tbody = document.getElementById("data-tbody");
   setTableMessage(tbody, "불러오는 중...");
   try {
@@ -44,6 +62,8 @@ async function refreshDataTable() {
       tbody.appendChild(tr);
     });
   } catch (err) {
+    // 실패한 것을 "읽었다"로 남기면 다시 펼쳐도 영영 재시도하지 않는다.
+    dataTableLoaded = false;
     setTableMessage(tbody, `불러오기 실패: ${err.message}`);
   }
 }
@@ -102,4 +122,6 @@ async function handleDataTableClick(e) {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("data-form").addEventListener("submit", handleDataFormSubmit);
   document.getElementById("data-tbody").addEventListener("click", handleDataTableClick);
+  // toggle은 열 때도 닫을 때도 오지만 ensureDataTable이 열린 경우만 통과시킨다.
+  document.querySelector(".data-manage").addEventListener("toggle", ensureDataTable);
 });

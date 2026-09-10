@@ -9,9 +9,16 @@
   const buttons = Array.from(tabbar.querySelectorAll("button"));
   const panes = ["pane-side", "pane-dashboard", "pane-chat"].map((id) => document.getElementById(id));
 
+  // 사이드 패널은 기본 display:none이라 부팅에서 내용을 읽지 않는다(history.js).
+  // 눈에 보이게 되는 두 경로(넓은 화면 토글 · 좁은 화면 탭)에서 한 번 부른다.
+  function loadSide() {
+    if (window.loadSidePanel) window.loadSidePanel();
+  }
+
   function activate(paneId) {
     panes.forEach((p) => p.classList.toggle("pane-active", p.id === paneId));
     buttons.forEach((b) => b.classList.toggle("active", b.dataset.pane === paneId));
+    if (paneId === "pane-side") loadSide();
   }
 
   function applyMode() {
@@ -31,6 +38,7 @@
   dataToggle.addEventListener("click", () => {
     const open = layout.classList.toggle("data-open");
     dataToggle.setAttribute("aria-expanded", String(open));
+    if (open) loadSide();
   });
 
   // A22: 지도를 넓게 보려고 채팅 칸을 접는다. CSS 규칙이 넓은 화면에만 걸려 있어

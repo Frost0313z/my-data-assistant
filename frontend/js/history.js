@@ -55,7 +55,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  refreshHistory();
-  refreshSummary();
-  refreshDataTable();
+  // 부팅에서 읽지 않는다.
+  //
+  // 이 세 가지(기록·요약·데이터 표)는 전부 사이드 패널 안에 있고, 그 패널은
+  // 기본 display:none이다. 열지도 않은 패널을 위해 매 로드마다 Firestore를
+  // 읽다가 2026-09-10에 하루 한도를 태웠다. 데이터 표는 그중 가장 비싸서
+  // 별도로 다룬다(data.js의 ensureDataTable — 안쪽 <details>까지 펼쳐야 읽는다).
+  //
+  // 패널이 실제로 열릴 때 tabs.js가 이것을 부른다. 한 번만 읽는다 — 이후
+  // 갱신은 각자의 쓰기 경로가 맡는다(대화는 chat.js, 데이터는 data.js).
+  let sideLoaded = false;
+  window.loadSidePanel = function () {
+    if (sideLoaded) return;
+    sideLoaded = true;
+    refreshHistory();
+    refreshSummary();
+  };
 });
