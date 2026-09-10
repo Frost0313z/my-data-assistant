@@ -123,9 +123,24 @@ function notifyTopicChange(label) {
   if (label === lastNotifiedTopic) return;
   lastNotifiedTopic = label;
   const list = document.getElementById("chat-messages");
+  const text = label ? `주제를 '${label}'(으)로 바꿨습니다` : "주제 선택을 해제했습니다";
+
+  // A29: 직전 요소가 이미 구분선이면 새로 붙이지 않고 문구만 갈아 끼운다.
+  // 예전에는 주제를 바꿀 때마다 무조건 붙여서, 질문 없이 탭만 다섯 번 누르면
+  // 말풍선 하나 없이 구분선이 다섯 줄 쌓였다.
+  //
+  // 사이에 말풍선이 들어갔다면 그 구분선은 **진짜 대화 이력**이라 건드리지 않고
+  // 새로 붙인다. 지나간 지점을 나중에 고쳐 쓰면 "A를 보며 물었다"는 기록이
+  // "B를 보며 물었다"로 바뀐다 — 그건 이력이 아니라 거짓이다.
+  const last = list.lastElementChild;
+  if (last && last.classList.contains("topic-divider")) {
+    last.textContent = text;
+    return;
+  }
+
   const div = document.createElement("div");
   div.className = "topic-divider";
-  div.textContent = label ? `주제를 '${label}'(으)로 바꿨습니다` : "주제 선택을 해제했습니다";
+  div.textContent = text;
   list.appendChild(div);
   list.scrollTop = list.scrollHeight;
 }
