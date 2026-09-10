@@ -269,7 +269,8 @@ button { font-weight: 500; }
 .map-selection .map-selection-value { font-size: var(--fs-display); font-weight: 600; line-height: 1.15; color: var(--ink-900); overflow-wrap: anywhere; }
 .map-selection .map-selection-basis { color: var(--ink-700); }
 /* 아무것도 안 고른 상태에서까지 28px로 외치지 않는다. 값이 있을 때만 큰 소리를 낸다. */
-.map-selection:not(.has-selection) p.map-selection-value { font-size: var(--fs-body); font-weight: 400; color: var(--ink-500); }
+/* ink-500은 surface-sunken 위에서 4.27:1로 미달이라 ink-700을 쓴다. */
+.map-selection:not(.has-selection) p.map-selection-value { font-size: var(--fs-body); font-weight: 400; color: var(--ink-700); }
 .map-selection button { flex-shrink: 0; }
 .map-toolbar button:disabled, .map-selection button:disabled { opacity: .55; cursor: not-allowed; }
 select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
@@ -312,17 +313,32 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
 .data-manage[open] summary { margin-bottom: var(--sp-3); }
 
 /* 목적 칩은 빠른 진입 수단이며 주제 선택 상태와 색으로 경쟁하지 않는다. */
-/* A28: 목적 카드. 이전에는 보조 색 각주 + 중성 칩이라 진입점으로 읽히지 않았다.
-   화면에서 가장 먼저 답해야 하는 질문이므로 그만한 무게로 그린다. */
-.persona {
+/* A28·A30: 목적 카드. 지도 위 상시 노출에서 헤더 버튼이 여는 플로팅 패널로 옮겼다.
+   `데이터·대화 기록`(.data-open > .sidebar)과 **같은 장치**를 쓴다 — 좌표·폭·그림자·
+   z-index를 맞춰야 두 패널이 한 종류로 읽힌다.
+
+   높이만 다르다. 저쪽은 목록이 길어 화면을 꽉 채우지만 카드 3장은 300px 남짓이라
+   같은 고정 높이를 주면 4분의 3이 비어 "덜 만든 것"으로 보인다. 내용에 맞춘다. */
+.layout > .persona-panel { display: none; }
+.layout.persona-open > .persona-panel {
   display: grid;
   gap: var(--sp-3);
+  position: fixed;
+  top: calc(var(--workspace-header-height) + var(--sp-3));
+  right: var(--sp-4);
+  width: min(360px, calc(100vw - 32px));
+  max-height: calc(100dvh - var(--workspace-header-height) - 32px);
+  overflow-y: auto;
+  z-index: 60;
   padding: var(--sp-4);
+  background: var(--primary-tint);
   border: 1px solid var(--primary-tint-line);
   border-radius: var(--r-panel);
-  background: var(--primary-tint);
+  box-shadow: var(--shadow-float);
 }
 .persona-title { margin: 0; font-size: var(--fs-h3); font-weight: 600; color: var(--ink-900); }
+.persona-lead { margin: 0; font-size: var(--fs-caption); color: var(--ink-700); line-height: 1.6; }
+/* 360px 안에서는 한 줄에 하나씩 쌓인다 — auto-fit이 알아서 접는다. */
 .persona-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--sp-2); }
 .persona-card {
   display: grid;
@@ -342,12 +358,12 @@ h3 { font-size: var(--fs-h3); font-weight: 500; }
   padding: 0;
   background: none;
   border: 0;
-  color: var(--ink-500);
+  /* ink-500(#6B7280)은 흰 배경에서는 통과하지만 이 패널의 primary-tint 위에서는
+     4.33:1로 미달이다. 패널이 늘 열려 있는 자리가 되면서 실제로 걸렸다. */
+  color: var(--ink-700);
   font-size: var(--fs-caption);
   text-decoration: underline;
 }
-/* 고른 뒤에는 한 줄로 접힌다 — 재방문자를 막지 않는다. */
-.persona-current { display: flex; align-items: center; gap: var(--sp-2); margin: 0; font-size: var(--fs-caption); color: var(--ink-500); }
 .link-button { padding: 0; background: none; border: 0; color: var(--primary); font-size: var(--fs-caption); text-decoration: underline; }
 
 
@@ -621,7 +637,12 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .sidebar { min-height: calc(100vh - var(--workspace-header-height) - var(--tabbar-height)); }
   #data-panel-toggle { display: none; }
   .workspace-header { padding: var(--sp-3) var(--sp-4); }
-  .workspace-header h1 { font-size: var(--fs-h2); }
+  /* A30으로 헤더 버튼이 하나 늘었다. 390px에서 제목 + 버튼 2개가 약 394px으로
+     간신히 넘친다. 줄바꿈을 허용하면 헤더가 높아져 --workspace-header-height를
+     쓰는 레이아웃 계산이 전부 어긋나므로, 대신 제목을 줄인다.
+     min-width:0이 없으면 flex 항목이 내용 폭 아래로 줄지 않아 말줄임이 안 걸린다. */
+  .workspace-header h1 { font-size: var(--fs-h2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .workspace-header button { flex: 0 0 auto; }
   .map-selection { flex-direction: column; align-items: stretch; }
   .map-toolbar label { flex: 1 1 120px; min-width: 0; }
   /* sticky bottom은 .layout의 padding-bottom이 아니라 뷰포트 기준이라

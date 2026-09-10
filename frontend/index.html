@@ -21,6 +21,9 @@
 <a class="skip-link" href="#chat-input">채팅 입력으로 건너뛰기</a>
 <header class="workspace-header">
   <h1>대전 상권분석 매니저</h1>
+  <!-- A30: 목적 선택은 지도 위 상시 노출에서 이 버튼이 여는 플로팅 패널로 옮겼다.
+       현재 고른 목적이 라벨에 실린다 — 예전의 '둘러보는 중 · 바꾸기' 한 줄을 대신한다. -->
+  <button id="persona-panel-toggle" aria-controls="pane-persona" aria-expanded="false">목적 고르기</button>
   <button id="data-panel-toggle" aria-controls="pane-side" aria-expanded="false">데이터·대화 기록</button>
   <button id="chat-panel-toggle" aria-controls="pane-chat" aria-expanded="true">AI 채팅</button>
 </header>
@@ -58,24 +61,23 @@
     </details>
   </aside>
 
+  <!-- A30: 목적 선택 패널. `데이터·대화 기록`과 같은 **비모달** 플로팅 패널이다 —
+       배경 막도 aria-modal도 없고 뒤쪽을 계속 조작할 수 있다. A28의 "게이트로
+       만들지 않는다"를 지키는 방식이 이것이다. 첫 방문(persona_v1 미설정)에만
+       자동으로 열리고, 그 뒤에는 헤더 버튼으로 언제든 다시 연다. -->
+  <aside class="persona-panel" id="pane-persona" aria-labelledby="persona-title">
+    <h2 class="persona-title" id="persona-title">무엇이 궁금하세요?</h2>
+    <p class="persona-lead">고른 목적에 맞춰 지도 지표와 제안 질문이 바뀝니다. 나중에 바꿔도 됩니다.</p>
+    <div id="persona-list" class="persona-list" role="group" aria-label="목적 선택"></div>
+    <button id="persona-skip" class="persona-skip">닫고 지도 보기</button>
+  </aside>
+
   <!-- 중앙: 분석 주제 버튼 + 상세 (사전 분석 리포트 스냅샷) -->
   <main class="topics-pane" id="pane-dashboard">
     <div class="pane-header">
       <h2>대전 상권 지도</h2>
       <a id="dashboard-open" href="#" target="_blank" rel="noopener">전체 대시보드 ↗</a>
     </div>
-    <!-- A28: 목적/페르소나 진입. 처음 온 사람이 못 지나치게 지도 위에 카드로 두고,
-         고르면 한 줄로 접힌다. 별도 온보딩 화면을 만들지 않는 이유는 A9 참조. -->
-    <section class="persona" id="persona" aria-labelledby="persona-title">
-      <h3 class="persona-title" id="persona-title">무엇이 궁금하세요?</h3>
-      <div id="persona-list" class="persona-list" role="group" aria-label="목적 선택"></div>
-      <button id="persona-skip" class="persona-skip">바로 지도 보기 ↓</button>
-    </section>
-    <p class="persona-current" id="persona-current" hidden>
-      <span id="persona-current-label"></span>
-      <button id="persona-reset" class="link-button">바꾸기</button>
-    </p>
-
     <section class="map-explorer" aria-label="대전 상권 지도">
       <div class="map-toolbar">
         <label>지표 <select id="map-metric" disabled aria-label="지도 지표"></select></label>
