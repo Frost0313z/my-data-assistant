@@ -80,13 +80,18 @@ def openai(monkeypatch):
     return stub
 
 
+# 실제 프런트는 모든 요청에 칸막이 키를 싣는다(api.js). 대역도 같게 둔다 —
+# 안 그러면 대부분의 테스트가 "헤더 없는 클라이언트" 경로만 검증하게 된다.
+TEST_CLIENT_ID = "test-browser"
+
+
 @pytest.fixture
 def client(db):
     from fastapi.testclient import TestClient
 
     from main import app
 
-    return TestClient(app)
+    return TestClient(app, headers={"X-Client-Id": TEST_CLIENT_ID})
 
 
 class StreamChunk:

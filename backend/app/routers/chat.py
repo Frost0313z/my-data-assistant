@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from .. import config, models, observability, ratelimit
+from .conversations import client_owner
 from ..services import chat_service
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -56,10 +57,11 @@ def _guard(request: Request, context: dict | None) -> int:
 @router.post("", response_model=models.ChatResponse)
 def chat(payload: models.ChatRequest, request: Request):
     reservation = _guard(request, payload.context)
+    owner = client_owner(request.headers.get("x-client-id", ""))
     usage = None
     try:
         conversation_id, reply, usage = chat_service.ask(
-            payload.message, payload.conversation_id, payload.context
+            payload.message, payload.conversation_id, payload.context, owner
         )
         return models.ChatResponse(conversation_id=conversation_id, reply=reply, usage=usage)
     finally:
@@ -76,12 +78,13 @@ def chat_stream(payload: models.ChatRequest, request: Request):
     """
 
     reservation = _guard(request, payload.context)
+    owner = client_owner(request.headers.get("x-client-id", ""))
 
     def events():
         settled = False
         try:
             for kind, data in chat_service.stream(
-                payload.message, payload.conversation_id, payload.context
+                payload.message, payload.conversation_id, payload.context, owner
             ):
                 # 쓴 만큼 일일 총량에 더한다. 스트리밍만 빼먹으면 이 경로로는
                 # 상한이 없는 것과 같아진다.

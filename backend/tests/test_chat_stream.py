@@ -3,6 +3,7 @@
 import json
 
 from app import config
+from conftest import TEST_CLIENT_ID
 
 
 def read_events(response):
@@ -62,7 +63,7 @@ def test_저장은_끝난_뒤_한_번만_한다(client, db, streaming):
     response = client.post("/api/chat/stream", json={"message": "질문"})
     cid = read_events(response)[-1][1]["conversation_id"]
 
-    saved = conversation_service.get_conversation(cid)
+    saved = conversation_service.get_conversation(cid, TEST_CLIENT_ID)
     assert [m.content for m in saved.messages] == ["질문", "".join(streaming.pieces)]
 
 

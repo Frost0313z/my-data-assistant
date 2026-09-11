@@ -1,3 +1,5 @@
 # 테스트 전용. 배포에는 설치하지 않는다.
-pytest
-httpx        # fastapi.testclient가 쓴다
+# requirements.txt와 같은 이유로 버전을 고정한다 — CI가 어느 날 갑자기
+# 다른 pytest로 돌면, 깨진 원인이 코드인지 도구인지 구분할 수 없다.
+pytest==9.1.1
+httpx==0.28.1        # fastapi.testclient가 쓴다

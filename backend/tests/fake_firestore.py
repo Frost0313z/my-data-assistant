@@ -56,16 +56,30 @@ class FakeDocument:
 
 
 class FakeQuery:
-    def __init__(self, collection, order=None, descending=False):
+    def __init__(self, collection, order=None, descending=False, filters=None):
         self._collection = collection
         self._order = order
         self._descending = descending
+        self._filters = list(filters or [])
 
     def order_by(self, field, direction=None):
-        return FakeQuery(self._collection, field, direction == "DESCENDING")
+        return FakeQuery(self._collection, field, direction == "DESCENDING", self._filters)
+
+    def where(self, field, op, value):
+        """대화 소유자 필터용. 실제 Firestore가 쓰는 `==`만 지원한다 —
+        대역이 쓰지 않는 연산자를 흉내 내면 통과하는데 검증은 못 하는 상태가 된다."""
+        if op != "==":
+            raise NotImplementedError(f"대역은 '==' 만 지원한다: {op}")
+        return FakeQuery(
+            self._collection, self._order, self._descending, self._filters + [(field, value)]
+        )
 
     def stream(self):
-        items = list(self._collection.docs.items())
+        items = [
+            (k, v)
+            for k, v in self._collection.docs.items()
+            if all(v.get(f) == val for f, val in self._filters)
+        ]
         if self._order:
             items.sort(key=lambda kv: kv[1].get(self._order, ""), reverse=self._descending)
         return [FakeSnapshot(k, v) for k, v in items]
