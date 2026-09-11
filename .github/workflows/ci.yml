@@ -37,6 +37,15 @@ jobs:
       # 근거를 대는 것이 이 서비스의 약속이라 그게 제일 나쁜 고장이다.
       - name: 사전 분석 리포트 수치 대조
         run: python scripts/build_insights.py
+      # 보안 25: 버전을 고정했으니(24) 이제 "무엇이 깔리는지"가 정해져 있고,
+      # 그래야 스캔이 의미를 갖는다. 고정 전에는 매 빌드마다 다른 걸 스캔했다.
+      #
+      # 실패하면 머지를 막는다. 무시하려면 --ignore-vuln GHSA-xxxx 를 이 줄에 달고
+      # **왜 무시하는지 커밋 메시지에 남긴다** — 조용히 끄면 스캔이 없는 것과 같다.
+      - name: 의존성 취약점 스캔
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt -r requirements-dev.txt
 
   frontend:
     runs-on: ubuntu-latest

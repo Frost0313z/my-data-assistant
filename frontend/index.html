@@ -14,24 +14,13 @@
      SVG 하나로 끝낸다 — 래스터 아이콘 세트를 만들 이유가 없다. -->
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"
+      integrity="sha384-V1aeodcjJTo8c7lEQKPTnsMG6Yk8y6O/1kzqU/BCXw78Yw1W8XYFJGgjYa3oInYZ" crossorigin="anonymous" />
 <link rel="stylesheet" href="css/style.css" />
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" />
-<script>
-  // A32: 그리기 전에 테마를 정한다. 바디 끝 스크립트에서 하면 라이트로 한 번
-  // 그려졌다가 어두워지는 깜빡임이 보인다. 그래서 여기 인라인으로 둔다.
-  //
-  // 저장된 선택이 있으면 그걸 쓰고, 없으면 OS 설정을 따른다. 즉 버튼을 한 번도
-  // 안 누른 사람에게는 예전(자동)과 똑같이 동작한다.
-  (function () {
-    var dark = false;
-    try {
-      var saved = localStorage.getItem("theme_v1");
-      dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-    } catch (e) { /* 사생활 보호 모드 */ }
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-  })();
-</script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css"
+      integrity="sha384-Nq6PQ+9vJPvw7U/VfDELyrWoGQMsy0gi6QShhaSrGzkpF5KkM40csg2leky+YMTd" crossorigin="anonymous" />
+<!-- 렌더 전에 테마를 정한다(A32). defer를 붙이면 깜빡임이 돌아온다. -->
+<script src="js/theme-init.js"></script>
 </head>
 <body>
 <!-- F1: 키보드 사용자는 지도 툴바(셀렉트 5개 + 버튼 4개)를 전부 지나야 채팅에 닿는다.
@@ -210,7 +199,11 @@
 <script src="js/chat.js"></script>
 <script src="js/data.js"></script>
 <script src="js/history.js"></script>
-<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<!-- SRI: 버전 고정만으로는 CDN이 내용을 바꾸는 것을 못 막는다. 이 스크립트는
+     페이지 권한으로 실행되므로 unpkg가 바뀌면 전면 XSS다. 해시가 다르면 아예 안 뜬다.
+     버전을 올릴 때는 integrity도 같이 바꿔야 한다 — 안 바꾸면 지도가 통째로 죽는다. -->
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"
+        integrity="sha384-GfxBM9x46BaAFxtCq39Fxir8fNZ4VDnwgfi6Kzi5/F1tAFsm0amuuV8kd+Pxzuf/" crossorigin="anonymous"></script>
 <script src="js/map.js"></script>
 </body>
 </html>
