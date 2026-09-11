@@ -149,7 +149,7 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def _prepare(message, conversation_id, context):
+def _prepare(message, conversation_id, context, owner):
     """시스템 프롬프트·이력·상한을 만든다. 일반 답변과 스트리밍이 같은 것을 써야
     두 경로의 답이 갈리지 않는다."""
     summary = data_service.get_summary()
@@ -164,7 +164,7 @@ def _prepare(message, conversation_id, context):
 
     history = []
     if conversation_id:
-        conversation = conversation_service.get_conversation(conversation_id)
+        conversation = conversation_service.get_conversation(conversation_id, owner)
         if conversation and conversation.messages:
             # 최근 것부터 상한만큼만 올린다. 오래된 대화를 통째로 다시 보내는 것이
             # 입력 토큰이 늘어나는 유일한 무제한 경로였다.
@@ -185,8 +185,9 @@ def ask(
     message: str,
     conversation_id: Optional[str],
     context: Optional[Dict[str, str]] = None,
+    owner: str = "",
 ) -> tuple[str, str, Optional[Dict[str, int]]]:
-    messages, max_tokens, history_len = _prepare(message, conversation_id, context)
+    messages, max_tokens, history_len = _prepare(message, conversation_id, context, owner)
 
     response = _get_client().chat.completions.create(
         model=config.OPENAI_MODEL,
@@ -230,7 +231,7 @@ def ask(
 
     # A13: 선택 주제를 제목에 반영한다. 기록 목록에서 대화를 구분하는 유일한 단서다.
     saved_id = conversation_service.append_turn(
-        conversation_id, message, reply, (context or {}).get("topic")
+        conversation_id, message, reply, (context or {}).get("topic"), owner
     )
     return saved_id, reply, usage
 
@@ -239,6 +240,7 @@ def stream(
     message: str,
     conversation_id: Optional[str],
     context: Optional[Dict[str, str]] = None,
+    owner: str = "",
 ):
     """A4: 토큰이 도착하는 대로 흘려보낸다.
 
@@ -251,7 +253,7 @@ def stream(
     저장은 **끝까지 받은 뒤 한 번만** 한다. 조각마다 쓰면 Firestore 쓰기가 수백 번
     일어나고, 중간에 끊긴 답을 대화 기록에 남기게 된다.
     """
-    messages, max_tokens, history_len = _prepare(message, conversation_id, context)
+    messages, max_tokens, history_len = _prepare(message, conversation_id, context, owner)
 
     chunks = []
     usage_raw = None
@@ -275,7 +277,7 @@ def stream(
 
     reply = "".join(chunks)
     saved_id = conversation_service.append_turn(
-        conversation_id, message, reply, (context or {}).get("topic")
+        conversation_id, message, reply, (context or {}).get("topic"), owner
     )
 
     usage = (

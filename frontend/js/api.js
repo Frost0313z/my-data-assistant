@@ -1,8 +1,32 @@
+// 이 브라우저의 칸막이 키. 로그인이 아니라 **남의 대화를 못 보게 하는 장치**다.
+//
+// 전에는 서버가 대화 목록을 통째로 돌려줘서, 공개 URL에서 방문자 A가 B의 질문을
+// 읽고 지울 수 있었다(2026-09-10 관측). 이제 서버가 이 값으로 칸을 나눈다.
+//
+// 사생활 보호 모드에서 localStorage가 막히면 빈 값이 된다 — 그때는 대화가
+// 목록에 남지 않는다. 조용히 남의 것을 보게 되는 것보다 낫다.
+const CLIENT_KEY = "client_v1";
+function clientId() {
+  try {
+    let id = window.localStorage.getItem(CLIENT_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      window.localStorage.setItem(CLIENT_KEY, id);
+    }
+    return id;
+  } catch (e) {
+    return "";
+  }
+}
+
 const api = {
+  clientId,
   async request(path, options = {}) {
     const res = await fetch(`${window.API_BASE_URL}${path}`, {
-      headers: { "Content-Type": "application/json" },
       ...options,
+      // 스프레드 뒤에 둔다. 앞에 두면 options.headers가 통째로 덮어써
+      // 칸막이 키가 조용히 빠진다.
+      headers: { "Content-Type": "application/json", "X-Client-Id": clientId(), ...(options.headers || {}) },
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -59,7 +83,7 @@ const api = {
   async streamChat(message, conversationId, context, onDelta, signal) {
     const res = await fetch(`${window.API_BASE_URL}/api/chat/stream`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Client-Id": clientId() },
       body: JSON.stringify({
         message,
         conversation_id: conversationId || null,
