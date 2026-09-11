@@ -7,8 +7,14 @@ function makeCell(text) {
   return td;
 }
 
+// D5: 쓰기가 꺼진 배포에서는 버튼을 아예 만들지 않는다. 눌러 보고 403을 받는 것보다
+// 없는 편이 정직하다. 서버가 최종 판단이고(이 값은 화면 안내일 뿐) 기본은 "허용"이라
+// 확인 요청이 실패해도 로컬 개발이 막히지 않는다.
+let writesEnabled = true;
+
 function makeActionCell(id) {
   const td = document.createElement("td");
+  if (!writesEnabled) return td;
   for (const [action, label] of [["edit", "수정"], ["delete", "삭제"]]) {
     const b = document.createElement("button");
     b.dataset.action = action;
@@ -43,7 +49,25 @@ let dataTableLoaded = false;
 async function ensureDataTable() {
   const panel = document.querySelector(".data-manage");
   if (!panel || !panel.open || dataTableLoaded) return;
+  await applyWriteMode();
   await refreshDataTable();
+}
+
+// 쓰기 가능 여부는 표를 펼칠 때 한 번만 묻는다. `GET /`는 Firestore를 읽지 않는다.
+let writeModeChecked = false;
+async function applyWriteMode() {
+  if (writeModeChecked) return;
+  writeModeChecked = true;
+  try {
+    const health = await api.ping();
+    writesEnabled = health.writes_enabled !== false;
+  } catch (err) {
+    return; // 못 물어봤으면 그대로 둔다. 진짜 차단은 서버가 한다.
+  }
+  if (writesEnabled) return;
+  const form = document.getElementById("data-form");
+  form.hidden = true;
+  document.getElementById("data-readonly").hidden = false;
 }
 
 async function refreshDataTable() {

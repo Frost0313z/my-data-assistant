@@ -15,6 +15,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from fake_firestore import FakeFirestore  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def writes_on(monkeypatch):
+    """D5: 배포 기본값은 읽기 전용이지만, 테스트는 CRUD 자체를 검증해야 한다.
+    기본을 켜 두고 잠금은 test_data_api.py에서 따로 확인한다."""
+    from app import config
+
+    monkeypatch.setattr(config, "DATA_WRITES_ENABLED", True)
+
+
 @pytest.fixture
 def db(monkeypatch):
     """빈 메모리 DB. 서비스들이 이걸 보게 만든다."""

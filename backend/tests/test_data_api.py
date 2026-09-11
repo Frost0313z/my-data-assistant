@@ -72,3 +72,30 @@ def test_요약은_기간과_추세를_계산한다(client):
 def test_데이터가_없으면_요약이_터지지_않는다(client):
     summary = client.get("/api/data/summary").json()
     assert summary["count"] == 0 and summary["trend"] == "데이터 없음"
+
+
+def test_읽기_전용_배포에서는_쓰기가_403이고_읽기는_열려_있다(client, monkeypatch):
+    """D5: 공개 데모 URL에서 아무나 레코드를 지울 수 있으면 안 된다.
+    막는 것은 남의 데이터를 바꾸는 일이지 보는 일이 아니다."""
+    from app import config
+
+    created = client.post("/api/data", json=RECORD).json()
+    monkeypatch.setattr(config, "DATA_WRITES_ENABLED", False)
+
+    assert client.post("/api/data", json=RECORD).status_code == 403
+    assert client.put(f"/api/data/{created['id']}", json=RECORD).status_code == 403
+    assert client.delete(f"/api/data/{created['id']}").status_code == 403
+
+    assert client.get("/api/data").status_code == 200
+    assert client.get("/api/data/summary").status_code == 200
+    # 403을 받고도 레코드는 그대로다
+    assert [r["id"] for r in client.get("/api/data").json()] == [created["id"]]
+
+
+def test_헬스가_쓰기_허용_여부를_알려_준다(client, monkeypatch):
+    """화면이 데이터 관리 폼을 미리 잠그는 근거다."""
+    from app import config
+
+    assert client.get("/").json()["writes_enabled"] is True
+    monkeypatch.setattr(config, "DATA_WRITES_ENABLED", False)
+    assert client.get("/").json()["writes_enabled"] is False

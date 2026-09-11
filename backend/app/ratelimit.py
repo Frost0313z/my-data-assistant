@@ -63,8 +63,15 @@ def check(client: str, reservation: int = 0, now: float | None = None) -> None:
                     reserved=_tokens_today["reserved"],
                     requested=reserve,
                 )
+                # "내일"은 사용자 시계로는 언제인지 알 수 없다. 상한은 UTC 자정에
+                # 풀리므로(_today가 그렇게 센다) 남은 시간을 계산해 알려 준다.
+                wait = int(86400 - (now % 86400))
+                hours, minutes = divmod(max(1, wait) // 60, 60)
+                left = f"{hours}시간 {minutes}분" if hours else f"{minutes}분"
                 raise RateLimited(
-                    "오늘 사용할 수 있는 분량을 모두 썼습니다. 내일 다시 시도해 주세요.", 3600
+                    f"오늘 쓸 수 있는 분량을 모두 썼습니다. 약 {left} 뒤에 초기화됩니다. "
+                    "지도와 데이터는 그대로 볼 수 있습니다.",
+                    wait,
                 )
             _tokens_today["reserved"] += reserve
 

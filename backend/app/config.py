@@ -29,12 +29,23 @@ BUILD_REV = (os.environ.get("RENDER_GIT_COMMIT") or os.environ.get("BUILD_REV") 
 # 통째로 없는 것처럼 404를 낸다.** 데이터를 지우는 경로라 기본값은 꺼짐이어야 한다.
 DEV_RESET_TOKEN = os.environ.get("DEV_RESET_TOKEN", "")
 
+# D5: 데이터 쓰기(추가·수정·삭제) 허용 여부.
+# `/api/dev/reset`은 토큰으로 잠겨 있었지만 **CRUD는 무방비였다.** 공개 데모 링크에서
+# 누가 레코드를 지우면 모두에게 지워진다. 기본값은 꺼짐 — 켜는 것을 잊는 쪽이
+# 잠긴 채로 배포되는 쪽보다 위험하다. 로컬 개발은 .env에서 켠다.
+DATA_WRITES_ENABLED = os.environ.get("DATA_WRITES_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+
 # C3: 채팅 남용 방어. 0이면 그 겹을 끈다.
 #  - 분당 요청: 사람이 손으로 낼 수 있는 속도를 넘는 것을 끊는다.
 #  - 일일 토큰: 느리게 오래 두드리는 것을 끊는다. 분당 제한만으로는 못 막는다.
 # C7: 에러 트래킹. DSN이 없으면 Sentry를 아예 켜지 않는다 — 계정 없이도 돌아야 한다.
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 SENTRY_ENV = os.environ.get("SENTRY_ENVIRONMENT", "production" if os.environ.get("RENDER") else "local")
+
+# 신뢰하는 프록시 홉 수. 레이트리밋 키를 XFF 어디에서 꺼낼지 정한다.
+# Render는 앞단 LB가 하나라 1이 맞다. 0이면 XFF를 믿지 않고 소켓 주소를 쓴다.
+# **첫 항목을 쓰면 안 된다** — 클라이언트가 마음대로 채워 보내 제한을 우회한다.
+TRUSTED_PROXY_HOPS = int(os.environ.get("TRUSTED_PROXY_HOPS", "1"))
 
 CHAT_RATE_PER_MINUTE = int(os.environ.get("CHAT_RATE_PER_MINUTE", "10"))
 DAILY_TOKEN_BUDGET = int(os.environ.get("DAILY_TOKEN_BUDGET", "300000"))
