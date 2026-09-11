@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>대전 상권분석 매니저 — 모바일 목업</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" crossorigin />
+<style>
+  /* 목업 시트. 화면 사진은 배포본(390×844, DPR2, 다크)에서 그대로 찍은 것이다.
+     색은 제품의 다크 토큰을 그대로 쓴다 — 포트폴리오 자산이 제품과 다른 얼굴을
+     하고 있으면 그게 더 이상하다. 새 팔레트를 만들지 않는다. */
+  :root {
+    --canvas: #14171B;
+    --surface: #1C2026;
+    --ink-900: #E8EBEF;
+    --ink-500: #98A1AD;
+    --line: #2E343C;
+    --primary: #5B93E0;
+    --bezel: #2B313A;
+    --phone-w: 276px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 56px 48px 48px;
+    background: var(--canvas);
+    color: var(--ink-900);
+    font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  header { max-width: 1040px; margin: 0 auto 44px; }
+  h1 { margin: 0 0 8px; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+  .lede { margin: 0; color: var(--ink-500); font-size: 14px; line-height: 1.55; }
+  .lede b { color: var(--ink-900); font-weight: 500; }
+
+  .sheet {
+    max-width: 1040px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, var(--phone-w));
+    justify-content: space-between;
+    gap: 32px;
+  }
+  figure { margin: 0; }
+
+  /* 기기 틀. 외부 이미지를 쓰지 않는다 — 베젤은 라운드 사각형 두 겹이면 충분하다. */
+  .phone {
+    position: relative;
+    width: var(--phone-w);
+    padding: 9px;
+    background: var(--bezel);
+    border: 1px solid #3A414B;
+    border-radius: 34px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .55);
+  }
+  /* 스피커 슬릿을 그려 봤다가 지웠다 — 앱 헤더 위에 얹혀 화면을 가린다.
+     틀은 이미 기기로 읽히므로 장식을 하나 덜어 낸다. */
+  .phone img {
+    display: block;
+    width: 100%;
+    border-radius: 26px;
+  }
+
+  figcaption { margin-top: 18px; }
+  .step {
+    display: inline-block;
+    min-width: 22px;
+    margin-bottom: 6px;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .title { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  .desc { margin: 0; color: var(--ink-500); font-size: 13px; line-height: 1.55; }
+  .desc b { color: var(--ink-900); font-weight: 500; }
+
+  footer {
+    max-width: 1040px;
+    margin: 44px auto 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-500);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>모바일 — 대전 상권분석 매니저</h1>
+  <p class="lede">
+    하단 탭으로 <b>지도 · 채팅 · 데이터</b>를 오갑니다. 세 화면 모두 <b>390 × 844</b> 실제 배포본이며, 합성하지 않았습니다.
+  </p>
+</header>
+
+<div class="sheet">
+
+  <figure>
+    <div class="phone"><img src="mockup-src-1-persona.png" alt="목적 선택 패널이 열린 첫 화면" /></div>
+    <figcaption>
+      <span class="step">01</span>
+      <p class="title">목적을 먼저 고른다</p>
+      <p class="desc">고른 목적에 맞춰 <b>지도 지표와 제안 질문</b>이 바뀝니다. 건너뛸 수 있고 언제든 되돌아갑니다.</p>
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="phone"><img src="mockup-src-2-map.png" alt="서구 둔산1동을 선택한 3D 지도" /></div>
+    <figcaption>
+      <span class="step">02</span>
+      <p class="title">지도에서 동을 고른다</p>
+      <p class="desc">고른 동의 수치가 화면에서 가장 크게 섭니다 — <b>131.4개</b>, 그 아래 한 줄로 근거를 답니다.</p>
+    </figcaption>
+  </figure>
+
+  <figure>
+    <div class="phone"><img src="mockup-src-3-chat.png" alt="밀도가 높은 것이 좋은지 묻자 한계를 함께 답하는 AI" /></div>
+    <figcaption>
+      <span class="step">03</span>
+      <p class="title">AI가 한계까지 답한다</p>
+      <p class="desc">“둔산1동 밀도가 높은 건 좋은 거야?”에 <b>“항상 긍정적인 것은 아닙니다”</b>라고 답하고, 무엇을 더 봐야 하는지 말합니다.</p>
+    </figcaption>
+  </figure>
+
+</div>
+
+<footer>
+  실제 배포본 화면 · 다크 모드 · Lighthouse 접근성 100 · assets/mockup-mobile.html 로 다시 만들 수 있습니다
+</footer>
+
+</body>
+</html>
