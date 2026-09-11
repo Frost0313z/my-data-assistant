@@ -26,6 +26,7 @@
 | **C. 신뢰성 · 운영** | [`C-reliability-ops.md`](C-reliability-ops.md) | 7 (+D3) | — |
 | **E. 문서 · 발표** | [`E-docs.md`](E-docs.md) | 5 | [정체성](../identity.md) |
 | **F. 품질 · 접근성** | [`F-quality.md`](F-quality.md) | 3 | [디자인 시스템](../design/design-system.md) |
+| **G. 온톨로지** | [`G-ontology.md`](G-ontology.md) | 7 | [결정 ⑦](../decisions.md) · [회고](../RETROSPECTIVE.md) |
 
 > **D. 인증 · 멀티유저**는 [결정 ②](../decisions.md)로 D1·D2가 제외되고 D3만 남아, 성격상 C 그룹에 편입했다. → [`C-reliability-ops.md`](C-reliability-ops.md)
 
@@ -81,5 +82,12 @@
 | F1 | 접근성 | P1 | M |
 | F2 | 성능 | P1 | S |
 | F3 | 전역 에러 상태 UI 3종 | P0 | S |
+| G1 | 온톨로지 사전 `ontology.json` | P1 | M |
+| G2 | 거절이 먼저다 — 못 답하면 화면을 안 바꾼다 | P1 | S |
+| G3 | 질의 → 화면 의도 해석기 | P1 | M |
+| G4 | 화면 적용 · 알림 · 되돌리기 | P1 | S |
+| G5 | 질문 유형 → 무대 선택 | P2 | S |
+| G6 | 불가능한 조합 차단 | P2 | S |
+| G7 | 검증 — 질문→기대 의도 표 | P1 | S |
 
 > **ID는 불변이다.** 폐기된 `A3a` `A5` `D1` `D2`의 번호도 재사용하지 않는다.
