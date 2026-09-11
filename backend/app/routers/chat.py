@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from .. import models, observability, ratelimit
+from .. import config, models, observability, ratelimit
 from ..services import chat_service
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -19,10 +19,28 @@ def _reservation(context: dict | None) -> int:
     return max_output + max(0, config.CHAT_INPUT_TOKEN_RESERVE)
 
 
+def _client_ip(request: Request) -> str:
+    """레이트리밋 키로 쓸 IP.
+
+    **XFF의 첫 항목은 클라이언트가 마음대로 쓴다.** 그걸 키로 쓰면 요청마다 헤더만
+    바꿔서 분당 제한을 무한히 우회하고 일일 예산을 태울 수 있다(2026-09-10 지적 P1).
+
+    신뢰할 수 있는 것은 **신뢰하는 프록시가 직접 붙인 값**뿐이고, 그것은 체인의
+    오른쪽 끝이다. 클라이언트가 `a, b, c`를 보내도 Render의 LB가 실제 IP를 뒤에
+    덧붙이므로 `[-1]`이 진짜다. 프록시가 없는 환경(TRUSTED_PROXY_HOPS=0)에서는
+    XFF를 아예 믿지 않고 소켓 주소를 쓴다.
+    """
+    hops = config.TRUSTED_PROXY_HOPS
+    if hops > 0:
+        chain = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
+        if len(chain) >= hops:
+            return chain[-hops]
+    return request.client.host if request.client else "-"
+
+
 def _guard(request: Request, context: dict | None) -> int:
-    """C3: 남용 방어. 프록시 뒤라 client.host가 전부 같을 수 있어 XFF를 먼저 본다."""
-    forwarded = request.headers.get("x-forwarded-for", "")
-    client = forwarded.split(",")[0].strip() or (request.client.host if request.client else "-")
+    """C3: 남용 방어. 프록시 뒤라 client.host가 전부 같을 수 있어 XFF를 본다."""
+    client = _client_ip(request)
     try:
         reservation = _reservation(context)
         ratelimit.check(client, reservation=reservation)

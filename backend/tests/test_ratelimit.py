@@ -133,3 +133,26 @@ def test_데이터_조회는_제한하지_않는다(client, db, monkeypatch):
     monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 1)
     for _ in range(5):
         assert client.get("/api/data/summary").status_code == 200
+
+
+def test_XFF_첫_항목을_위조해도_제한을_못_피한다(client, db, openai, monkeypatch):
+    """이게 이 방어의 핵심이다.
+
+    XFF는 클라이언트가 마음대로 채워 보낼 수 있다. 첫 항목을 키로 쓰면 요청마다
+    다른 값을 넣어 분당 제한을 무한히 우회하고 일일 예산을 태울 수 있다.
+    신뢰하는 프록시가 붙이는 것은 오른쪽 끝이므로 거기를 봐야 한다.
+    """
+    monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 1)
+    monkeypatch.setattr(config, "TRUSTED_PROXY_HOPS", 1)
+    # 같은 클라이언트(10.0.0.9)가 앞부분만 바꿔 가며 두 번 보낸다.
+    first = {"x-forwarded-for": "1.1.1.1, 10.0.0.9"}
+    spoofed = {"x-forwarded-for": "2.2.2.2, 10.0.0.9"}
+    assert client.post("/api/chat", json={"message": "질문"}, headers=first).status_code == 200
+    assert client.post("/api/chat", json={"message": "질문"}, headers=spoofed).status_code == 429
+
+
+def test_프록시가_없으면_XFF를_아예_믿지_않는다(client, db, openai, monkeypatch):
+    monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 1)
+    monkeypatch.setattr(config, "TRUSTED_PROXY_HOPS", 0)
+    assert client.post("/api/chat", json={"message": "질문"}, headers={"x-forwarded-for": "1.1.1.1"}).status_code == 200
+    assert client.post("/api/chat", json={"message": "질문"}, headers={"x-forwarded-for": "2.2.2.2"}).status_code == 429

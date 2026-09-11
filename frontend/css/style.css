@@ -808,6 +808,15 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
 }
 .report-cta button:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
 
+/* D5: 읽기 전용 배포 안내. 경고가 아니라 사실 전달이라 caution 색을 쓰지 않는다. */
+.data-readonly {
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-sunken);
+  border-radius: var(--r-control);
+  font-size: var(--fs-caption);
+  color: var(--ink-700);
+}
 .data-form { display: flex; gap: var(--sp-2); margin-bottom: var(--sp-3); flex-wrap: wrap; }
 .data-form input { padding: var(--sp-2); border: 1px solid var(--line-strong); border-radius: var(--r-control); min-width: 0; }
 .data-form input[name="date"] { flex: 1 1 130px; }
@@ -899,8 +908,22 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
   .brand-subtitle { display: none; }
   .workspace-header button { flex: 0 0 auto; }
   .map-selection { flex-direction: column; align-items: stretch; }
-  .map-toolbar label { flex: 1 1 120px; min-width: 0; }
-  .map-search { flex: 1 1 220px; }
+  /* 좁은 화면에서 툴바가 지도를 밀어낸다.
+     390px에서 셀렉트 5개 + 지역 검색 + 2D/3D + 전체 보기가 여섯 줄로 접혀
+     첫 화면을 거의 다 먹었다 — 지도가 주역인데 살짝만 보였다.
+     줄바꿈을 끄고 한 줄로 눕혀 가로로 넘긴다. 여섯 줄이 한 줄이 된다. */
+  .map-toolbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .map-toolbar label { flex: 0 0 auto; min-width: 0; }
+  .map-toolbar select { max-width: 44vw; }
+  .map-search { flex: 0 0 auto; }
+  .map-search input { width: 9rem; }
+  /* margin-left:auto는 한 줄일 때 나머지를 화면 밖으로 밀어낸다. */
+  .map-view-toggle { margin-left: 0; }
+  #map-reset { flex: 0 0 auto; }
   /* sticky bottom은 .layout의 padding-bottom이 아니라 뷰포트 기준이라
      그대로 두면 무대 전환 탭이 하단 탭바(z:40) 아래로 들어가 눌리지 않는다. */
   .analysis-tabs { bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px)); }

@@ -1,11 +1,22 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from .. import models
+from .. import config, models
 from ..services import data_service
 
 router = APIRouter(prefix="/api/data", tags=["data"])
+
+READ_ONLY_MESSAGE = "이 배포는 읽기 전용입니다. 데이터 추가·수정·삭제가 꺼져 있습니다."
+
+
+def require_writable():
+    """D5: 공개 데모에서 아무나 데이터를 지우지 못하게 한다.
+
+    읽기는 그대로 열어 둔다 — 막아야 하는 것은 남의 데이터를 바꾸는 일이지
+    보는 일이 아니다."""
+    if not config.DATA_WRITES_ENABLED:
+        raise HTTPException(status_code=403, detail=READ_ONLY_MESSAGE)
 
 
 @router.get("", response_model=List[models.DataRecordOut])
@@ -13,12 +24,12 @@ def list_data():
     return data_service.list_records()
 
 
-@router.post("", response_model=models.DataRecordOut)
+@router.post("", response_model=models.DataRecordOut, dependencies=[Depends(require_writable)])
 def create_data(record: models.DataRecordIn):
     return data_service.create_record(record)
 
 
-@router.put("/{record_id}", response_model=models.DataRecordOut)
+@router.put("/{record_id}", response_model=models.DataRecordOut, dependencies=[Depends(require_writable)])
 def update_data(record_id: str, record: models.DataRecordIn):
     updated = data_service.update_record(record_id, record)
     if updated is None:
@@ -26,7 +37,7 @@ def update_data(record_id: str, record: models.DataRecordIn):
     return updated
 
 
-@router.delete("/{record_id}")
+@router.delete("/{record_id}", dependencies=[Depends(require_writable)])
 def delete_data(record_id: str):
     if not data_service.delete_record(record_id):
         raise HTTPException(status_code=404, detail="데이터를 찾을 수 없습니다.")

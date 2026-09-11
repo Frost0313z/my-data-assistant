@@ -85,4 +85,6 @@ def health():
     전에 브랜치 설정이 안 먹은 사례가 있었는데, 스키마만 봐서는 구분이 안 됐다.
     Render는 커밋 SHA를 `RENDER_GIT_COMMIT`으로 넣어 준다.
     """
-    return {"status": "ok", "build": config.BUILD_REV}
+    # `writes_enabled`는 화면이 데이터 관리 폼을 미리 잠그는 데 쓴다(D5).
+    # 눌러 보고 403을 받는 것보다 처음부터 잠겨 있는 편이 낫다.
+    return {"status": "ok", "build": config.BUILD_REV, "writes_enabled": config.DATA_WRITES_ENABLED}
