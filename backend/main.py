@@ -48,9 +48,14 @@ app.add_middleware(observability.RequestLogMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # 쿠키도 세션도 쓰지 않는다. True로 두면 ALLOWED_ORIGINS를 빼먹은 배포에서
+    # **와일드카드 + 자격증명**이라는 위험한 조합이 된다 — 지금은 실제 피해가 없지만,
+    # 인증을 붙이는 순간 바로 위험해진다. 안 쓰는 것을 켜 둘 이유가 없다.
+    allow_credentials=False,
+    # 실제로 쓰는 것만 적는다. `*`는 편하지만 무엇을 쓰는지 문서가 되지 못한다.
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    # X-Client-Id는 대화 칸막이 키다. 빼면 프리플라이트에서 막혀 대화 기록이 통째로 죽는다.
+    allow_headers=["Content-Type", "X-Client-Id", "X-Dev-Token"],
 )
 
 
