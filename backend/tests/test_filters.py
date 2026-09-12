@@ -69,6 +69,30 @@ def test_잘못된_날짜_형식은_422(seeded):
     assert seeded.get("/api/data/summary?date_from=2025-3-1").status_code == 422
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "?date_from=2026-99-99",  # 달에 99는 없다
+        "?date_to=2026-02-30",    # 2월 30일도 없다
+        "?date_from=2025-13-01",
+        "?date_to=2025-00-10",
+        "?date_from=2026-06-01&date_to=2025-03-01",  # 역순 범위
+    ],
+)
+def test_달력에_없는_날짜와_역순_범위는_422(seeded, query):
+    """모양만 맞는 날짜는 예전에 통과했다. 통과하면 아무것도 못 잡는 필터가
+    되어 "조건에 맞는 데이터 없음"으로 조용히 끝난다 — 오타가 정답처럼 보인다."""
+    assert seeded.get(f"/api/data/summary{query}").status_code == 422
+
+
+def test_유효한_경계_날짜는_집계를_준다(seeded):
+    """윤년 2월 29일처럼 "이상해 보이지만 실재하는" 날짜를 막으면 안 된다."""
+    assert seeded.get("/api/data/summary?date_from=2024-02-29").status_code == 200
+    # 같은 날짜로 앞뒤를 맞춘 범위는 역순이 아니다
+    both = seeded.get("/api/data/summary?date_from=2025-03-01&date_to=2025-03-01")
+    assert both.status_code == 200 and both.json()["count"] == 3
+
+
 def test_필터가_없으면_예전과_같다(seeded):
     assert seeded.get("/api/data/summary").json() == seeded.get("/api/data/summary?district=").json()
 

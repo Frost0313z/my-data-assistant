@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from .. import config, models, observability, ratelimit
+from .. import config, idempotency, models, observability, ratelimit
 from .conversations import client_owner
 from ..services import chat_service
 
@@ -56,13 +56,24 @@ def _guard(request: Request, context: dict | None) -> int:
 
 @router.post("", response_model=models.ChatResponse)
 def chat(payload: models.ChatRequest, request: Request):
-    reservation = _guard(request, payload.context)
     owner = client_owner(request.headers.get("x-client-id", ""))
+
+    # 스트리밍이 첫 글자 전에 끊겨 여기로 떨어진 재시도일 수 있다. 서버가 이미
+    # 답을 만들어 저장했다면 같은 질문에 두 번 과금하고 턴을 두 벌 쌓는 셈이 된다.
+    # **레이트리밋보다 먼저 본다** — 이미 끝난 일을 다시 세면 예산만 축난다.
+    done = idempotency.get(payload.request_id or "", owner)
+    if done is not None:
+        conversation_id, reply, usage = done
+        observability.log("chat.replayed", request_id=payload.request_id)
+        return models.ChatResponse(conversation_id=conversation_id, reply=reply, usage=usage)
+
+    reservation = _guard(request, payload.context)
     usage = None
     try:
         conversation_id, reply, usage = chat_service.ask(
             payload.message, payload.conversation_id, payload.context, owner
         )
+        idempotency.remember(payload.request_id or "", owner, conversation_id, reply, usage)
         return models.ChatResponse(conversation_id=conversation_id, reply=reply, usage=usage)
     finally:
         ratelimit.settle(reservation, (usage or {}).get("total_tokens", 0))
@@ -82,15 +93,30 @@ def chat_stream(payload: models.ChatRequest, request: Request):
 
     def events():
         settled = False
+        # 답을 여기서도 모아 둔다. 저장까지 끝났는데 응답만 유실되면 프런트가
+        # 비스트리밍으로 다시 보내는데(`chat.js`), 그때 돌려줄 것이 있어야 한다.
+        pieces: list[str] = []
         try:
             for kind, data in chat_service.stream(
                 payload.message, payload.conversation_id, payload.context, owner
             ):
+                if kind == "delta":
+                    pieces.append(data)
                 # 쓴 만큼 일일 총량에 더한다. 스트리밍만 빼먹으면 이 경로로는
                 # 상한이 없는 것과 같아진다.
-                if kind == "done" and (data.get("usage") or {}).get("total_tokens"):
-                    ratelimit.settle(reservation, data["usage"]["total_tokens"])
-                    settled = True
+                if kind == "done":
+                    if (data.get("usage") or {}).get("total_tokens"):
+                        ratelimit.settle(reservation, data["usage"]["total_tokens"])
+                        settled = True
+                    # **여기서 기억한다.** 이 지점을 지났다는 것은 대화가 이미
+                    # 저장됐다는 뜻이다 — 재시도가 오면 다시 만들지 않고 이걸 준다.
+                    idempotency.remember(
+                        payload.request_id or "",
+                        owner,
+                        data.get("conversation_id"),
+                        "".join(pieces),
+                        data.get("usage"),
+                    )
                 yield f"event: {kind}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
         except Exception as exc:  # noqa: BLE001
             # 스트림이 시작된 뒤에는 HTTP 상태로 실패를 알릴 수 없다. 이벤트로 알린다 —

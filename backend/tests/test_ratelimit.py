@@ -1,8 +1,11 @@
 """C3 남용 방어 — 두 겹이 각각 다른 것을 막는다."""
 
+import threading
+
 import pytest
 
 from app import config, ratelimit
+from conftest import StubOpenAI
 
 
 @pytest.fixture(autouse=True)
@@ -102,6 +105,82 @@ def test_예약한_토큰까지_합쳐_상한을_넘기면_막는다(monkeypatch
     assert ratelimit.snapshot()["used"] == 40
     assert ratelimit.snapshot()["reserved"] == 0
     ratelimit.check("2.2.2.2", reservation=60, now=1000)
+
+
+def test_진짜_동시_요청에서_두_번째는_429다(client, db, monkeypatch):
+    """단위 테스트(위)는 "정산하지 않음"으로 동시성을 흉내 낸다. 여기서는
+    **실제로 겹치게** 한다 — 첫 요청이 OpenAI 안에서 멈춰 있는 동안 두 번째가 들어온다.
+
+    이게 이 항목의 원래 지적이다: 예산 확인은 요청 **전**, 토큰 누적은 요청 **후**라서
+    예약이 없으면 둘 다 통과하고 상한을 넘긴다.
+    """
+    monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 0)
+    # 예약 하나(= 출력 상한 + 입력 추정)는 통과하고 둘은 못 지나가게 잡는다.
+    reserve = config.CHAT_MAX_TOKENS + config.CHAT_INPUT_TOKEN_RESERVE
+    monkeypatch.setattr(config, "DAILY_TOKEN_BUDGET", reserve + 10)
+
+    entered, release = threading.Event(), threading.Event()
+
+    class BlockingOpenAI(StubOpenAI):
+        def create(self, **kwargs):
+            entered.set()
+            release.wait(timeout=5)
+            return super().create(**kwargs)
+
+    from app.services import chat_service
+
+    monkeypatch.setattr(chat_service, "_get_client", lambda: BlockingOpenAI())
+
+    first: list = []
+    thread = threading.Thread(
+        target=lambda: first.append(client.post("/api/chat", json={"message": "질문"}))
+    )
+    thread.start()
+    assert entered.wait(timeout=5), "첫 요청이 OpenAI에 닿지 않았다"
+
+    # 첫 요청이 아직 정산되지 않은 이 순간이 정확히 문제의 창이다.
+    second = client.post("/api/chat", json={"message": "질문"})
+    assert second.status_code == 429
+    assert int(second.headers["retry-after"]) > 0
+
+    release.set()
+    thread.join(timeout=5)
+    assert first[0].status_code == 200
+
+
+def test_예약이_없으면_같은_상황에서_둘_다_통과한다(monkeypatch):
+    """위 테스트가 무엇을 막고 있는지 반대로 보여 준다. 예약을 0으로 두면
+    (= 고치기 전 동작) 두 요청이 모두 통과해 상한을 넘긴다."""
+    monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 0)
+    monkeypatch.setattr(config, "DAILY_TOKEN_BUDGET", 100)
+
+    ratelimit.check("1.1.1.1", reservation=0, now=1000)
+    ratelimit.check("2.2.2.2", reservation=0, now=1000)  # 막히지 않는다
+    ratelimit.settle(0, 80, now=1000)
+    ratelimit.settle(0, 80, now=1000)
+    assert ratelimit.snapshot()["used"] == 160 > 100  # 상한을 넘겼다
+
+
+def test_완료_후_누적_사용량이_상한을_넘지_않는다(client, db, openai, monkeypatch):
+    """수용 기준의 뒷부분. 막힐 때까지 계속 두드려도 실제 사용량이 상한 아래다.
+
+    예산을 **"예약 하나 + 여유 조금"** 으로 잡는다. 넉넉하게 잡으면 요청마다
+    바로 정산돼(순차 호출이라) 예약이 쌓이지 않아 영영 안 막히고, 그러면 이
+    테스트는 통과해도 아무것도 증명하지 않는다 — 실제로 그렇게 짰다가 걸렸다.
+    """
+    monkeypatch.setattr(config, "CHAT_RATE_PER_MINUTE", 0)
+    reserve = config.CHAT_MAX_TOKENS + config.CHAT_INPUT_TOKEN_RESERVE
+    monkeypatch.setattr(config, "DAILY_TOKEN_BUDGET", reserve + 500)
+
+    blocked = 0
+    for _ in range(20):
+        if client.post("/api/chat", json={"message": "질문"}).status_code == 429:
+            blocked += 1
+    assert blocked, "상한에 걸린 요청이 하나도 없으면 이 테스트는 아무것도 검증하지 않는다"
+
+    snap = ratelimit.snapshot()
+    assert snap["used"] <= config.DAILY_TOKEN_BUDGET
+    assert snap["reserved"] == 0, "끝난 요청의 예약이 남아 있으면 예산이 조금씩 잠긴다"
 
 
 def test_실패한_요청의_예약은_반납한다(monkeypatch):

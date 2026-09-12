@@ -117,6 +117,14 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = None
     # 화면에서 고른 분석 주제 등. 허용 키만, 값은 정제된 짧은 문자열.
     context: Optional[Dict[str, str]] = None
+    # 사용자 메시지 하나당 하나. 스트리밍이 끊겨 비스트리밍으로 다시 보낼 때 같은 값을
+    # 실어 서버가 중복 처리를 피한다(app/idempotency.py). 없으면 예전과 같이 동작한다.
+    request_id: Optional[str] = Field(None, max_length=64)
+
+    @field_validator("request_id")
+    @classmethod
+    def _clean_request_id(cls, v: Optional[str]) -> Optional[str]:
+        return _clean_text(v) or None if v is not None else v
 
     @field_validator("message")
     @classmethod
