@@ -73,3 +73,7 @@ jobs:
         run: node scripts/check_markdown.js
       - name: 지도 데이터 무결성
         run: node scripts/check_map_data.js
+      # 프런트의 "못 한다"와 백엔드 프롬프트가 갈라지면 한쪽은 거짓말이 된다.
+      # 양방향으로 본다 — 프롬프트에만 한계가 늘어나는 쪽이 진짜 위험하다.
+      - name: 온톨로지 사전 (질문→의도 표 · 프롬프트 대조)
+        run: node scripts/check_ontology.js

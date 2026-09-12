@@ -808,6 +808,20 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
 }
 .report-cta button:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
 
+/* G2: 데이터에 없는 것을 물었을 때의 안내.
+   경고가 아니라 **사실 전달**이라 caution 색을 쓰지 않는다 — 사용자가 잘못한 게
+   아니라 우리 데이터의 한계다. 그래서 안내만 두지 않고 대안 칩을 함께 준다. */
+.refusal-note {
+  margin: var(--sp-2) 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-sunken);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--r-control);
+}
+.refusal-note p { margin: 0; font-size: var(--fs-caption); color: var(--ink-700); }
+.refusal-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
+.refusal-chips button { font-size: var(--fs-caption); padding: var(--sp-1) var(--sp-2); }
+
 /* D5: 읽기 전용 배포 안내. 경고가 아니라 사실 전달이라 caution 색을 쓰지 않는다. */
 .data-readonly {
   margin: 0 0 var(--sp-3);

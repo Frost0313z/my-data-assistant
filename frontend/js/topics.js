@@ -194,6 +194,28 @@ window.screenContext = null;
     }
   };
 
+  // G그룹 전용 진입점: 무대를 지도로 되돌린다.
+  //
+  // **`select()`를 쓰지 않는다.** 그 함수는 토글이라(`activeId === id ? null : id`)
+  // 이미 열린 탭 id로 부르면 오히려 닫히고, `notifyTopicChange`로 채팅에 주제
+  // 구분선까지 남긴다. 되돌리기(G4)와 겹치면 구분선이 두 개 쌓인다.
+  // 여기서는 무대만 바꾸고 대화에는 아무 자국도 남기지 않는다.
+  window.focusMapStage = function () {
+    if (activeId) {
+      activeId = null;
+      window.screenContext = null;
+      window.activeTopicId = null;
+      list.querySelectorAll("button").forEach((b) => {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      renderDetail(null);
+      renderChip(null);
+      if (window.renderSuggestions) window.renderSuggestions();
+    }
+    setStage("map");
+  };
+
   window.TOPICS.forEach((t) => {
     const b = el("button", "topic-btn", t.label);
     b.dataset.id = t.id;
