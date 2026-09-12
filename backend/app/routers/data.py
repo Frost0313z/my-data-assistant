@@ -1,3 +1,4 @@
+from datetime import date as _date
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -44,6 +45,21 @@ def delete_data(record_id: str):
     return {"ok": True}
 
 
+def _require_real_dates(date_from: str, date_to: str) -> None:
+    """빈 값은 "필터 없음"이라 통과. 값이 있으면 달력에 실재해야 하고 앞뒤가 맞아야 한다."""
+    for name, value in (("date_from", date_from), ("date_to", date_to)):
+        if not value:
+            continue
+        try:
+            _date.fromisoformat(value)
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"{name}: 존재하지 않는 날짜입니다 (YYYY-MM-DD)")
+    # 여기까지 왔으면 둘 다 0으로 채워진 ISO 날짜라 문자열 비교가 날짜 비교와 같다.
+    # 집계도 같은 방식으로 자르므로 비교 방식을 굳이 바꾸지 않는다.
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(status_code=422, detail="date_from이 date_to보다 뒤입니다.")
+
+
 @router.get("/summary", response_model=models.DataSummary)
 def summary(
     district: str = Query("", max_length=models.DIMENSION_MAX, description="자치구 정확히 일치"),
@@ -53,6 +69,11 @@ def summary(
     date_to: str = Query("", pattern=r"^(\d{4}-\d{2}-\d{2})?$", description="YYYY-MM-DD 이하"),
 ):
     """B3: 필터별 집계. 인자가 없으면 예전과 똑같이 전체 요약을 돌려준다."""
+    # 정규식은 모양만 본다. `2026-99-99`는 모양이 맞아서 통과한 뒤 아무것도
+    # 못 잡는 필터가 되어 "조건에 맞는 데이터 없음"으로 조용히 끝난다 —
+    # 오타를 정답처럼 돌려주는 셈이다. 저장 경로(`DataRecordIn`)는 이미
+    # 달력을 확인하고 있었는데 조회 경로만 빠져 있었다.
+    _require_real_dates(date_from, date_to)
     filters = {
         k: v
         for k, v in {

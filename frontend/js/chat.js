@@ -315,13 +315,29 @@ function renderReply(bubble, text) {
   else bubble.textContent = text;
 }
 
+// 사용자 메시지 하나당 하나. 서버가 중복 처리를 피하는 열쇠다.
+// `crypto.randomUUID`는 보안 컨텍스트(https·localhost)에서만 있다. 없으면 그냥 빈
+// 문자열을 주고, 서버는 키가 없는 요청을 예전처럼 처리한다 — 기능이 죽지는 않는다.
+function newRequestId() {
+  try {
+    return window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : "";
+  } catch (e) {
+    return "";
+  }
+}
+
 // 스트리밍 경로. 실패하면 비스트리밍으로 떨어진다.
 //
 // 스트리밍 중에는 **글자 그대로** 붙인다. 조각마다 마크다운을 다시 그리면 미완성
 // 문법(`**중앙`)이 매번 다르게 해석돼 화면이 덜덜 떨린다. 다 받은 뒤 한 번만 그린다.
 async function sendStreaming(message, context, bubble, stopWaitTimer) {
+  // 이 사용자 메시지의 신분증. 스트리밍이 끊겨 아래에서 비스트리밍으로 다시 보낼 때
+  // **같은 값**을 실어, 서버가 이미 만들어 저장한 답이면 그걸 그대로 돌려주게 한다
+  // (backend/app/idempotency.py). 없어도 예전과 같이 동작한다.
+  const requestId = newRequestId();
+
   if (!api.streamChat || typeof window.TextDecoder === "undefined") {
-    const result = await api.sendChat(message, currentConversationId, context);
+    const result = await api.sendChat(message, currentConversationId, context, requestId);
     renderReply(bubble, result.reply);
     return result;
   }
@@ -344,7 +360,7 @@ async function sendStreaming(message, context, bubble, stopWaitTimer) {
       bubble.textContent = text;
       const list = document.getElementById("chat-messages");
       list.scrollTop = list.scrollHeight;
-    });
+    }, undefined, requestId);
     renderReply(bubble, text);
     bubble.removeAttribute("aria-busy");
     return result;
@@ -356,7 +372,9 @@ async function sendStreaming(message, context, bubble, stopWaitTimer) {
     // 요청 수만 두 배가 된다.
     if (err && err.rateLimited) throw err;
     bubble.removeAttribute("aria-busy");
-    const result = await api.sendChat(message, currentConversationId, context);
+    // 같은 requestId로 보낸다. 서버가 이미 답을 만들어 저장했는데 응답만 유실된
+    // 경우라면 다시 만들지 않고 그때 것을 돌려준다 — 중복 과금도, 중복 턴도 없다.
+    const result = await api.sendChat(message, currentConversationId, context, requestId);
     renderReply(bubble, result.reply);
     return result;
   }

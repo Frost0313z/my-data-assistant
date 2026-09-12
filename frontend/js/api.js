@@ -65,13 +65,14 @@ const api = {
     return this.request(`/api/conversations/${id}`, { method: "DELETE" });
   },
 
-  sendChat(message, conversationId, context) {
+  sendChat(message, conversationId, context, requestId) {
     return this.request("/api/chat", {
       method: "POST",
       body: JSON.stringify({
         message,
         conversation_id: conversationId || null,
         context: context || null,
+        request_id: requestId || null,
       }),
     });
   },
@@ -80,7 +81,7 @@ const api = {
   //
   // EventSource를 안 쓰는 이유: GET만 되고 본문을 못 싣는다. 여기서는 메시지와 화면
   // 컨텍스트를 POST로 보내야 한다.
-  async streamChat(message, conversationId, context, onDelta, signal) {
+  async streamChat(message, conversationId, context, onDelta, signal, requestId) {
     const res = await fetch(`${window.API_BASE_URL}/api/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Client-Id": clientId() },
@@ -88,6 +89,7 @@ const api = {
         message,
         conversation_id: conversationId || null,
         context: context || null,
+        request_id: requestId || null,
       }),
       signal,
     });
