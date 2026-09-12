@@ -11,10 +11,7 @@
 (function (window) {
   "use strict";
 
-  const METRIC_LABELS = {};
-
   function labelOf(key) {
-    if (METRIC_LABELS[key]) return METRIC_LABELS[key];
     const dict = window.ontology && window.ontology.dict;
     const found = ((dict && dict.metrics) || []).find((m) => m.key === key);
     return found ? found.label : key;
@@ -34,9 +31,7 @@
     return !intent || !(intent.metric || intent.district || intent.dong || intent.view || intent.stage);
   }
 
-  function applyIntent(intent, options) {
-    const opts = options || {};
-
+  function applyIntent(intent) {
     // G5: 입도가 안 맞으면 **무대를 바꾸지 않고** 왜 못 하는지 말한다.
     // 엉뚱한 탭을 열어 놓고 답한 척하는 것이 여기서 막는 실패다.
     if (intent && intent.grainMismatch) {
@@ -58,12 +53,10 @@
       const stage = window.ontology && window.ontology.stageById(intent.stage);
       if (window.openTopicStage && stage) {
         window.openTopicStage(intent.stage, intent.params);
-        if (!opts.silent) {
-          // 파라미터까지 맞췄으면 그것도 말한다. 안 그러면 사용자는 자기가
-          // 요청한 정렬이 반영됐는지 화면을 뒤져 봐야 한다.
-          const extra = intent.params ? ` (${Object.values(intent.params).join(", ")} 기준)` : "";
-          note(`'${stage.label}' 탭을 열었습니다${extra}`);
-        }
+        // 파라미터까지 맞췄으면 그것도 말한다. 안 그러면 사용자는 자기가
+        // 요청한 정렬이 반영됐는지 화면을 뒤져 봐야 한다.
+        const extra = intent.params ? ` (${Object.values(intent.params).join(", ")} 기준)` : "";
+        note(`'${stage.label}' 탭을 열었습니다${extra}`);
       }
       return null;
     }
@@ -82,14 +75,14 @@
     if (window.focusMapStage) window.focusMapStage();
 
     const summary = describe(intent);
-    if (!opts.silent && summary) announce(summary, before);
+    if (summary) announce(summary, before);
     return before;
   }
 
-  // 되돌릴 것이 없는 안내. 무대 전환과 "못 한다"에 쓴다.
+  // 채팅 흐름에 한 줄 남긴다. 붙인 요소를 돌려줘 되돌리기 버튼을 얹을 수 있게 한다.
   function note(text) {
     const list = document.getElementById("chat-messages");
-    if (!list) return;
+    if (!list) return null;
     const wrap = document.createElement("div");
     wrap.className = "intent-note";
     const span = document.createElement("span");
@@ -97,20 +90,14 @@
     wrap.appendChild(span);
     list.appendChild(wrap);
     list.scrollTop = list.scrollHeight;
+    return wrap;
   }
 
-  // 바뀐 것을 채팅 흐름에 한 줄로 남기고 되돌리기 버튼을 붙인다.
+  // 바꿨다고 말하고 되돌릴 길을 준다. 틀렸을 때 빠져나갈 길이 없으면 안 쓰느니만 못하다.
   function announce(summary, before) {
-    const list = document.getElementById("chat-messages");
-    if (!list) return;
-
-    const wrap = document.createElement("div");
-    wrap.className = "intent-note";
-
-    const text = document.createElement("span");
-    // 사용자 입력에서 온 문자열이 화면으로 되돌아 나오는 자리다. textContent만 쓴다.
-    text.textContent = `지도를 ${summary}(으)로 맞췄습니다`;
-    wrap.appendChild(text);
+    const message = `지도를 ${summary}(으)로 맞췄습니다`;
+    const wrap = note(message);
+    if (!wrap) return;
 
     const undo = document.createElement("button");
     undo.type = "button";
@@ -123,17 +110,13 @@
     });
     wrap.appendChild(undo);
 
-    list.appendChild(wrap);
-    list.scrollTop = list.scrollHeight;
-
     // F1: 스크린리더에게도 알린다. 이미 role="status"인 자리를 쓴다.
     const feedback = document.getElementById("map-search-feedback");
     if (feedback) {
-      feedback.textContent = `지도를 ${summary}(으)로 맞췄습니다`;
+      feedback.textContent = message;
       feedback.classList.add("sr-only");
     }
   }
 
   window.applyIntent = applyIntent;
-  window.describeIntent = describe;
 })(window);

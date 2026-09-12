@@ -15,7 +15,6 @@
 
   function load(data) {
     dict = data || null;
-    return dict;
   }
 
   function normalizeQuery(text) {
@@ -45,12 +44,7 @@
       }
     }
     // 부정어가 없으면 문장 전체가 "원하는 것"이다.
-    if (cut === -1) return { negated: "", wanted: query, hasNegation: false };
-    return {
-      negated: query.slice(0, cut),
-      wanted: query.slice(cut + markLength),
-      hasNegation: true,
-    };
+    return { wanted: cut === -1 ? query : query.slice(cut + markLength) };
   }
 
   // 못 답하는 질문인가. 맞으면 { id, label, message, chips }, 아니면 null.
@@ -63,12 +57,7 @@
     const { wanted } = splitNegation(text);
     for (const rule of dict.refuse) {
       if (!compact(rule.patterns).some((p) => wanted.indexOf(p) !== -1)) continue;
-      return {
-        id: rule.id,
-        label: rule.label,
-        message: rule.message,
-        chips: (rule.chips || []).slice(),
-      };
+      return { id: rule.id, message: rule.message, chips: (rule.chips || []).slice() };
     }
     return null;
   }
@@ -89,7 +78,6 @@
 
   function loadRegions(list) {
     regions = Array.isArray(list) ? list : [];
-    return regions;
   }
 
   function findMetric(query) {
@@ -137,12 +125,13 @@
   // 질문이 요구하는 입도. 무엇을 묻는지가 아니라 **어떤 단위의 답**을 원하는지다.
   // "어디"는 넓지만 안전하다. 한 지역을 콕 집은 질문은 위에서 이미 지도로
   // 빠지므로("용문동 교체율은?"), 여기까지 오는 "어디"는 대체로 분포를 묻는다.
-  const COMPARISON = ["어디", "비교", "순위", "순으로", "제일", "가장", "높은 곳", "낮은 곳", "많은 곳", "top"];
-  const DISTRIBUTION = ["분포", "전체적", "어느 동네", "어디들", "다 보여"];
+  const COMPARISON = [
+    "어디", "비교", "순위", "순으로", "제일", "가장", "높은 곳", "낮은 곳", "많은 곳", "top",
+    "분포", "전체적", "어느 동네", "어디들", "다 보여",
+  ];
 
   function wantsComparison(query) {
-    return COMPARISON.some((p) => query.indexOf(normalizeQuery(p)) !== -1) ||
-      DISTRIBUTION.some((p) => query.indexOf(normalizeQuery(p)) !== -1);
+    return COMPARISON.some((p) => query.indexOf(normalizeQuery(p)) !== -1);
   }
 
   function stageById(id) {
@@ -289,19 +278,15 @@
     return Object.keys(params).length ? params : null;
   }
 
+  // 밖으로 내보내는 것은 실제로 불리는 것만. 나머지는 이 파일 안에서만 쓴다 —
+  // 내보내 두면 "언젠가 쓸지도"가 되어 지울 수 없는 표면이 된다.
   const ontology = {
     load,
     loadRegions,
     refusalFor,
     resolveIntent,
-    chooseStage,
     stageById,
-    stageParams,
-    constraintFor,
-    splitNegation,
-    normalizeQuery,
     get dict() { return dict; },
-    get regions() { return regions; },
   };
 
   window.ontology = ontology;
