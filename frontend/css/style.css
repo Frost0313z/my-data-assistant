@@ -822,6 +822,27 @@ button.ghost { background: var(--surface); color: var(--primary); border: 1px so
 .refusal-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-2); }
 .refusal-chips button { font-size: var(--fs-caption); padding: var(--sp-1) var(--sp-2); }
 
+/* G4: 질문을 받아 화면을 바꿨다는 알림. 화면이 말없이 움직이면 혼란스럽다(A30).
+   되돌리기가 같은 줄에 있는 것이 중요하다 — 잘못 잡았을 때 빠져나갈 길이
+   눈에 안 보이면 이 기능은 안 쓰느니만 못하다. */
+.intent-note {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin: var(--sp-2) 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-sunken);
+  border-radius: var(--r-control);
+  font-size: var(--fs-caption);
+  color: var(--ink-700);
+}
+.intent-note .intent-undo {
+  margin-left: auto;
+  font-size: var(--fs-caption);
+  padding: var(--sp-1) var(--sp-2);
+}
+
 /* D5: 읽기 전용 배포 안내. 경고가 아니라 사실 전달이라 caution 색을 쓰지 않는다. */
 .data-readonly {
   margin: 0 0 var(--sp-3);

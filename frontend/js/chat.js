@@ -451,6 +451,19 @@ async function sendMessage(options) {
   // 건드리지 않는다.** 재시도에는 다시 붙이지 않는다 — 같은 안내가 두 번 쌓인다.
   const refusal = !opts.retry && window.ontology ? window.ontology.refusalFor(message) : null;
   if (refusal) appendRefusalNote(refusal);
+
+  // G3·G4: 질문이 화면을 세팅한다.
+  //
+  // **컨텍스트는 이미 위에서 캡처했다(`context`).** 순서가 뒤집히면 사용자가
+  // 고르지 않은 주제가 프롬프트에 실린다 — 이 영역은 전례가 있다("주제를 요청을
+  // 보낸 시점의 것으로 받는다"). 적용은 반드시 캡처 뒤에 온다.
+  //
+  // 거절된 질문에는 아무것도 적용하지 않는다. resolveIntent가 그 경우 화면을
+  // 바꿀 키를 하나도 내놓지 않으므로 여기서 따로 막을 것이 없다.
+  if (!opts.retry && !opts.isReport && window.ontology && window.applyIntent) {
+    window.applyIntent(window.ontology.resolveIntent(message));
+  }
+
   if (window.switchToChatPane) window.switchToChatPane();
   const loadingBubble = appendMessage("assistant", WAIT_BASE);
   // F1: 경과 초가 1초마다 바뀐다. 그대로 두면 스크린리더가 매초 읽는다.

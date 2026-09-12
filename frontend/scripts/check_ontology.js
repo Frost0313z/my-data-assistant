@@ -46,6 +46,90 @@ check(
   (dict.refuse || []).every((r) => r.id && r.label && r.message && (r.patterns || []).length && (r.promptTerms || []).length)
 );
 
+// ── 1b. G1 사전이 코드와 같은 것을 가리키는가 ────────────────────────────────
+const mapSource = fs.readFileSync(path.join(root, "js/map.js"), "utf8");
+const topicsData = fs.readFileSync(path.join(root, "js/topics-data.js"), "utf8");
+const topicsSource = fs.readFileSync(path.join(root, "js/topics.js"), "utf8");
+
+// 지도 지표: map.js의 METRICS 블록에서 키와 라벨을 읽어 사전과 맞춘다.
+const metricBlock = mapSource.slice(mapSource.indexOf("const METRICS = {"));
+const codeMetrics = {};
+for (const m of metricBlock.slice(0, metricBlock.indexOf("\n  };")).matchAll(
+  /^\s{4}(\w+):\s*\{\s*\n\s*label:\s*"([^"]+)"/gm
+)) {
+  codeMetrics[m[1]] = m[2];
+}
+const dictMetrics = Object.fromEntries((dict.metrics || []).map((m) => [m.key, m.label]));
+check(
+  `지표 ${Object.keys(codeMetrics).length}종이 map.js와 키·라벨까지 같다`,
+  JSON.stringify(codeMetrics) === JSON.stringify(dictMetrics),
+  `코드 ${JSON.stringify(codeMetrics)}\n     → 사전 ${JSON.stringify(dictMetrics)}`
+);
+check(
+  "모든 지표에 grain·periods·answers·cannot이 있다",
+  (dict.metrics || []).every((m) => m.grain && m.periods && m.answers && (m.cannot || []).length && (m.aliases || []).length)
+);
+check(
+  "periods는 single 또는 all이고, all은 map.js의 allPeriods와 일치한다",
+  (dict.metrics || []).every((m) => {
+    if (!["single", "all"].includes(m.periods)) return false;
+    const declared = new RegExp(`${m.key}:\\s*\\{[^}]*allPeriods:\\s*true`, "s").test(metricBlock);
+    return declared === (m.periods === "all");
+  }),
+  "교체율·증감은 전 기간 누적이라 시점을 고를 수 없다. 사전과 코드가 갈라지면 G6가 거짓말을 한다"
+);
+
+// 무대: topics-data.js의 TOPICS 5개가 전부 사전에 있어야 한다.
+const codeStages = [...topicsData.matchAll(/^\s*id:\s*"(\w+)",/gm)].map((m) => m[1]);
+const dictStages = (dict.stages || []).map((s) => s.id);
+check(
+  `대시보드 탭 ${codeStages.length}개가 전부 사전에 있다`,
+  codeStages.every((id) => dictStages.includes(id)),
+  `사전에 없는 탭: ${codeStages.filter((id) => !dictStages.includes(id)).join(", ")}`
+);
+check(
+  "지도도 무대로 들어 있다",
+  dictStages.includes("map"),
+  "무대가 둘이라는 것이 이 사전의 전제다"
+);
+check(
+  "모든 무대에 grain·accepts·answers·cannot이 있다",
+  (dict.stages || []).every((s) => s.grain && s.accepts && s.answers && (s.cannot || []).length)
+);
+check(
+  "embed 문자열이 topics-data.js의 것과 같다",
+  (dict.stages || []).filter((s) => s.embed).every((s) => topicsData.includes(s.embed)),
+  "여기가 갈라지면 사전이 열리지도 않는 화면을 설명하게 된다"
+);
+
+// 동명이개념: 같은 라벨이 두 무대에서 다른 것을 가리키면 양쪽에 표시가 있어야 한다.
+const crossMarked = (dict.metrics || []).filter((m) => m.sameLabelAs).map((m) => m.key);
+check(
+  "동명이개념이 양쪽에 표시돼 있다",
+  crossMarked.length > 0 &&
+    crossMarked.every((key) => (dict.stages || []).some((s) => s.id === key && s.sameLabelAs)),
+  "지도의 `점포 교체율`(코로플레스)과 교체율 탭(산점도)은 다른 개념이다"
+);
+
+// 페르소나 → 기본 지표. 사전이 기준이고 topics.js가 따라간다.
+//
+// **왜 코드를 사전에서 읽게 하지 않는가**: 페르소나 복원은 부팅 때 돈다. 사전을
+// fetch로 받아 오면 그 전에 복원이 끝나 버려 화면이 한 번 흔들린다. 그래서 값은
+// topics.js에 두고 **사전을 기준으로 CI가 대조**한다. 갈라지면 빌드가 깨진다.
+const codePersonas = {};
+for (const m of topicsSource.matchAll(/id:\s*"(\w+)",[\s\S]{0,400}?mapMetric:\s*"(\w+)"/g)) {
+  codePersonas[m[1]] = m[2];
+}
+check(
+  "페르소나 기본 지표가 topics.js와 같다",
+  JSON.stringify(codePersonas) === JSON.stringify(dict.personas || {}),
+  `코드 ${JSON.stringify(codePersonas)}\n     → 사전 ${JSON.stringify(dict.personas)}`
+);
+check(
+  "페르소나가 가리키는 지표가 실재한다",
+  Object.values(dict.personas || {}).every((key) => key in dictMetrics)
+);
+
 // ── 2. 질문 → 기대 의도 표 ───────────────────────────────────────────────────
 // 형식: [질문, 기대하는 거절 id 또는 null]
 const CASES = [
@@ -95,8 +179,100 @@ for (const [question, expected] of CASES) {
   if (gotId !== expected) wrong.push(`"${question}" → ${gotId} (기대: ${expected})`);
   if (expected) matched++;
 }
-check(`질문 ${CASES.length}개가 기대대로 갈린다`, wrong.length === 0, wrong.join("\n     → "));
-console.log(`     커버리지: 거절 ${matched}건 / 통과 ${CASES.length - matched}건`);
+check(`거절 판정 ${CASES.length}문항이 기대대로 갈린다`, wrong.length === 0, wrong.join("\n     → "));
+
+// ── 2b. G3 의도 해석 표 ──────────────────────────────────────────────────────
+// 지명은 실제 경계 데이터에서 만든다. 여기서 따로 목록을 쓰면 두 벌이 되어
+// 검증이 "내가 쓴 것과 내가 쓴 것"을 비교하게 된다.
+const mapData = JSON.parse(fs.readFileSync(path.join(root, "data/daejeon-map.json"), "utf8"));
+const regionList = [
+  { label: "대전 전체", district: "", code: "", names: ["대전 전체", "전체"] },
+  ...mapData.districts.features.map(({ properties: p }) => ({
+    label: p.district, district: p.district, code: "", names: [p.district],
+  })),
+  ...mapData.boundaries.features.map(({ properties: p }) => ({
+    label: `${p.district} ${p.dong}`, district: p.district, code: p.dong_code,
+    names: [p.dong, `${p.district} ${p.dong}`],
+  })),
+];
+ontology.loadRegions(regionList);
+check(`지명 ${regionList.length}개를 경계 데이터에서 읽었다`, regionList.length > 80);
+
+// 형식: [질문, 기대 의도] — 적어야 하는 키만 적는다. undefined는 "없어야 한다".
+const INTENTS = [
+  // 지표만
+  ["교체율 보여줘", { metric: "turnover" }],
+  ["공급 밀도가 궁금해", { metric: "density" }],
+  ["업소가 몇 개야?", { metric: "stores" }],
+
+  // 지명만 — 지표는 건드리지 않는다
+  ["대덕구는?", { district: "대덕구" }],
+  ["용문동 어때?", { district: "서구", dong: "30170550" }],
+
+  // 지표 + 지명
+  ["용문동 점포 교체율은?", { metric: "turnover", district: "서구", dong: "30170550" }],
+  ["유성구 잔존율 알려줘", { metric: "survival", district: "유성구" }],
+
+  // 한국어 활용형 — 어간 분석기 없이 별칭 나열로 감당한다
+  ["여기 가게 많이 망했어?", { metric: "turnover" }],
+  // 위 문항 때문에 density에서 "가게 많"·"업소 많"을 뺐다. "가게 많이 망했어"를
+  // 밀도로 읽어 버렸기 때문이다. 그 대가로 아래가 안 잡히는데, **틀린 화면을
+  // 띄우는 별칭은 없는 별칭보다 나쁘다** — 안 잡히면 지금과 같은 상태일 뿐이다.
+  ["가게 많은 동네가 어디야", {}],
+  ["망해서 문 닫는 데 많아?", { metric: "turnover" }],
+  ["오래 버티는 동네가 어디야", { metric: "survival" }],
+  ["업소가 늘었나 줄었나", { metric: "change" }],
+
+  // 보기 방식
+  ["3d로 보여줘", { view: "3d" }],
+
+  // 부정어 — 부정된 쪽이 아니라 원한 쪽을 잡는다
+  ["매출 말고 교체율 보여줘", { metric: "turnover" }],
+  ["유동인구 빼고 업소 수만", { metric: "stores" }],
+
+  // 거절 — 화면을 바꿀 키를 **하나도** 내놓지 않는다
+  ["용문동 매출 얼마야?", { refusal: "sales" }],
+  ["유동인구 많은 동네 보여줘", { refusal: "footfall" }],
+
+  // 모호 — 빈 객체
+  ["안녕", {}],
+  ["", {}],
+  ["그래서 결론이 뭐야", {}],
+  ["작년보다 나아진 동네", {}],
+];
+
+const intentWrong = [];
+let resolved = 0;
+for (const [question, expected] of INTENTS) {
+  const got = ontology.resolveIntent(question);
+  const seen = Object.assign({}, got);
+  delete seen.regionLabel; // 설명용이라 기대값에 적지 않는다
+  if (JSON.stringify(seen) !== JSON.stringify(expected)) {
+    intentWrong.push(`"${question}" → ${JSON.stringify(seen)} (기대: ${JSON.stringify(expected)})`);
+  }
+  if (Object.keys(expected).length) resolved++;
+}
+check(`의도 해석 ${INTENTS.length}문항이 기대대로 나온다`, intentWrong.length === 0, intentWrong.join("\n     → "));
+
+check(
+  "거절된 질문은 화면을 바꿀 키를 하나도 내놓지 않는다",
+  INTENTS.filter(([, e]) => e.refusal).every(([q]) => {
+    const got = ontology.resolveIntent(q);
+    return !got.metric && !got.district && !got.dong && !got.view;
+  }),
+  "지표를 하나라도 끼워 넣으면 그게 바로 답한 척이다"
+);
+
+check(
+  "같은 입력에 항상 같은 출력이다 (순수 함수)",
+  INTENTS.every(([q]) => JSON.stringify(ontology.resolveIntent(q)) === JSON.stringify(ontology.resolveIntent(q)))
+);
+
+const total = CASES.length + INTENTS.length;
+console.log(
+  `     커버리지: 표 ${total}문항 · 거절 ${matched}건 · 의도 생성 ${resolved}건 · ` +
+    `아무것도 안 함 ${total - matched - resolved}건`
+);
 
 // ── 3. 프런트 ↔ 백엔드 양방향 대조 ───────────────────────────────────────────
 const PROMPT_SOURCES = [

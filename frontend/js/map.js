@@ -389,6 +389,11 @@
       })).sort((a, b) => a.label.localeCompare(b.label, "ko")),
     ];
     regions.forEach((region) => $("map-search-options").append(new Option(region.label, region.label)));
+    // G1·G3: 지명 사전을 두 벌 만들지 않는다. 여기 이미 daejeon-map.json에서
+    // 만든 목록이 있으므로 그대로 넘긴다 — 온톨로지가 따로 파싱하면 갈라진다.
+    if (window.ontology) window.ontology.loadRegions(regions);
+    // G4: 정규화 규칙도 한 벌만 둔다. 예전에는 이 함수가 여기 갇혀 있었다.
+    window.normalizeRegionName = normalize;
     function report(message, invalid = false) {
       searchFeedback.textContent = message;
       searchFeedback.classList.toggle("sr-only", !invalid);
@@ -591,11 +596,58 @@
     metricSelect.addEventListener("change", () => applyMetric(metricSelect.value));
     // A9·A28: 목적 카드가 지도 지표를 바꿀 수 있게 연다.
     window.setMapMetric = applyMetric;
-    // topics.js가 이 파일보다 먼저 돌아 저장된 페르소나를 복원했을 수 있다.
+
+    // G4: 화면 상태를 통째로 읽고 쓰는 창구. 예전에는 이 일들이 전부 이 IIFE
+    // 안에 갇혀 있어 밖에서 지도를 맞출 방법이 지표뿐이었다.
+    //
+    // **말한 것만 바꾼다.** 넘어오지 않은 키는 손대지 않는다 — 사용자가 맞춰 둔
+    // 화면을 조용히 리셋하는 것이 이 기능의 최악의 실패다.
+    window.readMapState = () => ({
+      metric,
+      period: period.value,
+      district: district.value,
+      dong: selected,
+      view,
+    });
+
+    window.applyMapState = (next) => {
+      if (!next) return;
+      if (next.metric && METRICS[next.metric]) applyMetric(next.metric);
+      // 지역을 먼저 맞추고 나서 시점을 본다. 자치구를 바꾸면 동 목록이 다시 그려진다.
+      if (next.district !== undefined) {
+        district.value = next.district || "";
+        selected = "";
+        updateDongOptions();
+      }
+      if (next.dong !== undefined && next.dong) {
+        selected = next.dong;
+        dong.value = next.dong;
+      }
+      // 교체율처럼 전 기간 누적인 지표는 시점 선택이 잠긴다(G6). 잠긴 채로
+      // 값을 밀어 넣으면 화면과 셀렉트가 어긋나므로 확인하고 넣는다.
+      if (next.period && !period.disabled) period.value = next.period;
+      if (next.view) setView(next.view);
+      updateMap();
+      if (selected) {
+        fit(data.boundaries.features.filter((f) => f.properties.dong_code === selected));
+      } else {
+        fit(visibleFeatures());
+      }
+    };
+
+    // 지도가 준비되기 전에 들어온 요청을 흘려보내지 않는다. 이 파일은 fetch를
+    // 기다린 뒤에야 여기까지 오는데, **콜드스타트 43초 동안 화면이 이미 답**이
+    // 이 그룹의 핵심 주장이라 그 구간이 정확히 여기다.
     if (window.pendingMapMetric) {
       applyMetric(window.pendingMapMetric);
       window.pendingMapMetric = null;
     }
+    if (window.pendingMapState) {
+      window.applyMapState(window.pendingMapState);
+      window.pendingMapState = null;
+    }
+    // 지도가 살아 있다는 신호. 폴백 화면에서는 "지도를 맞췄습니다"라고 말하면 안 된다.
+    window.mapReady = !fallback;
     period.addEventListener("change", updateMap);
     district.addEventListener("change", () => { selected = ""; updateDongOptions(); updateMap(); fit(visibleFeatures()); });
     dong.addEventListener("change", () => selectDong(dong.value, true));
