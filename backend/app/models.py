@@ -124,7 +124,7 @@ class ChatRequest(BaseModel):
     @field_validator("request_id")
     @classmethod
     def _clean_request_id(cls, v: Optional[str]) -> Optional[str]:
-        return _clean_text(v) or None if v is not None else v
+        return _clean_text(v) or None if v else None
 
     @field_validator("message")
     @classmethod

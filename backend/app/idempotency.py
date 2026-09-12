@@ -48,8 +48,8 @@ def remember(request_id: str, owner: str, conversation_id: str, reply: str, usag
     if not request_id:
         return
     with _lock:
+        # 새 키는 OrderedDict가 알아서 끝에 붙인다. 같은 키를 두 번 기억하는 경로가 없다.
         _done[_key(request_id, owner)] = (conversation_id, reply, usage)
-        _done.move_to_end(_key(request_id, owner))
         while len(_done) > MAX_ENTRIES:
             _done.popitem(last=False)
 

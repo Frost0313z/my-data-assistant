@@ -70,7 +70,6 @@
       "key": "density",
       "label": "공급 밀도",
       "unit": "개",
-      "grain": "dong",
       "periods": "single",
       "aliases": ["공급밀도", "밀도", "촘촘", "빽빽", "포화", "경쟁 심", "경쟁이 심", "인구 대비", "인구당", "천 명당"],
       "answers": "주민 수에 비해 가게가 얼마나 많은가",
@@ -82,7 +81,6 @@
       "key": "stores",
       "label": "등록 업소 수",
       "unit": "개",
-      "grain": "dong",
       "periods": "single",
       "aliases": ["업소 수", "업소수", "점포 수", "점포수", "가게 수", "가게수", "몇 개", "몇개", "규모"],
       "answers": "그 동네에 등록된 업소가 몇 개인가",
@@ -94,7 +92,6 @@
       "key": "survival",
       "label": "점포 잔존율",
       "unit": "%",
-      "grain": "dong",
       "periods": "single",
       "aliases": ["잔존율", "생존율", "살아남", "버티", "버텼", "오래 가", "오래가", "유지되", "남아 있"],
       "answers": "처음에 있던 가게 중 몇 퍼센트가 아직 남아 있는가",
@@ -106,7 +103,6 @@
       "key": "turnover",
       "label": "점포 교체율",
       "unit": "%",
-      "grain": "dong",
       "periods": "all",
       "sameLabelAs": "stage:turnover",
       "aliases": ["교체율", "자주 바뀌", "자주바뀌", "바뀌는", "바뀐", "망하", "망해", "망했", "폐업", "문 닫", "문닫", "간판 바뀌", "들락"],
@@ -119,7 +115,6 @@
       "key": "hhi",
       "label": "업종 집중도",
       "unit": "",
-      "grain": "dong",
       "periods": "single",
       "aliases": ["집중도", "업종 구성", "업종구성", "다양", "쏠려", "쏠림", "치우", "한 업종", "무슨 업종 많"],
       "answers": "그 동네의 업종이 한쪽으로 쏠려 있는가 고른가",
@@ -131,7 +126,6 @@
       "key": "change",
       "label": "업소 수 증감",
       "unit": "%",
-      "grain": "dong",
       "periods": "all",
       "aliases": ["증감", "늘었", "줄었", "늘어난", "줄어든", "성장", "정체", "위축", "변화", "추이"],
       "answers": "그 동네의 업소 수가 늘었는가 줄었는가",
@@ -143,7 +137,6 @@
       "key": "type",
       "label": "지역 유형",
       "unit": "",
-      "grain": "dong",
       "periods": "single",
       "aliases": ["지역 유형", "유형", "어떤 동네", "어떤 지역", "분류"],
       "answers": "밀도와 교체율 두 축으로 나눈 네 유형 중 어디인가",
@@ -233,15 +226,11 @@
   "constraints": [
     {
       "id": "category-vs-period",
-      "message": "업종별 점 데이터는 최신 한 시점만 있습니다. 업종을 고르면 시점은 바꿀 수 없습니다.",
-      "when": { "category": "set" },
-      "blocks": ["period"]
+      "message": "업종별 점 데이터는 최신 한 시점만 있습니다. 업종을 고르면 시점은 바꿀 수 없습니다."
     },
     {
       "id": "all-period-metrics",
-      "message": "교체율과 증감은 전 기간을 합쳐 계산한 값이라 특정 시점을 고를 수 없습니다.",
-      "when": { "metricPeriods": "all" },
-      "blocks": ["period"]
+      "message": "교체율과 증감은 전 기간을 합쳐 계산한 값이라 특정 시점을 고를 수 없습니다."
     }
   ]
 }

@@ -65,9 +65,11 @@ check(
   JSON.stringify(codeMetrics) === JSON.stringify(dictMetrics),
   `코드 ${JSON.stringify(codeMetrics)}\n     → 사전 ${JSON.stringify(dictMetrics)}`
 );
+// 지표에는 grain을 적지 않는다. 7종 전부 행정동이라 구분이 없고, 무대를 고르는
+// 것은 **무대의** grain이다. 같은 이름의 필드가 두 뜻으로 쓰이면 읽는 사람이 헷갈린다.
 check(
-  "모든 지표에 grain·periods·answers·cannot이 있다",
-  (dict.metrics || []).every((m) => m.grain && m.periods && m.answers && (m.cannot || []).length && (m.aliases || []).length)
+  "모든 지표에 periods·aliases·answers·cannot이 있다",
+  (dict.metrics || []).every((m) => m.periods && m.answers && (m.cannot || []).length && (m.aliases || []).length)
 );
 check(
   "periods는 single 또는 all이고, all은 map.js의 allPeriods와 일치한다",
