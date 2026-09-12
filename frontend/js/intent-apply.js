@@ -31,12 +31,42 @@
 
   // 화면에 옮길 것이 실제로 있는가. regionLabel은 설명용이라 세지 않는다.
   function isEmpty(intent) {
-    return !intent || !(intent.metric || intent.district || intent.dong || intent.view);
+    return !intent || !(intent.metric || intent.district || intent.dong || intent.view || intent.stage);
   }
 
   function applyIntent(intent, options) {
     const opts = options || {};
+
+    // G5: 입도가 안 맞으면 **무대를 바꾸지 않고** 왜 못 하는지 말한다.
+    // 엉뚱한 탭을 열어 놓고 답한 척하는 것이 여기서 막는 실패다.
+    if (intent && intent.grainMismatch) {
+      note("이 질문은 지금 화면으로 답할 수 없어 화면을 바꾸지 않았습니다. " +
+        "업종별 증감은 자치구 단위로만 있어서 행정동 단위로는 낼 수 없습니다.");
+      return null;
+    }
+
+    // G6: 불가능한 조합. 지표까지는 맞추되 **왜 나머지를 안 했는지** 말한다.
+    // 지금은 작은 안내문으로만 알리고 있어 읽는 사람이 거의 없다.
+    if (intent && intent.constraint) {
+      note(intent.constraint);
+    }
+
     if (isEmpty(intent)) return null;
+
+    // 무대가 분석 탭이면 지도가 아니라 그 탭을 연다. 지도 상태는 건드리지 않는다.
+    if (intent.stage) {
+      const stage = window.ontology && window.ontology.stageById(intent.stage);
+      if (window.openTopicStage && stage) {
+        window.openTopicStage(intent.stage, intent.params);
+        if (!opts.silent) {
+          // 파라미터까지 맞췄으면 그것도 말한다. 안 그러면 사용자는 자기가
+          // 요청한 정렬이 반영됐는지 화면을 뒤져 봐야 한다.
+          const extra = intent.params ? ` (${Object.values(intent.params).join(", ")} 기준)` : "";
+          note(`'${stage.label}' 탭을 열었습니다${extra}`);
+        }
+      }
+      return null;
+    }
 
     // 지도가 아직 없으면(콜드스타트) 큐에 둔다. 뜬 뒤에 반영된다.
     if (typeof window.applyMapState !== "function") {
@@ -54,6 +84,19 @@
     const summary = describe(intent);
     if (!opts.silent && summary) announce(summary, before);
     return before;
+  }
+
+  // 되돌릴 것이 없는 안내. 무대 전환과 "못 한다"에 쓴다.
+  function note(text) {
+    const list = document.getElementById("chat-messages");
+    if (!list) return;
+    const wrap = document.createElement("div");
+    wrap.className = "intent-note";
+    const span = document.createElement("span");
+    span.textContent = text; // 사용자 입력이 되비칠 수 있는 자리라 textContent만
+    wrap.appendChild(span);
+    list.appendChild(wrap);
+    list.scrollTop = list.scrollHeight;
   }
 
   // 바뀐 것을 채팅 흐름에 한 줄로 남기고 되돌리기 버튼을 붙인다.

@@ -220,7 +220,9 @@ const INTENTS = [
   // 띄우는 별칭은 없는 별칭보다 나쁘다** — 안 잡히면 지금과 같은 상태일 뿐이다.
   ["가게 많은 동네가 어디야", {}],
   ["망해서 문 닫는 데 많아?", { metric: "turnover" }],
-  ["오래 버티는 동네가 어디야", { metric: "survival" }],
+  // "어디야"는 한 지역이 아니라 분포를 묻는다. G5가 산점도 탭으로 보낸다 —
+  // 지도는 한 번에 한 곳만 고르므로 "어디가 오래 버티나"에 답할 수 없다.
+  ["오래 버티는 동네가 어디야", { metric: "survival", stage: "growth" }],
   ["업소가 늘었나 줄었나", { metric: "change" }],
 
   // 보기 방식
@@ -268,11 +270,129 @@ check(
   INTENTS.every(([q]) => JSON.stringify(ontology.resolveIntent(q)) === JSON.stringify(ontology.resolveIntent(q)))
 );
 
-const total = CASES.length + INTENTS.length;
-console.log(
-  `     커버리지: 표 ${total}문항 · 거절 ${matched}건 · 의도 생성 ${resolved}건 · ` +
-    `아무것도 안 함 ${total - matched - resolved}건`
+// ── 2c. G5 무대 선택 ─────────────────────────────────────────────────────────
+// 형식: [질문, 기대 무대] — null이면 "무대를 바꾸지 않는다"
+const STAGES = [
+  // 한 지역의 값 → 지도. 라벨이 같아도 분포와는 다른 개념이다.
+  ["용문동 교체율은?", undefined],
+  ["둔산1동 잔존율 알려줘", undefined],
+
+  // 분포·비교 → 탭. 지도는 한 번에 한 곳만 고른다.
+  ["교체율 높은 데가 어디야?", "turnover"],
+  ["업소 수가 제일 많은 자치구는?", "district"],
+  ["어디가 가장 성장했어?", "growth"],
+  ["업종별로 어디가 늘었는지 비교해줘", "industry"],
+
+  // 입도 불일치 → 무대를 바꾸지 않고 이유를 말한다. 여기가 G5의 핵심이다.
+  ["서구 업종 구성이 제일 다양한 동이 어디야?", "GRAIN"],
+
+  // 비교가 아니면 지도에 남는다
+  ["대덕구는 어때?", undefined],
+];
+
+const stageWrong = [];
+for (const [question, expected] of STAGES) {
+  const intent = ontology.resolveIntent(question);
+  const got = intent.grainMismatch ? "GRAIN" : intent.stage;
+  if (got !== expected) stageWrong.push(`"${question}" → ${got} (기대: ${expected})`);
+}
+check(`무대 선택 ${STAGES.length}문항이 기대대로 간다`, stageWrong.length === 0, stageWrong.join("\n     → "));
+
+check(
+  "입도가 안 맞으면 무대도 지표도 내놓지 않는다",
+  (() => {
+    const got = ontology.resolveIntent("서구 업종 구성이 제일 다양한 동이 어디야?");
+    return !!got.grainMismatch && !got.stage && !got.metric && !got.district;
+  })(),
+  "답할 수 없는데 탭을 열면 그게 답한 척이다 — G2와 같은 실패다"
 );
+
+check(
+  "무대가 가리키는 id가 전부 실재한다",
+  STAGES.filter(([, e]) => e && e !== "GRAIN").every(([, e]) => dictStages.includes(e))
+);
+
+// ── 2d. G8 탭 파라미터 · G6 제약 ─────────────────────────────────────────────
+// 임베드 대시보드는 **우리 저장소가 아니다.** 2026-09-11 원문에서 확인한 계약이고,
+// 틀린 값은 저쪽이 에러 없이 무시한다 — 탭은 열리고 정렬은 기본값인데 사용자는
+// 맞춰졌다고 믿는다. 조용한 실패를 미리 잡는 방법은 이 대조뿐이다.
+const DASHBOARD_CONTRACT = {
+  metric: ["density", "hhi", "survival"],
+  bar: ["district", "category", "dong"],
+  sort: ["change", "growth", "score"],
+  series: ["city", "district", "category", "dong"],
+};
+
+const contractViolations = [];
+for (const stage of dict.stages || []) {
+  // 지도는 우리 코드다. 계약은 **임베드하는 무대**에만 걸린다 — 지도의 지표
+  // 7종을 저쪽 계약(3종)에 맞추라고 요구하면 그건 틀린 검사다.
+  if (!stage.embed) continue;
+  for (const [key, allowed] of Object.entries(stage.accepts || {})) {
+    if (!(key in DASHBOARD_CONTRACT)) continue;
+    if (!Array.isArray(allowed)) continue;
+    const bad = allowed.filter((v) => !DASHBOARD_CONTRACT[key].includes(v));
+    if (bad.length) contractViolations.push(`${stage.id}.${key}: ${bad.join(", ")}`);
+  }
+  // embed 문자열 자체도 계약 안에 있어야 한다.
+  for (const [key, value] of new URLSearchParams(stage.embed || "")) {
+    if (key in DASHBOARD_CONTRACT && !DASHBOARD_CONTRACT[key].includes(value)) {
+      contractViolations.push(`${stage.id}.embed ${key}=${value}`);
+    }
+  }
+}
+check(
+  "사전의 파라미터가 임베드 대시보드 계약 안에 있다",
+  contractViolations.length === 0,
+  `계약 밖: ${contractViolations.join(" · ")} — 저쪽은 조용히 무시하고 기본값으로 연다`
+);
+
+const PARAMS = [
+  ["증감률 순으로 자치구 보여줘", "district", { sort: "growth" }],
+  ["증감량 기준으로 자치구 비교", "district", { sort: "change" }],
+  ["행정동별 업소 수 순위 보여줘", "district", { bar: "dong" }],
+  ["어디가 가장 성장했어?", "growth", null],
+];
+const paramWrong = [];
+for (const [question, stageId, expected] of PARAMS) {
+  const got = ontology.resolveIntent(question).params || null;
+  if (JSON.stringify(got) !== JSON.stringify(expected)) {
+    paramWrong.push(`"${question}" → ${JSON.stringify(got)} (기대: ${JSON.stringify(expected)})`);
+  }
+}
+check(`탭 파라미터 ${PARAMS.length}문항이 기대대로 나온다`, paramWrong.length === 0, paramWrong.join("\n     → "));
+
+check(
+  "생성된 파라미터도 계약 안의 값만 쓴다",
+  PARAMS.every(([q]) => {
+    const intent = ontology.resolveIntent(q);
+    return Object.entries(intent.params || {}).every(
+      ([k, v]) => !(k in DASHBOARD_CONTRACT) || DASHBOARD_CONTRACT[k].includes(v)
+    );
+  }),
+  "질문 문자열이 그대로 URL에 실리면 안 된다"
+);
+
+// G6: 불가능한 조합
+const CONSTRAINTS = [
+  ["작년 교체율은 어땠어?", true],   // 교체율은 전 기간 누적이라 시점을 못 고른다
+  ["용문동 교체율은?", false],
+];
+const constraintWrong = [];
+for (const [question, shouldBlock] of CONSTRAINTS) {
+  const blocked = !!ontology.resolveIntent(question).constraint;
+  if (blocked !== shouldBlock) constraintWrong.push(`"${question}" → ${blocked} (기대: ${shouldBlock})`);
+}
+check(`제약 ${CONSTRAINTS.length}문항이 기대대로 걸린다`, constraintWrong.length === 0, constraintWrong.join("\n     → "));
+check(
+  "제약에 걸려도 화면이 어긋난 상태로 가지 않는다",
+  (() => {
+    const got = ontology.resolveIntent("작년 교체율은 어땠어?");
+    return !!got.constraint && !got.period;
+  })(),
+  "시점을 밀어 넣으면 셀렉트는 잠겨 있는데 값만 바뀌어 화면이 거짓말을 한다"
+);
+
 
 // ── 3. 프런트 ↔ 백엔드 양방향 대조 ───────────────────────────────────────────
 const PROMPT_SOURCES = [
@@ -317,6 +437,15 @@ check(
   `사전이 모르는 한계: ${unclaimed.join(", ")} — refuse 범주를 추가해야 화면도 같은 말을 한다`
 );
 console.log(`     프롬프트에서 읽은 한계: ${[...declared].join(", ") || "(없음)"}`);
+
+// 커버리지를 숫자로 남긴다. 조용히 낮아지는 것을 막는 것이 목적이다.
+const total = CASES.length + INTENTS.length + STAGES.length + PARAMS.length + CONSTRAINTS.length;
+const idle = INTENTS.filter(([, e]) => !Object.keys(e).length).length;
+console.log(
+  `\n커버리지: 표 ${total}문항 · 거절 ${matched}건 · 의도 생성 ${resolved}건 · ` +
+    `무대 선택 ${STAGES.length}건 · 파라미터 ${PARAMS.length}건 · 제약 ${CONSTRAINTS.length}건 · ` +
+    `일부러 아무것도 안 하는 문항 ${idle}건`
+);
 
 console.log(failed ? `\n온톨로지 점검 실패 ${failed}건.` : "\n온톨로지 점검 통과.");
 process.exit(failed ? 1 : 0);

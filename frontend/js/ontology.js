@@ -124,6 +124,94 @@
     return null;
   }
 
+  // ── G5: 무대 선택 — 입도로 가른다 ─────────────────────────────────────────
+  //
+  // 지도가 답할 수 없는 질문이 있다. "서구랑 동구 중 어디가 더 안정적이야?"
+  // 지도는 한 번에 한 곳만 고른다. 지금은 사용자가 탭 5개 중 무엇을 봐야
+  // 하는지 스스로 알아내야 한다.
+  //
+  // **입도가 안 맞으면 보내지 않는다.** 히트맵은 `district×industry` 입도라
+  // 행정동 질문에 답할 수 없다. 모르고 보내면 엉뚱한 탭을 열어 놓고 답한 척하게
+  // 된다 — G2와 같은 실패다. 그래서 이건 편의가 아니라 정확성이다.
+
+  // 질문이 요구하는 입도. 무엇을 묻는지가 아니라 **어떤 단위의 답**을 원하는지다.
+  // "어디"는 넓지만 안전하다. 한 지역을 콕 집은 질문은 위에서 이미 지도로
+  // 빠지므로("용문동 교체율은?"), 여기까지 오는 "어디"는 대체로 분포를 묻는다.
+  const COMPARISON = ["어디", "비교", "순위", "순으로", "제일", "가장", "높은 곳", "낮은 곳", "많은 곳", "top"];
+  const DISTRIBUTION = ["분포", "전체적", "어느 동네", "어디들", "다 보여"];
+
+  function wantsComparison(query) {
+    return COMPARISON.some((p) => query.indexOf(normalizeQuery(p)) !== -1) ||
+      DISTRIBUTION.some((p) => query.indexOf(normalizeQuery(p)) !== -1);
+  }
+
+  function stageById(id) {
+    return (dict.stages || []).find((s) => s.id === id) || null;
+  }
+
+  // 어느 무대로 보낼지. 못 보내면 왜 못 보내는지 이유를 함께 돌려준다.
+  //
+  // 보내지 못하는 것과 보낼 데가 없는 것은 다르다. 전자는 말해 줘야 한다.
+  function chooseStage(intent, query) {
+    // 한 지역을 콕 집었으면 그건 "그 지역의 값"이라 지도다. 라벨이 같아도
+    // 분포를 묻는 것과는 다른 개념이다(동명이개념).
+    if (intent.dong) return { stage: "map" };
+
+    // 사용자가 입도를 직접 말했으면 그것이 가장 강한 신호다.
+    const districtAsked = query.indexOf("자치구") !== -1 || query.indexOf("구별") !== -1;
+    const dongAsked = query.indexOf("행정동") !== -1 || query.indexOf("동별") !== -1;
+
+    if (!wantsComparison(query) && !districtAsked && !dongAsked) return { stage: "map" };
+
+    // 업종이 걸린 비교는 히트맵인데, 그건 자치구 × 업종 입도다.
+    const industryAsked = intent.metric === "hhi" || query.indexOf("업종") !== -1;
+    if (industryAsked) {
+      // **행정동 단위 업종 답은 어느 무대도 못 낸다.** 엉뚱한 탭을 열지 않는다.
+      // 열어 놓으면 답한 척이 된다 — G2와 같은 실패다.
+      if (dongAsked || (intent.district && query.indexOf("동") !== -1)) {
+        return { stage: null, reason: "grain", wanted: "dong", have: "district×industry" };
+      }
+      return { stage: "industry" };
+    }
+
+    // 막대 탭은 bar 파라미터로 입도를 바꾼다(district·category·dong).
+    if (districtAsked || dongAsked) return { stage: "district" };
+
+    if (intent.metric === "turnover") return { stage: "turnover" };
+    if (intent.metric === "survival" || intent.metric === "change") return { stage: "growth" };
+    if (intent.metric === "stores" || intent.metric === "density") return { stage: "district" };
+    return { stage: "map" };
+  }
+
+  // ── G6: 불가능한 조합 ─────────────────────────────────────────────────────
+  //
+  // 제약을 어기는 요청은 **화면을 어긋난 상태로 보내지 않고** 이유를 말한다.
+  // 지금은 작은 안내문으로만 알리는데 읽는 사람이 거의 없다.
+  //
+  // ② "전 기간 지표는 시점을 못 고른다"는 이미 코드가 막고 있다
+  //    (map.js의 `period.disabled = !!spec().allPeriods`). 여기서는 **사실로만
+  //    적고** 다시 구현하지 않는다 — 두 벌이 되면 갈라진다.
+  function constraintFor(intent, query) {
+    if (!dict || !dict.constraints) return null;
+
+    // ① 업종 점은 최신 한 시점뿐이다. 업종과 시점을 함께 요구하면 못 한다.
+    const asksPeriod = ["시점", "기간", "월", "년", "작년", "재작년", "예전", "과거"].some(
+      (w) => query.indexOf(normalizeQuery(w)) !== -1
+    );
+    if (intent.category && asksPeriod) {
+      return dict.constraints.find((c) => c.id === "category-vs-period") || null;
+    }
+
+    // ② 전 기간 누적 지표에 특정 시점을 요구한 경우.
+    if (intent.metric && asksPeriod) {
+      const metric = (dict.metrics || []).find((m) => m.key === intent.metric);
+      if (metric && metric.periods === "all") {
+        return dict.constraints.find((c) => c.id === "all-period-metrics") || null;
+      }
+    }
+    return null;
+  }
+
   // 질문 하나를 의도 객체로. 못 알아들으면 **빈 객체**를 돌려준다.
   function resolveIntent(text) {
     const intent = {};
@@ -151,7 +239,54 @@
     const view = findView(wanted);
     if (view) intent.view = view;
 
+    // G5: 어느 무대인가. 지도면 굳이 적지 않는다 — 기본이 지도라 적으면
+    // "말한 것만 바꾼다"를 어기고 분석 탭에 있던 사용자를 끌어내린다.
+    const choice = chooseStage(intent, wanted);
+    if (choice.stage && choice.stage !== "map") intent.stage = choice.stage;
+    if (choice.reason === "grain") {
+      // 답할 수 없다. **무대를 바꾸지 않고** 왜 못 하는지만 남긴다.
+      return { grainMismatch: { wanted: choice.wanted, have: choice.have } };
+    }
+
+    // G8: 탭을 열 거라면 파라미터까지 맞춘다. 탭만 열고 기본 정렬로 두면
+    // 사용자가 다시 손봐야 한다. **계약 안의 값만** 쓴다 — 없는 값을 넣으면
+    // 저쪽이 조용히 무시해서 "맞춰졌다"고 믿게 된다.
+    if (intent.stage) {
+      const params = stageParams(intent.stage, wanted);
+      if (params) intent.params = params;
+    }
+
+    // G6: 불가능한 조합이면 화면을 어긋난 채로 보내지 않는다.
+    const blocked = constraintFor(intent, wanted);
+    if (blocked) {
+      // 지표까지는 맞춰 준다. 못 하는 것은 시점뿐이므로 전부 버리면 과하다.
+      return { metric: intent.metric, regionLabel: intent.regionLabel, constraint: blocked.message };
+    }
+
     return intent;
+  }
+
+  // ── G8: 탭 파라미터 ────────────────────────────────────────────────────────
+  //
+  // 임베드 대시보드는 우리 것이 아니다. 받는 값은 저쪽이 정한 계약이고
+  // **틀린 값은 에러 없이 무시된다** — 그래서 사전의 `accepts`에 있는 값만 쓴다.
+  function stageParams(stageId, query) {
+    const stage = stageById(stageId);
+    if (!stage || !stage.accepts) return null;
+    const params = {};
+
+    const sortable = stage.accepts.sort || [];
+    if (sortable.includes("growth") && (query.indexOf("증감률") !== -1 || query.indexOf("비율") !== -1)) {
+      params.sort = "growth";
+    } else if (sortable.includes("change") && (query.indexOf("증감량") !== -1 || query.indexOf("개수") !== -1)) {
+      params.sort = "change";
+    }
+
+    const barable = stage.accepts.bar || [];
+    if (barable.includes("dong") && query.indexOf("행정동") !== -1) params.bar = "dong";
+    else if (barable.includes("category") && query.indexOf("업종") !== -1) params.bar = "category";
+
+    return Object.keys(params).length ? params : null;
   }
 
   const ontology = {
@@ -159,6 +294,10 @@
     loadRegions,
     refusalFor,
     resolveIntent,
+    chooseStage,
+    stageById,
+    stageParams,
+    constraintFor,
     splitNegation,
     normalizeQuery,
     get dict() { return dict; },
