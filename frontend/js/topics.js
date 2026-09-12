@@ -21,6 +21,21 @@ window.screenContext = null;
     return node;
   }
 
+  // G8: 이 탭에 맞춰 둘 파라미터. 질문에서 온 것을 기본 embed 위에 덮어쓴다.
+  //
+  // **임베드 대시보드는 우리 저장소가 아니다.** 받는 값은 저쪽 계약이고, 틀린
+  // 값은 에러 없이 무시된다 — 탭은 열리고 정렬은 기본값인데 사용자는 요청대로
+  // 맞춰졌다고 믿는다. 그래서 값은 사전의 `accepts`(= 저쪽 계약을 베낀 것)에서만
+  // 오고, CI가 계약 밖으로 나가면 빌드를 깬다.
+  let stageOverrides = {};
+
+  function embedQuery(topic) {
+    const params = new URLSearchParams(topic.embed);
+    const override = stageOverrides[topic.id] || {};
+    Object.keys(override).forEach((key) => params.set(key, override[key]));
+    return params.toString();
+  }
+
   // 실제 대시보드 패널 임베드. 로딩 표시 + 15초 타임아웃 시 재시도(F3).
   function renderEmbed(topic) {
     const wrap = el("div", "topic-frame-wrap");
@@ -41,7 +56,7 @@ window.screenContext = null;
       status.textContent = "대시보드 패널을 불러오는 중...";
       status.classList.remove("error");
       status.hidden = false;
-      frame.src = `${window.DASHBOARD_URL}?${topic.embed}`;
+      frame.src = `${window.DASHBOARD_URL}?${embedQuery(topic)}`;
       setTimeout(() => {
         if (loaded) return;
         status.textContent = "";
@@ -192,6 +207,51 @@ window.screenContext = null;
     if (window.notifyTopicChange && document.querySelector("#chat-messages .bubble:not(.onboarding)")) {
       window.notifyTopicChange(label);
     }
+  };
+
+  // G그룹 전용 진입점: 무대를 지도로 되돌린다.
+  //
+  // **`select()`를 쓰지 않는다.** 그 함수는 토글이라(`activeId === id ? null : id`)
+  // 이미 열린 탭 id로 부르면 오히려 닫히고, `notifyTopicChange`로 채팅에 주제
+  // 구분선까지 남긴다. 되돌리기(G4)와 겹치면 구분선이 두 개 쌓인다.
+  // 여기서는 무대만 바꾸고 대화에는 아무 자국도 남기지 않는다.
+  // G5 전용 진입점: 탭을 **연다**. 토글이 아니다.
+  //
+  // `select(id)`를 쓰면 이미 그 탭이 열려 있을 때 오히려 닫히고 지도로 돌아간다.
+  // 질문에 답하려고 연 탭이 질문 때문에 닫히는 셈이라 그대로는 못 쓴다.
+  window.openTopicStage = function (id, params) {
+    if (!window.TOPICS.some((t) => t.id === id)) return false;
+
+    // G8: 파라미터를 먼저 세워 둬야 임베드가 한 번에 맞는 주소로 열린다.
+    // 나중에 넣으면 iframe이 두 번 로드된다.
+    const changed = JSON.stringify(stageOverrides[id] || {}) !== JSON.stringify(params || {});
+    stageOverrides[id] = params || {};
+
+    if (activeId === id) {
+      // 이미 열려 있다. select()를 부르면 토글이라 오히려 닫힌다.
+      // 파라미터가 바뀐 경우에만 다시 그린다.
+      if (changed) renderDetail(window.TOPICS.find((t) => t.id === id));
+      setStage("topic");
+      return true;
+    }
+    select(id);
+    return true;
+  };
+
+  window.focusMapStage = function () {
+    if (activeId) {
+      activeId = null;
+      window.screenContext = null;
+      window.activeTopicId = null;
+      list.querySelectorAll("button").forEach((b) => {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      renderDetail(null);
+      renderChip(null);
+      if (window.renderSuggestions) window.renderSuggestions();
+    }
+    setStage("map");
   };
 
   window.TOPICS.forEach((t) => {

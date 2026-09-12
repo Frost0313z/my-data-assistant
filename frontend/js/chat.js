@@ -308,6 +308,44 @@ function appendReportCta(askedTopic) {
   list.scrollTop = list.scrollHeight;
 }
 
+// G2: 못 답하는 질문에는 **화면을 바꾸지 않고** 대안을 제시한다.
+//
+// 화면을 바꾸면 답한 척이 된다. A26에서 이미 데었다 — 모르는 것을 아는 지표로
+// 갈아타 답한 것처럼 보였다. 그때는 프롬프트로 막았는데, 화면까지 같은 말을 해야
+// 일관된다. 질문은 그대로 보낸다. 막는 것이 아니라 **먼저 솔직하게 말하는 것**이다.
+function appendRefusalNote(refusal) {
+  const list = document.getElementById("chat-messages");
+  const wrap = document.createElement("div");
+  wrap.className = "refusal-note";
+
+  const text = document.createElement("p");
+  // 사용자 입력이 화면으로 되돌아 나오는 자리다. textContent만 쓴다.
+  text.textContent = refusal.message;
+  wrap.appendChild(text);
+
+  if (refusal.chips.length) {
+    const chips = document.createElement("div");
+    chips.className = "refusal-chips";
+    refusal.chips.forEach((chip) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = chip.text;
+      button.addEventListener("click", () => {
+        // 지도 지표만 바꾼다. 사용자가 스스로 누른 것이므로 이건 "몰래 바꾸는 것"이
+        // 아니다 — G2가 금지하는 것은 묻지도 않고 갈아타는 쪽이다.
+        if (window.setMapMetric) window.setMapMetric(chip.metric);
+        else window.pendingMapMetric = chip.metric;
+        if (window.focusMapStage) window.focusMapStage();
+      });
+      chips.appendChild(button);
+    });
+    wrap.appendChild(chips);
+  }
+
+  list.appendChild(wrap);
+  list.scrollTop = list.scrollHeight;
+}
+
 // A4: 답변을 그린다. 마크다운 렌더러가 없으면(로드 실패) 글자 그대로 — 서식이
 // 없을 뿐 내용은 보인다.
 function renderReply(bubble, text) {
@@ -409,6 +447,23 @@ async function sendMessage(options) {
   // 재시도는 실패한 요청을 다시 보내는 것이지 새 질문이 아니다. 다시 붙이면
   // 같은 질문이 두 번 쌓인다.
   if (!opts.retry) appendMessage("user", message);
+  // G2: 데이터에 없는 것을 물었으면 답을 기다리기 전에 먼저 말한다. **화면은
+  // 건드리지 않는다.** 재시도에는 다시 붙이지 않는다 — 같은 안내가 두 번 쌓인다.
+  const refusal = !opts.retry && window.ontology ? window.ontology.refusalFor(message) : null;
+  if (refusal) appendRefusalNote(refusal);
+
+  // G3·G4: 질문이 화면을 세팅한다.
+  //
+  // **컨텍스트는 이미 위에서 캡처했다(`context`).** 순서가 뒤집히면 사용자가
+  // 고르지 않은 주제가 프롬프트에 실린다 — 이 영역은 전례가 있다("주제를 요청을
+  // 보낸 시점의 것으로 받는다"). 적용은 반드시 캡처 뒤에 온다.
+  //
+  // 거절된 질문에는 아무것도 적용하지 않는다. resolveIntent가 그 경우 화면을
+  // 바꿀 키를 하나도 내놓지 않으므로 여기서 따로 막을 것이 없다.
+  if (!opts.retry && !opts.isReport && window.ontology && window.applyIntent) {
+    window.applyIntent(window.ontology.resolveIntent(message));
+  }
+
   if (window.switchToChatPane) window.switchToChatPane();
   const loadingBubble = appendMessage("assistant", WAIT_BASE);
   // F1: 경과 초가 1초마다 바뀐다. 그대로 두면 스크린리더가 매초 읽는다.
